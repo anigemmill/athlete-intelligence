@@ -1,0 +1,32 @@
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.athlete-intelligence-root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Subtle hover effect for cards */
+.card-hover-fx {
+  transition: all 0.2s ease;
+}
+.card-hover-fx:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: #141418;
+}
+
+/* Tab active state line animation */
+.tab-active-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3b82f6;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
