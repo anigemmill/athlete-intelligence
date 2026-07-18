@@ -1,0 +1,44 @@
+1. Product name
+
+I wouldn't lock in the brand name yet.
+
+For now, I'd tell Replit:
+
+Use Athlete Intelligence as the working product name throughout development. Avoid hardcoding the product name anywhere in the application so it can be changed easily later. The brand identity and commercial name will be decided before launch.
+
+That gives you flexibility. Once you've spoken to customers, you'll have a much better sense of whether the name should feel more enterprise, more AI-focused, or more sports-focused.
+
+2. Alert categories
+
+I would definitely ship sensible defaults first.
+
+As a solo founder, you want to validate that people find the alerts useful before investing time in a rule engine.
+
+I'd answer:
+
+For the MVP, provide four default alert categories:
+
+Results & Rankings
+Media & Interviews
+Sponsorships & Partnerships
+Career Changes (team, selection, contracts where publicly available)
+
+Users can enable or disable each category, but they cannot create custom rules yet. Full user-configurable alert logic will be introduced in a later phase based on customer feedback.
+
+This gives users some control without adding a lot of engineering complexity.
+
+3. Crawling budget
+
+I would be quite conservative.
+
+I'd tell Replit:
+
+Design the MVP to operate within an infrastructure budget of approximately US$200 per month during the pilot phase. Optimise for efficiency by caching results, prioritising trusted sources, performing incremental updates rather than full recrawls, and only using AI when necessary. The architecture should scale beyond this budget without requiring major redesign.
+
+This encourages good engineering decisions from the start.
+
+One extra instruction I'd give Replit
+
+I'd add:
+
+Optimise every architectural decision for a solo founder. If there are two viable approaches, recommend the one that is simpler to build, easier to maintain, and can still scale as the product grows. Avoid introducing technologies or infrastructure that add operational complexity without clear value to the MVP.
