@@ -55,6 +55,46 @@ function toApiAthlete(a: Athlete) {
   };
 }
 
+// POST /athletes/bulk — must come BEFORE /:id
+router.post("/athletes/bulk", async (req, res): Promise<void> => {
+  if (!Array.isArray(req.body?.athletes)) {
+    res.status(400).json({ error: "Expected { athletes: [...] }" });
+    return;
+  }
+
+  const results: Array<{ success: boolean; name: string; id?: number; error?: string }> = [];
+
+  for (const raw of req.body.athletes) {
+    const parsed = CreateAthleteBody.safeParse(raw);
+    if (!parsed.success) {
+      results.push({ success: false, name: raw?.name ?? "Unknown", error: parsed.error.message });
+      continue;
+    }
+    try {
+      const [athlete] = await db
+        .insert(athletesTable)
+        .values({
+          name: parsed.data.name,
+          sport: parsed.data.sport ?? "",
+          event: parsed.data.event ?? "",
+          nationality: parsed.data.nationality ?? "",
+          age: parsed.data.age ?? null,
+          squad: parsed.data.squad ?? "",
+          agentStatus: "active",
+          lastCrawledAt: new Date(),
+        })
+        .returning();
+      await db.insert(alertConfigsTable).values({ athleteId: athlete.id }).onConflictDoNothing();
+      results.push({ success: true, name: athlete.name, id: athlete.id });
+    } catch (err: unknown) {
+      results.push({ success: false, name: raw?.name ?? "Unknown", error: String(err) });
+    }
+  }
+
+  const imported = results.filter((r) => r.success).length;
+  res.status(201).json({ imported, total: results.length, results });
+});
+
 // GET /athletes/compare — must come BEFORE /:id
 router.get("/athletes/compare", async (req, res): Promise<void> => {
   const parsed = CompareAthletesQueryParams.safeParse(req.query);
