@@ -82,7 +82,7 @@ Generate the following JSON object:
       "confidence": <integer 65-97>,
       "publishedAt": <ISO-8601 date string>
     }
-    // 4-6 items total, mix of categories
+    // 6-8 items total, mix of categories, spread across the last 2 years
   ],
   "timeline_events": [
     {
@@ -96,7 +96,12 @@ Generate the following JSON object:
       "confidence": <integer>,
       "significant": <boolean>
     }
-    // 5-8 events, chronological, mix of categories
+    // IMPORTANT: Generate 15-25 events spanning the athlete's FULL career — from their earliest
+    // known season (junior career, debut, or first senior season) right up to the present day.
+    // Events must be in chronological order, oldest first.
+    // Include: debut/first competition, major milestone seasons, podiums, personal bests, sponsorships,
+    // coaching changes, injuries, and recent events. Mark truly pivotal moments as significant: true.
+    // Cover all career phases: junior → emerging → peak → current.
   ],
   "contacts": [
     {
@@ -124,10 +129,19 @@ Generate the following JSON object:
       "location": <string or null>,
       "date": <YYYY-MM-DD>,
       "tier": "A",
-      "status": "upcoming",
-      "result": <string or null>
+      "status": "completed",
+      "result": <string or null, e.g. "1st (9.87s)" or "3rd (147kg snatch)" or "DNF">
     }
-    // 3-4 competitions: 1-2 recent completed + 2 upcoming
+    // IMPORTANT: Generate 15-25 competition entries spanning the athlete's FULL career.
+    // Start from their first notable season and work forward chronologically to today.
+    // Include: early career meets, breakthrough competitions, major championships (Olympics, Worlds,
+    // continental championships), domestic competitions, and recent results.
+    // For completed competitions: always include a result string (position + performance, e.g. "2nd (1:44.81)").
+    // For upcoming (future dates only): set status "upcoming" and result null.
+    // Use realistic tiers: A = World Championships / Olympics / Diamond League finals,
+    //   B = Continental championships / national championships / major invitationals,
+    //   C = domestic / club / lower-tier meets.
+    // Spread results realistically: early career = lower placements, peak years = podiums/wins.
   ]
 }
 `;
@@ -136,7 +150,7 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5.6-luna",
-      max_completion_tokens: 4096,
+      max_completion_tokens: 8192,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: USER_PROMPT(athlete) },
