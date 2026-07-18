@@ -1,0 +1,13 @@
+{
+  "name": "@workspace/scripts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed-products": "tsx src/seed-products.ts"
+  },
+  "dependencies": {
+    "stripe": "^17.7.0",
+    "tsx": "^4.19.0"
+  }
+}

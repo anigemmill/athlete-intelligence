@@ -1,0 +1,132 @@
+🥇 Priority 1 — Intelligence Engine (Highest Priority)
+
+Before polishing AI Chat, make sure the platform can:
+
+Continuously crawl approved sources
+Extract structured athlete information
+Build and update athlete dossiers
+Detect changes over time
+Maintain relationships between entities
+Store source citations and confidence scores
+
+This is the core asset you're building.
+
+🥈 Priority 2 — Athlete Dossier
+
+This should become the hero feature.
+
+When someone opens an athlete, they should immediately see:
+
+AI Summary
+Timeline
+Results
+Rankings
+Sponsors
+Media
+Videos
+Verified Contacts
+Relationship Intelligence
+Sources
+Confidence
+
+If this page is outstanding, people immediately understand the value.
+
+🥉 Priority 3 — AI Chat
+
+Now AI Chat becomes incredibly powerful because it has something substantial to query.
+
+It should answer questions like:
+
+"Compare these three riders."
+"Who has improved the most in the last six months?"
+"Show athletes represented by the same manager."
+"Which athletes have recently gained sponsors?"
+"Which U23 athletes have podium finishes this year?"
+
+The key is that responses are grounded in your structured data plus supporting sources.
+
+4. Intelligence Feed
+
+I actually think this is more valuable than a traditional dashboard.
+
+Imagine opening the platform and seeing:
+
+Today
+
+Athlete A moved up 7 places.
+Athlete B announced a new sponsor.
+Athlete C won a national championship.
+Two new interviews were published.
+Three athlete dossiers were updated overnight.
+
+That immediately demonstrates the value of continuous monitoring.
+
+5. Alerts
+
+I agree these are essential for the pilot, but I'd keep them intentionally simple at first:
+
+Ranking changes
+Competition results
+New media coverage
+Sponsorship announcements
+Career changes
+
+Let users subscribe to those categories before introducing complex custom rules.
+
+6. Onboarding
+
+This is something I'd actually move much higher than Replit did.
+
+A new user shouldn't land on an empty dashboard.
+
+Instead, guide them through:
+
+Welcome
+Create organisation
+Add first athlete
+Generate first dossier
+Follow athlete
+Enable alerts
+Ask first AI question
+
+That creates an immediate "aha" moment.
+
+7. Schedule
+
+Useful, but I'd keep it later unless your pilot users specifically need calendar views. The same information can initially live within athlete profiles and the dashboard.
+
+8. Stripe
+
+Only after you've got pilot users saying, "I'd pay for this." Until then, it's fine to use manual licences or a simple gated beta.
+
+One thing I think is missing
+
+There's one feature I would add before worrying about polished billing:
+
+Source Explorer
+
+This becomes your trust centre.
+
+Every piece of intelligence should link back to the underlying evidence.
+
+Users should be able to see:
+
+What was found
+Where it came from
+When it was discovered
+Whether it has been verified
+Confidence score
+
+For enterprise customers, this is often more important than the AI summary itself because it lets them validate conclusions.
+
+My revised build order
+Intelligence Engine (crawler, extraction, relationships, citations)
+Athlete Dossier
+Source Explorer
+Intelligence Feed
+AI Chat
+Alerts
+Onboarding
+Team features
+Stripe
+Reporting & exports

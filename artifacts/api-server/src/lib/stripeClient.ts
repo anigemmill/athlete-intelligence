@@ -1,0 +1,63 @@
+import Stripe from "stripe";
+import { StripeSync } from "stripe-replit-sync";
+
+async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecret?: string }> {
+  // Fast path: direct secret env var (set via Replit Secrets)
+  if (process.env.STRIPE_SECRET_KEY) {
+    return {
+      secretKey: process.env.STRIPE_SECRET_KEY,
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    };
+  }
+
+  // Fallback: Replit connector API
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY
+    ? "repl " + process.env.REPL_IDENTITY
+    : process.env.WEB_REPL_RENEWAL
+      ? "depl " + process.env.WEB_REPL_RENEWAL
+      : null;
+
+  if (!hostname || !xReplitToken) {
+    throw new Error(
+      "Stripe credentials not found. Set STRIPE_SECRET_KEY in Replit Secrets, or ensure the Stripe integration is connected.",
+    );
+  }
+
+  const resp = await fetch(
+    `https://${hostname}/api/v2/connection?include_secrets=true&connector_names=stripe`,
+    {
+      headers: { Accept: "application/json", X_REPLIT_TOKEN: xReplitToken },
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!resp.ok) throw new Error(`Failed to fetch Stripe credentials: ${resp.status}`);
+
+  const data = await resp.json();
+  const settings = data.items?.[0]?.settings;
+  if (!settings?.secret_key) {
+    throw new Error(
+      "Stripe secret key not found in connector. Set STRIPE_SECRET_KEY in Replit Secrets.",
+    );
+  }
+
+  return { secretKey: settings.secret_key, webhookSecret: settings.webhook_secret };
+}
+
+export async function getUncachableStripeClient(): Promise<Stripe> {
+  const { secretKey } = await getStripeCredentials();
+  return new Stripe(secretKey);
+}
+
+export async function getStripeSync(): Promise<StripeSync> {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("DATABASE_URL environment variable is required");
+
+  const { secretKey, webhookSecret } = await getStripeCredentials();
+  return new StripeSync({
+    poolConfig: { connectionString: databaseUrl },
+    stripeSecretKey: secretKey,
+    stripeWebhookSecret: webhookSecret ?? "",
+  });
+}

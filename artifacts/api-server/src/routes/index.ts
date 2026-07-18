@@ -8,6 +8,7 @@ import competitionsRouter from "./competitions";
 import contactsRouter from "./contacts";
 import timelineRouter from "./timeline";
 import chatRouter from "./chat";
+import stripeRouter from "./stripe";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(competitionsRouter);
 router.use(contactsRouter);
 router.use(timelineRouter);
 router.use(chatRouter);
+router.use(stripeRouter);
 
 export default router;
