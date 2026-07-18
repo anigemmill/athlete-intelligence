@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import {
   MapPin,
   Bell,
@@ -146,9 +146,13 @@ export default function DossierPage() {
     ? athlete.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
 
+  const [, navigate] = useLocation();
   const [photoUrl, setPhotoUrl] = useState<string>("");
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState(false);
+  const [togglingAgent, setTogglingAgent] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   // Sync photoUrl when athlete loads
   useEffect(() => {
@@ -169,6 +173,33 @@ export default function DossierPage() {
       refetchAthlete();
     } catch {
       // silent — photo update is non-critical
+    }
+  };
+
+  const toggleAgent = async () => {
+    if (togglingAgent || !athlete) return;
+    setTogglingAgent(true);
+    const next = athlete.agentStatus === "active" ? "paused" : "active";
+    try {
+      await fetch(`/api/athletes/${athleteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentStatus: next }),
+      });
+      refetchAthlete();
+    } finally {
+      setTogglingAgent(false);
+    }
+  };
+
+  const removeAthlete = async () => {
+    setRemoving(true);
+    try {
+      await fetch(`/api/athletes/${athleteId}`, { method: "DELETE" });
+      navigate("/dashboard");
+    } catch {
+      setRemoving(false);
+      setConfirmRemove(false);
     }
   };
 
@@ -310,10 +341,25 @@ export default function DossierPage() {
               </div>
 
               <div className="flex flex-col items-end gap-3 shrink-0">
-                <div className="flex items-center gap-2 text-[11px] text-[#8A90A8] font-medium border border-[#DCE2EF] rounded-full px-3 py-1 bg-white shadow-sm">
-                  <div className={`w-1.5 h-1.5 rounded-full ${athlete.agentStatus === "active" ? "bg-[#10b981]" : "bg-[#9097B0]"}`} />
-                  Agent {athlete.agentStatus === "active" ? "Active" : "Paused"}
-                </div>
+                {/* Agent toggle */}
+                <button
+                  onClick={toggleAgent}
+                  disabled={togglingAgent}
+                  className={`flex items-center gap-2 text-[11px] font-semibold border rounded-full px-3 py-1 shadow-sm transition-all ${
+                    athlete.agentStatus === "active"
+                      ? "bg-white border-[#DCE2EF] text-[#059669] hover:bg-[#FFF5F5] hover:border-[#E75D50] hover:text-[#E75D50]"
+                      : "bg-white border-[#DCE2EF] text-[#8A90A8] hover:bg-[#F0FFF8] hover:border-[#059669] hover:text-[#059669]"
+                  }`}
+                  title={athlete.agentStatus === "active" ? "Pause monitoring" : "Resume monitoring"}
+                >
+                  {togglingAgent ? (
+                    <div className="w-3 h-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <div className={`w-1.5 h-1.5 rounded-full ${athlete.agentStatus === "active" ? "bg-[#10b981]" : "bg-[#9097B0]"}`} />
+                  )}
+                  {athlete.agentStatus === "active" ? "Agent Active" : "Agent Paused"}
+                </button>
+
                 <div className="flex items-center gap-2">
                   <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-[#DCE2EF] text-[#293055] text-[13px] font-medium shadow-sm hover:bg-[#FCFAFA] transition-colors">
                     <Download size={13} className="text-[#7A8090]" />
@@ -331,8 +377,55 @@ export default function DossierPage() {
                       Configure Alerts
                     </button>
                   </Link>
+                  {/* Remove athlete */}
+                  <button
+                    onClick={() => setConfirmRemove(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white border border-[#DCE2EF] text-[#8A90A8] text-[13px] font-medium shadow-sm hover:border-[#E75D50] hover:text-[#E75D50] hover:bg-[#FFF5F5] transition-all"
+                    title="Remove athlete from monitoring"
+                  >
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                    Remove
+                  </button>
                 </div>
               </div>
+
+              {/* Confirm remove dialog */}
+              {confirmRemove && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl shadow-2xl border border-[#DCE2EF] p-6 w-[360px] mx-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#FFF0EF] flex items-center justify-center mb-4">
+                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#E75D50" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-[15px] font-semibold text-[#1C1F3A] mb-1">Remove {athlete.name}?</h3>
+                    <p className="text-[13px] text-[#7A8090] mb-5 leading-relaxed">
+                      This will permanently delete all intelligence, results, contacts, and timeline data for this athlete. This cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setConfirmRemove(false)}
+                        disabled={removing}
+                        className="flex-1 py-2 rounded-lg border border-[#DCE2EF] text-[#6B7080] text-[13px] font-medium hover:bg-[#F5F7FC] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={removeAthlete}
+                        disabled={removing}
+                        className="flex-1 py-2 rounded-lg bg-[#E75D50] text-white text-[13px] font-semibold hover:bg-[#D04840] transition-colors flex items-center justify-center gap-2"
+                      >
+                        {removing ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : null}
+                        {removing ? "Removing…" : "Remove athlete"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
