@@ -218,8 +218,8 @@ router.patch("/athletes/:id", async (req, res): Promise<void> => {
 
   const updates: Partial<typeof athletesTable.$inferInsert> = {};
   if (parsed.data.squad !== undefined) updates.squad = parsed.data.squad;
-  if (parsed.data.agentStatus !== undefined)
-    updates.agentStatus = parsed.data.agentStatus;
+  if (parsed.data.agentStatus !== undefined) updates.agentStatus = parsed.data.agentStatus;
+  if (parsed.data.avatarUrl !== undefined) updates.avatarUrl = parsed.data.avatarUrl ?? null;
 
   const [updated] = await db
     .update(athletesTable)

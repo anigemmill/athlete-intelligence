@@ -230,8 +230,12 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 6, cursor: "pointer", marginBottom: 1 }}
                 className="hover:bg-[rgba(255,255,255,0.05)] transition-colors"
               >
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.07)" : "rgba(231,93,80,0.20)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.25)" : "rgba(252,250,250,0.90)", flexShrink: 0 }}>
-                  {athlete.name?.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()}
+                <div style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.07)" : "rgba(231,93,80,0.20)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.25)" : "rgba(252,250,250,0.90)" }}>
+                  {athlete.avatarUrl ? (
+                    <img src={athlete.avatarUrl} alt={athlete.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                  ) : (
+                    athlete.name?.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.25)" : "rgba(252,250,250,0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

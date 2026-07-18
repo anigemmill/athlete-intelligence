@@ -69,7 +69,8 @@ Generate the following JSON object:
     "tiktokHandle": <string or null, without @>,
     "tiktokFollowers": <integer>,
     "followerGrowth30d": <integer>,
-    "avgEngagement": <float>
+    "avgEngagement": <float>,
+    "avatarUrl": <string or null — a real, publicly accessible photo URL for this athlete. Prefer Wikipedia Commons image URLs (https://upload.wikimedia.org/...) or official federation/association profile photos. Only include if you are confident the URL is a real public image of this specific athlete. Return null if unsure.>
   },
   "intelligence_items": [
     {
@@ -174,6 +175,7 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
           tiktokFollowers: typeof s.tiktokFollowers === "number" ? s.tiktokFollowers : 0,
           followerGrowth30d: typeof s.followerGrowth30d === "number" ? s.followerGrowth30d : 0,
           avgEngagement: typeof s.avgEngagement === "number" ? s.avgEngagement : 0,
+          avatarUrl: typeof s.avatarUrl === "string" && s.avatarUrl.startsWith("http") ? s.avatarUrl : null,
           hasNewIntelligence: true,
           lastCrawledAt: new Date(),
         })

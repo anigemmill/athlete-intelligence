@@ -146,6 +146,32 @@ export default function DossierPage() {
     ? athlete.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
 
+  const [photoUrl, setPhotoUrl] = useState<string>("");
+  const [editingPhoto, setEditingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
+
+  // Sync photoUrl when athlete loads
+  useEffect(() => {
+    if (athlete?.avatarUrl) {
+      setPhotoUrl(athlete.avatarUrl);
+      setPhotoError(false);
+    }
+  }, [athlete?.avatarUrl]);
+
+  const savePhotoUrl = async () => {
+    try {
+      await fetch(`/api/athletes/${athleteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: photoUrl.trim() || null }),
+      });
+      setEditingPhoto(false);
+      refetchAthlete();
+    } catch {
+      // silent — photo update is non-critical
+    }
+  };
+
   if (athleteLoading) {
     return (
       <AppLayout activePage="athletes">
@@ -195,9 +221,48 @@ export default function DossierPage() {
           <div className="px-8 py-7 border-b border-[#DCE2EF] bg-gradient-to-b from-[#FDF8F8] to-[#FCFAFA] shrink-0">
             <div className="max-w-6xl mx-auto flex items-start justify-between gap-6">
               <div className="flex gap-5">
-                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-[#DCE2EF] shadow-md shrink-0 flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br from-[#E75D50] to-[#C84840]">
-                  {initials}
+                <div className="relative group shrink-0">
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-[#DCE2EF] shadow-md flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br from-[#E75D50] to-[#C84840]">
+                    {athlete.avatarUrl && !photoError ? (
+                      <img
+                        src={athlete.avatarUrl}
+                        alt={athlete.name}
+                        className="w-full h-full object-cover object-top"
+                        onError={() => setPhotoError(true)}
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  {/* Edit photo button */}
+                  <button
+                    onClick={() => setEditingPhoto(true)}
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border border-[#DCE2EF] shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#F5F7FC]"
+                    title="Edit photo URL"
+                  >
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#344F9F" strokeWidth={2.2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.213l-4.5 1.5 1.5-4.5 12.362-12.226z" />
+                    </svg>
+                  </button>
                 </div>
+                {/* Photo URL edit popover */}
+                {editingPhoto && (
+                  <div className="absolute top-[170px] left-[80px] z-50 bg-white border border-[#DCE2EF] rounded-xl shadow-xl p-4 w-80">
+                    <div className="text-[12px] font-semibold text-[#1C1F3A] mb-2">Photo URL</div>
+                    <input
+                      autoFocus
+                      value={photoUrl}
+                      onChange={(e) => setPhotoUrl(e.target.value)}
+                      placeholder="https://upload.wikimedia.org/…"
+                      className="w-full px-3 py-2 text-[12px] border border-[#DCE2EF] rounded-lg outline-none focus:border-[#344F9F] mb-3 bg-[#FCFAFA]"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button onClick={savePhotoUrl} className="flex-1 py-1.5 rounded-lg bg-[#344F9F] text-white text-[12px] font-semibold hover:bg-[#2B4490] transition-colors">Save</button>
+                      <button onClick={() => { setEditingPhoto(false); setPhotoUrl(athlete.avatarUrl ?? ""); }} className="flex-1 py-1.5 rounded-lg border border-[#DCE2EF] text-[#6B7080] text-[12px] font-medium hover:bg-[#F5F7FC] transition-colors">Cancel</button>
+                    </div>
+                    <div className="text-[10px] text-[#A0A8C0] mt-2">Paste any public image URL — Wikipedia Commons works well for elite athletes.</div>
+                  </div>
+                )}
                 <div className="flex flex-col justify-center">
                   <div className="flex items-center gap-3 mb-1.5">
                     <h1 className="text-[24px] font-semibold text-[#1C1F3A] tracking-tight leading-none">{athlete.name}</h1>

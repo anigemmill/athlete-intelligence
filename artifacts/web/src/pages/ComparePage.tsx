@@ -344,10 +344,14 @@ export default function ComparePage() {
                     <div key={a.id} className="rounded-xl border bg-white shadow-sm p-5 flex flex-col gap-3" style={{ borderColor: ATHLETE_COLORS[i] + "40" }}>
                       <div className="flex items-start gap-3">
                         <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-[15px] font-bold shrink-0"
+                          className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center text-white text-[15px] font-bold shrink-0"
                           style={{ background: `linear-gradient(135deg, ${ATHLETE_COLORS[i]}, ${ATHLETE_COLORS[i]}cc)` }}
                         >
-                          {(a.name ?? "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          {a.avatarUrl ? (
+                            <img src={a.avatarUrl} alt={a.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                          ) : (
+                            (a.name ?? "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[14px] font-semibold text-[#1C1F3A] leading-tight truncate">{a.name}</div>
