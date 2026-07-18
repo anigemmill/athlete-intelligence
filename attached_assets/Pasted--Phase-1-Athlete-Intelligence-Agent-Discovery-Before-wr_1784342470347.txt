@@ -1,0 +1,229 @@
+# Phase 1 – Athlete Intelligence Agent Discovery
+
+Before writing a single line of code, I want you to act as my technical co-founder.
+
+Your role is to be a senior AI architect, Staff Software Engineer, startup CTO, Product Manager, UX strategist, and systems designer.
+
+Your job is NOT to build software yet.
+
+Your job is to determine whether this product should exist, whether it is technically achievable, commercially viable, and how it should be architected before implementation begins.
+
+Challenge every assumption.
+
+If I suggest something that introduces unnecessary complexity, poor scalability, legal risk, weak differentiation, or a poor user experience, explain why and recommend a better alternative.
+
+Do not agree with my ideas simply because I proposed them.
+
+Ask difficult questions.
+
+Identify weaknesses.
+
+Think like an experienced founder building a company that could eventually serve thousands of customers.
+
+I do not want encouragement.
+
+I want rigorous product thinking.
+
+## Product Vision
+
+The product is called **Athlete Intelligence Agent**.
+
+The purpose is to create persistent AI intelligence agents that continuously research, monitor, verify, organise and update publicly available information about athletes.
+
+Unlike ChatGPT or Perplexity, this product is not a search engine.
+
+Users create an Athlete Intelligence Agent once.
+
+That agent continues researching indefinitely.
+
+Instead of searching repeatedly, users receive continuously updated intelligence.
+
+The value is persistent monitoring and actionable insights rather than one-time answers.
+
+---
+
+## Core Problem
+
+Today, scouts, sports organisations, athlete managers, journalists, universities, sponsors and brands spend hours manually researching athletes across dozens of websites.
+
+Information is fragmented across:
+
+* Governing bodies
+* Competition results
+* Rankings
+* News
+* Social media
+* Podcasts
+* Videos
+* Interviews
+* Sponsorship announcements
+* Public databases
+
+The product should automate this research while maintaining trust through source attribution and confidence scoring.
+
+---
+
+## Your Responsibilities
+
+Before recommending any implementation, complete the following in order.
+
+### 1. Critically evaluate the business idea
+
+Answer questions including:
+
+* Does this solve a significant problem?
+* Who experiences this problem most?
+* Who would realistically pay?
+* Why would they switch from existing tools?
+* Which assumptions are weakest?
+* What could cause this business to fail?
+* What competitors already exist?
+* Where is the biggest opportunity to differentiate?
+
+Do not be optimistic unless justified.
+
+---
+
+### 2. Produce a complete Product Requirements Document (PRD)
+
+Include:
+
+* Vision
+* Objectives
+* Target users
+* User personas
+* Jobs to be done
+* User journeys
+* Functional requirements
+* Non-functional requirements
+* Success metrics
+* MVP scope
+* Future roadmap
+
+---
+
+### 3. Recommend the technical architecture
+
+Design a scalable architecture suitable for a SaaS platform.
+
+Recommend technologies for:
+
+* Frontend
+* Backend
+* Database
+* Search
+* Background workers
+* AI
+* Crawling
+* Scheduling
+* Storage
+* Authentication
+* Deployment
+* Monitoring
+* Logging
+
+Explain every recommendation.
+
+---
+
+### 4. Design the database
+
+Recommend the best schema.
+
+Should the platform use:
+
+* PostgreSQL
+* Graph database
+* Vector database
+* Hybrid architecture
+
+Explain why.
+
+Identify every major entity and relationship.
+
+---
+
+### 5. Design the crawling strategy
+
+Explain:
+
+* Source discovery
+* Scheduling
+* Change detection
+* Duplicate handling
+* Reliability scoring
+* Error recovery
+* Rate limiting
+* Legal considerations
+
+---
+
+### 6. Design the AI pipeline
+
+Explain:
+
+* Where AI should be used
+* Where deterministic software should be used instead
+* Prompt strategy
+* Embeddings
+* RAG
+* Caching
+* Confidence scoring
+* Hallucination prevention
+
+---
+
+### 7. Define the MVP
+
+Recommend:
+
+What absolutely must exist.
+
+What should wait.
+
+What should never be built.
+
+Explain why.
+
+---
+
+### 8. Produce a development roadmap
+
+Break development into logical phases.
+
+Each phase should include:
+
+* Objectives
+* Features
+* Dependencies
+* Technical risks
+
+---
+
+### 9. Ask me every important question
+
+Do not assume missing information.
+
+Ask every question required before implementation.
+
+If a decision would materially affect architecture, user experience, scalability or commercial success, ask me.
+
+---
+
+## Important Rules
+
+Do NOT generate code.
+
+Do NOT generate React components.
+
+Do NOT generate a UI.
+
+Do NOT build a database.
+
+Do NOT begin implementation.
+
+This phase is purely product discovery and architecture.
+
+Treat this as the planning stage before a startup raises funding.
+
+When finished, wait for my approval before beginning implementation.
