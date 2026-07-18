@@ -1,0 +1,249 @@
+# Relationship Intelligence
+
+Relationship Intelligence should become one of the platform's core long-term differentiators.
+
+Rather than only storing isolated athlete information, the platform should build a structured knowledge graph of how athletes, organisations and people are connected.
+
+Every relationship should be treated as structured data rather than text whenever possible.
+
+## Purpose
+
+Help users understand the wider ecosystem around an athlete.
+
+The platform should answer questions such as:
+
+* Who manages this athlete?
+* Which coach have they worked with?
+* Which teams have they represented?
+* Which national federation are they affiliated with?
+* Which sponsors have partnered with them?
+* Which competitions do they regularly compete in?
+* Who are their teammates?
+* Who are their rivals?
+* Which athletes share the same manager or agency?
+* Which coach has produced the most elite athletes?
+* Which sponsors invest most heavily in emerging talent?
+
+The goal is to surface relationships that would normally require hours of manual research.
+
+---
+
+## Relationship Types
+
+The system should support relationships between entities including:
+
+### Athlete ↔ Coach
+
+Current coach
+
+Previous coaches
+
+Coaching history
+
+---
+
+### Athlete ↔ Manager / Agent
+
+Current manager
+
+Previous managers
+
+Management agency
+
+Representation history
+
+---
+
+### Athlete ↔ Team
+
+Current team
+
+Previous teams
+
+Contract history (where publicly available)
+
+---
+
+### Athlete ↔ National Sporting Organisation
+
+National federation
+
+Regional association
+
+High performance programme
+
+Academy
+
+---
+
+### Athlete ↔ Competition
+
+Competitions entered
+
+Wins
+
+Podiums
+
+Appearances
+
+Participation history
+
+---
+
+### Athlete ↔ Sponsors
+
+Current sponsors
+
+Past sponsors
+
+Partnership timeline
+
+Brand categories
+
+---
+
+### Athlete ↔ Media
+
+Interviews
+
+Podcasts
+
+Articles
+
+Videos
+
+Major media appearances
+
+---
+
+### Athlete ↔ Athlete
+
+Teammates
+
+Relay teammates
+
+Training partners (where publicly available)
+
+Shared coaches
+
+Shared teams
+
+Frequent competitors
+
+Rivalries (where publicly documented)
+
+---
+
+### Athlete ↔ Location
+
+Country
+
+Region
+
+Home training base (publicly available)
+
+Competition history by location
+
+---
+
+### Athlete ↔ Organisation
+
+Universities
+
+Scholarships
+
+Professional clubs
+
+Training centres
+
+Development programmes
+
+---
+
+# Relationship Timeline
+
+Relationships should include historical tracking.
+
+Example:
+
+Coach A
+
+2018–2021
+
+Coach B
+
+2021–Present
+
+Sponsor X
+
+2020–2023
+
+Sponsor Y
+
+2024–Present
+
+The platform should preserve historical relationships rather than overwriting them.
+
+---
+
+# Relationship Verification
+
+Every relationship should include:
+
+* Source
+* Date discovered
+* Last verified
+* Confidence score
+* Verification status
+
+Relationships should never be assumed.
+
+They should always be supported by publicly available evidence.
+
+---
+
+# Relationship Explorer
+
+In future versions, users should be able to visually explore relationships through an interactive knowledge graph.
+
+Examples:
+
+Show every athlete connected to Sponsor X.
+
+Show athletes coached by Coach Y.
+
+Show all riders represented by Agency Z.
+
+Show everyone connected to Team A.
+
+Show relationships within New Zealand Cycling.
+
+Users should be able to expand and navigate connections interactively.
+
+---
+
+# AI Relationship Insights
+
+The AI should identify meaningful patterns across relationships.
+
+Examples:
+
+"This athlete has worked with three Olympic coaches."
+
+"Five athletes represented by this agency have signed professional contracts this year."
+
+"This sponsor has significantly increased investment in emerging mountain bikers over the past three seasons."
+
+"The athlete has competed against Athlete X twelve times, winning eight."
+
+Every insight must reference supporting evidence.
+
+---
+
+# Architecture
+
+The MVP does not require a visual relationship graph.
+
+However, the database should be designed so that all entities and relationships are stored as structured, queryable data from the beginning.
+
+This will allow advanced relationship visualisations and intelligence features to be added later without requiring major architectural changes.

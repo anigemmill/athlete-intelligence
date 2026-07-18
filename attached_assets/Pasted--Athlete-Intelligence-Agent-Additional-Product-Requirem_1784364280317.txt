@@ -1,0 +1,293 @@
+# Athlete Intelligence Agent – Additional Product Requirements & Refinements
+
+The initial product discovery, PRD and architecture have now been completed.
+
+The following decisions should be incorporated into the existing PRD, architecture and implementation roadmap.
+
+These are refinements to the product vision and should be treated as approved requirements.
+
+Do not change previous architecture unless these requirements improve the product.
+
+---
+
+# Product Philosophy
+
+The platform should become the world's most trusted AI intelligence platform for athletes.
+
+Every feature should answer one question:
+
+**"Does this help someone understand, monitor or connect with an athlete more effectively?"**
+
+The product should feel less like a search engine and more like an AI-powered intelligence workspace.
+
+The emphasis is on:
+
+* Trust
+* Verification
+* Continuous monitoring
+* Actionable insights
+* Evidence-backed intelligence
+
+---
+
+# Verified Contacts
+
+Add a dedicated **Verified Contacts** section to every athlete profile.
+
+The purpose is to make it easy for organisations, sponsors, journalists and recruiters to identify the correct public professional contact for an athlete.
+
+Only display information that is publicly available.
+
+Examples include:
+
+* Athlete manager
+* Athlete agent
+* Management agency
+* Public email address
+* Media contact
+* Booking contact
+* Official website
+* National sporting organisation
+* Professional team
+* Sponsor contact (where publicly available)
+
+Every contact should display:
+
+* Verification status
+* Source
+* Last verified date
+* Confidence score
+
+Never display private information or infer contact details.
+
+---
+
+# AI Contact Summary
+
+Generate a short AI summary explaining the recommended contact pathway.
+
+Example:
+
+"This athlete is represented by XYZ Sports Management. Sponsorship and commercial enquiries should be directed through the agency's publicly listed contact details. Competition enquiries should be directed through the national sporting organisation."
+
+Every recommendation must link back to its supporting sources.
+
+---
+
+# Source Transparency
+
+Trust is one of the platform's biggest differentiators.
+
+Every AI-generated statement throughout the platform should display:
+
+* Original source
+* Source type
+* Date discovered
+* Date verified
+* Confidence score
+
+Users should always be able to inspect the evidence behind an AI conclusion.
+
+No AI-generated content should exist without supporting evidence.
+
+---
+
+# Athlete Intelligence Dossier
+
+Each athlete should have a continuously updating AI-generated dossier.
+
+This becomes the centrepiece of the platform.
+
+The dossier should include:
+
+* Athlete overview
+* Career summary
+* Current team
+* Current rankings
+* Competition history
+* Performance trends
+* Awards
+* Sponsorships
+* Media coverage
+* Interviews
+* Podcasts
+* Videos
+* Timeline
+* Verified contacts
+* AI insights
+* Source citations
+
+The dossier should automatically evolve as new information is discovered.
+
+---
+
+# Timeline
+
+Expand the timeline so it becomes a complete career history.
+
+Include:
+
+* Competition results
+* Rankings
+* Team changes
+* Sponsorship announcements
+* Awards
+* Media appearances
+* Interviews
+* Career milestones
+* Selection announcements
+* Public achievements
+
+Every timeline event should include supporting evidence.
+
+---
+
+# AI Chat
+
+Users should be able to ask questions naturally.
+
+Examples:
+
+* Compare Athlete A and Athlete B.
+* What changed this month?
+* Show performance trends.
+* Which sponsors have recently partnered with this athlete?
+* Summarise their career.
+* What is their biggest recent achievement?
+* How has media coverage changed?
+
+Responses must always include supporting sources.
+
+---
+
+# Watchlists
+
+Users should be able to follow athletes.
+
+Watchlists should automatically update as monitored athletes change.
+
+Alerts should be generated based on meaningful updates.
+
+---
+
+# Smart Collections
+
+Users should be able to build dynamic athlete collections.
+
+Examples:
+
+* New Zealand cyclists
+* Under-23 athletes
+* Olympic pathway athletes
+* Riders with recent podium finishes
+* Athletes gaining media attention
+
+Collections should update automatically as new information becomes available.
+
+---
+
+# Organisation Workspaces
+
+Future versions should support collaborative workspaces.
+
+Capabilities include:
+
+* Shared athlete lists
+* Notes
+* Internal comments
+* Saved searches
+* Team watchlists
+* Report sharing
+
+This does not need to be included in the MVP but should be considered during architecture design.
+
+---
+
+# AI Report Generator
+
+Allow users to generate downloadable reports such as:
+
+* Athlete dossier
+* Performance report
+* Sponsorship report
+* Media report
+* Career timeline
+* Research summary
+
+Reports should be exportable in future versions.
+
+---
+
+# Alert Strategy
+
+For the MVP, provide default alert categories.
+
+Users should be able to enable or disable categories.
+
+Default categories:
+
+* Results & Rankings
+* Media & Interviews
+* Sponsorships & Partnerships
+* Career Changes
+
+A fully configurable alert engine can be introduced in a later phase.
+
+---
+
+# Product Principles
+
+Every feature should follow these principles:
+
+* Evidence before opinion.
+* AI should explain itself.
+* Every claim must be traceable.
+* Public information only.
+* Human verification should always be possible.
+* Simplicity over unnecessary complexity.
+* Optimise for a solo founder building an MVP.
+* Build features that create a meaningful competitive advantage over one-time AI search tools.
+
+---
+
+# Competitive Differentiation
+
+The product is **not** another AI chatbot.
+
+The key differentiators are:
+
+* Persistent AI intelligence agents
+* Continuous monitoring
+* Verified source attribution
+* Historical timelines
+* Athlete dossiers
+* Verified professional contacts
+* AI-powered summaries with evidence
+* Automatic change detection
+* Organisation-ready research
+
+These differentiators should remain central to all future product decisions.
+
+---
+
+# Future Platform Vision
+
+Although this product focuses solely on Athlete Intelligence, the underlying architecture should remain modular.
+
+The long-term vision is to support additional intelligence products (such as Tourism Intelligence) using the same core platform.
+
+This should influence architectural decisions but should not increase MVP complexity.
+
+---
+
+# Final Instruction
+
+Review the existing PRD, technical architecture and roadmap.
+
+Update them to incorporate these approved product decisions.
+
+Identify any areas where these additions require architectural changes.
+
+Then recommend whether any features should be simplified, postponed or redesigned before implementation begins.
+
+Do not begin coding until the updated architecture and implementation plan have been completed and approved.

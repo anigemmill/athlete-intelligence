@@ -3,7 +3,7 @@ import { Sidebar } from "./Sidebar";
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  activePage?: "dashboard" | "feed" | "alerts" | "settings";
+  activePage?: "dashboard" | "feed" | "schedule" | "alerts" | "settings";
 }
 
 export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps) {

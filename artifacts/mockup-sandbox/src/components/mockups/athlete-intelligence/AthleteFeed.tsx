@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "./_shared/AppLayout";
 import "./_group.css";
 import {
@@ -14,7 +14,9 @@ import {
   ExternalLink,
   ShieldCheck,
   ChevronRight,
-  Filter
+  Filter,
+  Timer,
+  Calendar,
 } from "lucide-react";
 
 type ItemCategory = "result" | "media" | "sponsorship" | "career";
@@ -109,8 +111,27 @@ const categoryConfig = {
 
 type TabFilter = "all" | ItemCategory;
 
+const NEXT_RACE_ISO = "2026-07-28T09:30:00";
+
 export function AthleteFeed() {
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0 });
+
+  useEffect(() => {
+    const target = new Date(NEXT_RACE_ISO).getTime();
+    function tick() {
+      const diff = target - Date.now();
+      if (diff <= 0) { setCountdown({ days: 0, hours: 0, minutes: 0 }); return; }
+      setCountdown({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+      });
+    }
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const filteredData = activeTab === "all" ? feedData : feedData.filter(item => item.category === activeTab);
 
@@ -201,7 +222,52 @@ export function AthleteFeed() {
             </div>
           </div>
 
-          <div className="max-w-5xl mx-auto w-full px-8 mt-6">
+          <div className="max-w-5xl mx-auto w-full px-8 mt-5">
+            {/* Next Race Widget */}
+            <div
+              className="rounded-xl mb-5 px-5 py-4 flex items-center justify-between gap-6"
+              style={{
+                background: "linear-gradient(135deg, #293055 0%, #1e2440 100%)",
+                border: "1px solid rgba(255,255,255,0.06)",
+              }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: "rgba(231,93,80,0.18)" }}>
+                  <Timer size={14} style={{ color: "#E75D50" }} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#E75D50" }}>
+                    Next Race
+                  </div>
+                  <div className="text-[13px] font-semibold truncate" style={{ color: "rgba(252,250,250,0.92)" }}>
+                    NZ Track &amp; Field Championships — 100m Final
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] mt-0.5" style={{ color: "rgba(252,250,250,0.45)" }}>
+                    <Calendar size={11} />
+                    <span>28 Jul 2026 · 09:30 NZST · Newtown Park, Wellington</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {[
+                  { v: countdown.days, l: "days" },
+                  { v: countdown.hours, l: "hrs" },
+                  { v: countdown.minutes, l: "min" },
+                ].map(({ v, l }, i) => (
+                  <React.Fragment key={l}>
+                    {i > 0 && <span className="text-lg font-light mb-2" style={{ color: "rgba(252,250,250,0.25)" }}>:</span>}
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-bold tabular-nums leading-none" style={{ color: "#FEEEEE" }}>
+                        {String(v).padStart(2, "0")}
+                      </span>
+                      <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: "rgba(252,250,250,0.40)" }}>{l}</span>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
             {/* Filter Tabs */}
             <div className="flex items-center justify-between border-b border-[rgba(41,48,85,0.12)] mb-6">
               <div className="flex gap-6">

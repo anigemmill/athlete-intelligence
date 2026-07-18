@@ -5,5 +5,6 @@ export const modules: ModuleMap = {
   "./components/mockups/athlete-intelligence/AlertConfig.tsx": () => import("../components/mockups/athlete-intelligence/AlertConfig.tsx"),
   "./components/mockups/athlete-intelligence/AthleteFeed.tsx": () => import("../components/mockups/athlete-intelligence/AthleteFeed.tsx"),
   "./components/mockups/athlete-intelligence/Dashboard.tsx": () => import("../components/mockups/athlete-intelligence/Dashboard.tsx"),
+  "./components/mockups/athlete-intelligence/Schedule.tsx": () => import("../components/mockups/athlete-intelligence/Schedule.tsx"),
   "./components/mockups/athlete-intelligence/SignIn.tsx": () => import("../components/mockups/athlete-intelligence/SignIn.tsx")
 };
