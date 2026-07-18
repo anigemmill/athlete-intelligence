@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link, useParams } from "wouter";
 import {
@@ -71,27 +71,63 @@ export default function DossierPage() {
   const athleteId = parseInt(params.id ?? "0");
   const [activeTab, setActiveTab] = useState<string>("overview");
 
-  const { data: athleteData, isLoading: athleteLoading } = useGetAthlete(athleteId, {
+  // Auto-poll while the AI populates freshly-created athletes.
+  // We poll every 3 s for up to 60 s, then back off.
+  const [isPopulating, setIsPopulating] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { data: athleteData, isLoading: athleteLoading, refetch: refetchAthlete } = useGetAthlete(athleteId, {
     query: { enabled: !!athleteId },
   });
-  const { data: intelData } = useListAthleteIntelligence(athleteId, {
+  const { data: intelData, refetch: refetchIntel } = useListAthleteIntelligence(athleteId, {
     query: { enabled: !!athleteId },
   });
-  const { data: contactsData } = useListAthleteContacts(athleteId, {
+  const { data: contactsData, refetch: refetchContacts } = useListAthleteContacts(athleteId, {
     query: { enabled: !!athleteId },
   });
-  const { data: timelineData } = useListAthleteTimeline(athleteId, {
+  const { data: timelineData, refetch: refetchTimeline } = useListAthleteTimeline(athleteId, {
     query: { enabled: !!athleteId },
   });
-  const { data: competitionsData } = useListAthleteCompetitions(athleteId, {
+  const { data: competitionsData, refetch: refetchCompetitions } = useListAthleteCompetitions(athleteId, {
     query: { enabled: !!athleteId },
   });
 
   const athlete = (athleteData as any)?.athlete ?? (athleteData as any);
-  const intel = (intelData as any)?.items ?? (intelData as any) ?? [];
-  const contacts = (contactsData as any)?.contacts ?? (contactsData as any) ?? [];
-  const timeline = (timelineData as any)?.events ?? (timelineData as any) ?? [];
-  const competitions = (competitionsData as any)?.competitions ?? (competitionsData as any) ?? [];
+  const intel: any[] = (intelData as any)?.items ?? (intelData as any) ?? [];
+  const contacts: any[] = (contactsData as any)?.contacts ?? (contactsData as any) ?? [];
+  const timeline: any[] = (timelineData as any)?.events ?? (timelineData as any) ?? [];
+  const competitions: any[] = (competitionsData as any)?.competitions ?? (competitionsData as any) ?? [];
+
+  // Start polling when athlete loads with no intel, stop when data arrives or timeout
+  useEffect(() => {
+    if (!athlete) return;
+    const hasData = intel.length > 0 || contacts.length > 0 || (athlete.worldRank != null);
+    if (hasData) {
+      setIsPopulating(false);
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+      return;
+    }
+    // No data yet — start polling
+    if (pollingRef.current) return; // already polling
+    setIsPopulating(true);
+    pollingRef.current = setInterval(async () => {
+      setPollCount((c) => {
+        if (c >= 20) {
+          // 20 polls × 3 s = 60 s max
+          setIsPopulating(false);
+          if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+          return c;
+        }
+        return c + 1;
+      });
+      await Promise.all([refetchAthlete(), refetchIntel(), refetchContacts(), refetchTimeline(), refetchCompetitions()]);
+    }, 3000);
+    return () => {
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [athlete?.id, intel.length, contacts.length, athlete?.worldRank]);
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -299,9 +335,20 @@ export default function DossierPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[13px]" style={{ color: "rgba(252,250,250,0.60)" }}>
-                        No intelligence items yet. The agent will surface updates as it crawls relevant sources.
-                      </p>
+                      <div className="flex items-center gap-3">
+                        {isPopulating ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-[rgba(252,250,250,0.4)] border-t-[#E75D50] rounded-full animate-spin flex-shrink-0" />
+                            <p className="text-[13px]" style={{ color: "rgba(252,250,250,0.70)" }}>
+                              Agent is gathering intelligence — this takes about 10–20 seconds…
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-[13px]" style={{ color: "rgba(252,250,250,0.60)" }}>
+                            No intelligence items yet. The agent will surface updates as it crawls relevant sources.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
 

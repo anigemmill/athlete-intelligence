@@ -6,6 +6,7 @@ import {
   alertConfigsTable,
   type Athlete,
 } from "@workspace/db";
+import { autoPopulateAthlete } from "../lib/auto-populate.js";
 import {
   GetAthleteParams,
   UpdateAthleteParams,
@@ -86,6 +87,15 @@ router.post("/athletes/bulk", async (req, res): Promise<void> => {
         .returning();
       await db.insert(alertConfigsTable).values({ athleteId: athlete.id }).onConflictDoNothing();
       results.push({ success: true, name: athlete.name, id: athlete.id });
+      // Fire-and-forget population for each imported athlete
+      autoPopulateAthlete({
+        id: athlete.id,
+        name: athlete.name,
+        sport: parsed.data.sport ?? "",
+        event: parsed.data.event ?? "",
+        nationality: parsed.data.nationality ?? "",
+        age: parsed.data.age ?? null,
+      });
     } catch (err: unknown) {
       results.push({ success: false, name: raw?.name ?? "Unknown", error: String(err) });
     }
@@ -159,6 +169,16 @@ router.post("/athletes", async (req, res): Promise<void> => {
     .onConflictDoNothing();
 
   res.status(201).json(CreateAthleteResponse.parse(toApiAthlete(athlete)));
+
+  // Fire-and-forget: populate intelligence, timeline, contacts, competitions via AI
+  autoPopulateAthlete({
+    id: athlete.id,
+    name: athlete.name,
+    sport: athlete.sport,
+    event: athlete.event ?? "",
+    nationality: athlete.nationality ?? "",
+    age: athlete.age,
+  });
 });
 
 // GET /athletes/:id
