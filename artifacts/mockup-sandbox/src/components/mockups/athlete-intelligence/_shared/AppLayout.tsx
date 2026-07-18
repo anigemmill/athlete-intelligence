@@ -13,8 +13,8 @@ export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps
         display: "flex",
         height: "100vh",
         width: "100%",
-        background: "#0b0b0d",
-        color: "#e2e2e6",
+        background: "#FCFAFA",
+        color: "#1C1F3A",
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         overflow: "hidden",
       }}
@@ -27,6 +27,7 @@ export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps
           flexDirection: "column",
           overflow: "hidden",
           minWidth: 0,
+          background: "#FCFAFA",
         }}
       >
         {children}

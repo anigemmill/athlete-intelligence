@@ -58,8 +58,8 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       style={{
         width: 240,
         flexShrink: 0,
-        background: "#0e0e11",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        background: "#293055",
+        borderRight: "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -67,18 +67,19 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       }}
     >
       {/* Brand */}
-      <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+              background: "linear-gradient(135deg, #E75D50 0%, #C84840 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              boxShadow: "0 2px 8px rgba(231,93,80,0.4)",
             }}
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
@@ -86,8 +87,8 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#f0f0f3", letterSpacing: "-0.01em" }}>Athlete Intelligence</div>
-            <div style={{ fontSize: 10, color: "#5a5a6e", letterSpacing: "0.02em", marginTop: 1 }}>ATHLETICS NZ</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(252,250,250,0.95)", letterSpacing: "-0.01em" }}>Athlete Intelligence</div>
+            <div style={{ fontSize: 10, color: "rgba(252,250,250,0.35)", letterSpacing: "0.06em", marginTop: 1 }}>ATHLETICS NZ</div>
           </div>
         </div>
       </div>
@@ -106,8 +107,8 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                 padding: "7px 10px",
                 borderRadius: 6,
                 marginBottom: 2,
-                background: isActive ? "rgba(59,130,246,0.12)" : "transparent",
-                color: isActive ? "#60a5fa" : "#7a7a8c",
+                background: isActive ? "rgba(231,93,80,0.18)" : "transparent",
+                color: isActive ? "#FEEEEE" : "rgba(252,250,250,0.45)",
                 fontSize: 13,
                 fontWeight: isActive ? 500 : 400,
                 cursor: "pointer",
@@ -119,7 +120,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
               {item.id === "alerts" && (
                 <div style={{
                   marginLeft: "auto",
-                  background: "#3b82f6",
+                  background: "#E75D50",
                   color: "white",
                   fontSize: 10,
                   fontWeight: 600,
@@ -141,17 +142,17 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
           alignItems: "center",
           justifyContent: "space-between",
         }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: "#4a4a5e", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(252,250,250,0.3)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
             Monitored Athletes
           </span>
           <div style={{
             width: 18, height: 18,
             borderRadius: 4,
-            background: "rgba(255,255,255,0.05)",
+            background: "rgba(255,255,255,0.1)",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
           }}>
-            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#6b6b80" strokeWidth={2.5}>
+            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="rgba(252,250,250,0.5)" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
           </div>
@@ -174,13 +175,17 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                 width: 26,
                 height: 26,
                 borderRadius: "50%",
-                background: agent.status === "paused" ? "#2a2a35" : "linear-gradient(135deg, #1e3a5f 0%, #1a3a6e 100%)",
+                background: agent.status === "paused"
+                  ? "rgba(255,255,255,0.07)"
+                  : "rgba(231,93,80,0.22)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 10,
                 fontWeight: 600,
-                color: agent.status === "paused" ? "#4a4a5e" : "#60a5fa",
+                color: agent.status === "paused"
+                  ? "rgba(255,255,255,0.28)"
+                  : "rgba(252,250,250,0.92)",
                 flexShrink: 0,
               }}>
                 {agent.name.split(" ").map(n => n[0]).join("")}
@@ -189,17 +194,17 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                 <div style={{
                   fontSize: 12,
                   fontWeight: 500,
-                  color: agent.status === "paused" ? "#4a4a5e" : "#c8c8d4",
+                  color: agent.status === "paused" ? "rgba(255,255,255,0.28)" : "rgba(252,250,250,0.78)",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 }}>
                   {agent.name}
                 </div>
-                <div style={{ fontSize: 10, color: "#4a4a5e", marginTop: 1 }}>{agent.sport}</div>
+                <div style={{ fontSize: 10, color: "rgba(252,250,250,0.35)", marginTop: 1 }}>{agent.sport}</div>
               </div>
               {agent.hasAlert && (
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3b82f6", flexShrink: 0 }} />
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E75D50", flexShrink: 0 }} />
               )}
             </div>
           ))}
@@ -209,7 +214,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       {/* User footer */}
       <div style={{
         padding: "12px 16px",
-        borderTop: "1px solid rgba(255,255,255,0.05)",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         alignItems: "center",
         gap: 10,
@@ -217,18 +222,18 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
         <div style={{
           width: 28, height: 28,
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #374151, #1f2937)",
+          background: "rgba(255,255,255,0.15)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 11, fontWeight: 600, color: "#9ca3af",
+          fontSize: 11, fontWeight: 600, color: "rgba(252,250,250,0.85)",
           flexShrink: 0,
         }}>SH</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#b0b0c0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(252,250,250,0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Sarah Hutchinson
           </div>
-          <div style={{ fontSize: 10, color: "#4a4a5e" }}>Professional</div>
+          <div style={{ fontSize: 10, color: "rgba(252,250,250,0.35)" }}>Professional</div>
         </div>
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#3a3a4e" strokeWidth={2}>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="rgba(252,250,250,0.28)" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>

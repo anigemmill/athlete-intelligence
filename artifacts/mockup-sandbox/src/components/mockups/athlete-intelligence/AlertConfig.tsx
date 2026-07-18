@@ -20,8 +20,8 @@ const Switch = ({ checked, onChange }: { checked: boolean, onChange: (checked: b
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-[20px] w-[36px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0d] ${
-        checked ? 'bg-[#3b82f6]' : 'bg-[#27272a]'
+      className={`relative inline-flex h-[20px] w-[36px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E75D50] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FCFAFA] ${
+        checked ? 'bg-[#E75D50]' : 'bg-[#DEDAD8]'
       }`}
     >
       <span
@@ -58,15 +58,15 @@ const AlertCategoryCard = ({
   onFrequencyChange
 }: AlertCategoryProps) => {
   return (
-    <div className="flex flex-col rounded-lg border border-white/[0.06] bg-[#111114] p-5 transition-colors hover:border-white/[0.1]">
+    <div className="flex flex-col rounded-lg border border-white/[0.06] bg-[#FFFFFF] p-5 transition-colors hover:border-white/[0.1]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-4">
-          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/[0.06] bg-white/[0.02] text-[#a1a1aa]">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/[0.06] bg-white/[0.02] text-[#6B7080]">
             {icon}
           </div>
           <div>
-            <h3 className="text-sm font-medium text-[#e2e2e6]">{title}</h3>
-            <p className="mt-1 text-sm text-[#a1a1aa] leading-relaxed max-w-[480px]">
+            <h3 className="text-sm font-medium text-[#293055]">{title}</h3>
+            <p className="mt-1 text-sm text-[#6B7080] leading-relaxed max-w-[480px]">
               {description}
             </p>
           </div>
@@ -78,24 +78,24 @@ const AlertCategoryCard = ({
 
       <div className={`mt-5 flex items-center justify-between border-t border-white/[0.04] pt-4 transition-opacity duration-200 ${enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#a1a1aa]">Frequency</span>
+          <span className="text-xs text-[#6B7080]">Frequency</span>
           <div className="relative">
             <select
               value={frequency}
               onChange={(e) => onFrequencyChange(id, e.target.value as "Immediate" | "Daily" | "Weekly")}
               disabled={!enabled}
-              className="appearance-none rounded border border-white/[0.08] bg-white/[0.03] py-1.5 pl-3 pr-8 text-xs text-[#e2e2e6] focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6]"
+              className="appearance-none rounded border border-white/[0.08] bg-white/[0.03] py-1.5 pl-3 pr-8 text-xs text-[#293055] focus:border-[#E75D50] focus:outline-none focus:ring-1 focus:ring-[#E75D50]"
             >
               <option value="Immediate">Immediate</option>
               <option value="Daily">Daily digest</option>
               <option value="Weekly">Weekly digest</option>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#a1a1aa] pointer-events-none" />
+            <ChevronDown className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7080] pointer-events-none" />
           </div>
         </div>
         
         {lastTriggered && (
-          <div className="text-[11px] text-[#71717a]">
+          <div className="text-[11px] text-[#909AB8]">
             Last triggered: {lastTriggered}
           </div>
         )}
@@ -173,21 +173,21 @@ export function AlertConfig() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
       `}} />
       
-      <div className="flex h-full w-full flex-col bg-[#0b0b0d] font-['Inter']">
+      <div className="flex h-full w-full flex-col bg-[#FCFAFA] font-['Inter']">
         {/* Header */}
-        <header className="flex shrink-0 flex-col gap-4 border-b border-white/[0.06] bg-[#0b0b0d] px-8 py-6">
-          <button className="group flex w-fit items-center gap-2 text-sm text-[#a1a1aa] transition-colors hover:text-[#e2e2e6]">
+        <header className="flex shrink-0 flex-col gap-4 border-b border-white/[0.06] bg-[#FCFAFA] px-8 py-6">
+          <button className="group flex w-fit items-center gap-2 text-sm text-[#6B7080] transition-colors hover:text-[#293055]">
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Back to Intelligence Feed
           </button>
           
           <div className="flex items-end justify-between">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#e2e2e6]">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#293055]">
                 Alert Configuration
               </h1>
-              <div className="mt-2 flex items-center gap-3 text-sm text-[#a1a1aa]">
-                <span className="font-medium text-[#e2e2e6]">Priya Nair</span>
+              <div className="mt-2 flex items-center gap-3 text-sm text-[#6B7080]">
+                <span className="font-medium text-[#293055]">Priya Nair</span>
                 <span className="h-1 w-1 rounded-full bg-white/[0.2]" />
                 <span>5000m / 10000m</span>
                 <span className="h-1 w-1 rounded-full bg-white/[0.2]" />
@@ -200,7 +200,7 @@ export function AlertConfig() {
               className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all ${
                 hasSaved 
                   ? 'bg-emerald-500/10 text-emerald-500' 
-                  : 'bg-[#3b82f6] text-white hover:bg-[#3b82f6]/90 shadow-[0_0_12px_rgba(59,130,246,0.2)]'
+                  : 'bg-[#E75D50] text-white hover:bg-[#E75D50]/90 shadow-[0_0_12px_rgba(231,93,80,0.18)]'
               }`}
             >
               {isSaving ? (
@@ -224,8 +224,8 @@ export function AlertConfig() {
             {/* Alert Categories */}
             <section>
               <div className="mb-6">
-                <h2 className="text-base font-medium text-[#e2e2e6]">Intelligence Categories</h2>
-                <p className="mt-1 text-sm text-[#a1a1aa]">
+                <h2 className="text-base font-medium text-[#293055]">Intelligence Categories</h2>
+                <p className="mt-1 text-sm text-[#6B7080]">
                   Select which types of intelligence should trigger a notification.
                 </p>
               </div>
@@ -245,32 +245,32 @@ export function AlertConfig() {
             {/* Global Preferences */}
             <section className="border-t border-white/[0.06] pt-10">
               <div className="mb-6 flex items-center gap-2">
-                <Bell className="h-4 w-4 text-[#a1a1aa]" />
-                <h2 className="text-base font-medium text-[#e2e2e6]">Delivery Preferences</h2>
+                <Bell className="h-4 w-4 text-[#6B7080]" />
+                <h2 className="text-base font-medium text-[#293055]">Delivery Preferences</h2>
               </div>
               
-              <div className="rounded-lg border border-white/[0.06] bg-[#111114] p-5">
+              <div className="rounded-lg border border-white/[0.06] bg-[#FFFFFF] p-5">
                 <div className="grid gap-6 md:grid-cols-2">
                   
                   <button 
                     onClick={() => { setDeliveryMethod("both"); setHasSaved(false); }}
                     className={`flex flex-col items-start gap-3 rounded-md border p-4 text-left transition-all ${
                       deliveryMethod === "both" 
-                        ? 'border-[#3b82f6] bg-[#3b82f6]/[0.04]' 
+                        ? 'border-[#E75D50] bg-[#E75D50]/[0.04]' 
                         : 'border-white/[0.06] hover:border-white/[0.1] bg-transparent'
                     }`}
                   >
                     <div className="flex w-full items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Mail className={`h-4 w-4 ${deliveryMethod === "both" ? 'text-[#3b82f6]' : 'text-[#a1a1aa]'}`} />
-                        <span className={`text-sm font-medium ${deliveryMethod === "both" ? 'text-[#3b82f6]' : 'text-[#e2e2e6]'}`}>Email & In-App</span>
+                        <Mail className={`h-4 w-4 ${deliveryMethod === "both" ? 'text-[#E75D50]' : 'text-[#6B7080]'}`} />
+                        <span className={`text-sm font-medium ${deliveryMethod === "both" ? 'text-[#E75D50]' : 'text-[#293055]'}`}>Email & In-App</span>
                       </div>
-                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${deliveryMethod === "both" ? 'border-[#3b82f6]' : 'border-white/[0.2]'}`}>
-                        {deliveryMethod === "both" && <div className="h-2 w-2 rounded-full bg-[#3b82f6]" />}
+                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${deliveryMethod === "both" ? 'border-[#E75D50]' : 'border-white/[0.2]'}`}>
+                        {deliveryMethod === "both" && <div className="h-2 w-2 rounded-full bg-[#E75D50]" />}
                       </div>
                     </div>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                      Receive notifications in the platform and via email to <span className="text-[#e2e2e6]">d.director@athletics.org.nz</span>
+                    <p className="text-xs text-[#6B7080] leading-relaxed">
+                      Receive notifications in the platform and via email to <span className="text-[#293055]">d.director@athletics.org.nz</span>
                     </p>
                   </button>
 
@@ -278,20 +278,20 @@ export function AlertConfig() {
                     onClick={() => { setDeliveryMethod("in-app"); setHasSaved(false); }}
                     className={`flex flex-col items-start gap-3 rounded-md border p-4 text-left transition-all ${
                       deliveryMethod === "in-app" 
-                        ? 'border-[#3b82f6] bg-[#3b82f6]/[0.04]' 
+                        ? 'border-[#E75D50] bg-[#E75D50]/[0.04]' 
                         : 'border-white/[0.06] hover:border-white/[0.1] bg-transparent'
                     }`}
                   >
                     <div className="flex w-full items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Smartphone className={`h-4 w-4 ${deliveryMethod === "in-app" ? 'text-[#3b82f6]' : 'text-[#a1a1aa]'}`} />
-                        <span className={`text-sm font-medium ${deliveryMethod === "in-app" ? 'text-[#3b82f6]' : 'text-[#e2e2e6]'}`}>In-App Only</span>
+                        <Smartphone className={`h-4 w-4 ${deliveryMethod === "in-app" ? 'text-[#E75D50]' : 'text-[#6B7080]'}`} />
+                        <span className={`text-sm font-medium ${deliveryMethod === "in-app" ? 'text-[#E75D50]' : 'text-[#293055]'}`}>In-App Only</span>
                       </div>
-                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${deliveryMethod === "in-app" ? 'border-[#3b82f6]' : 'border-white/[0.2]'}`}>
-                        {deliveryMethod === "in-app" && <div className="h-2 w-2 rounded-full bg-[#3b82f6]" />}
+                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${deliveryMethod === "in-app" ? 'border-[#E75D50]' : 'border-white/[0.2]'}`}>
+                        {deliveryMethod === "in-app" && <div className="h-2 w-2 rounded-full bg-[#E75D50]" />}
                       </div>
                     </div>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                    <p className="text-xs text-[#6B7080] leading-relaxed">
                       Keep my inbox clean. Only show alerts within the Intelligence platform when I log in.
                     </p>
                   </button>

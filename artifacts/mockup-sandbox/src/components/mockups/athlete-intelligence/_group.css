@@ -15,8 +15,8 @@
   transition: all 0.2s ease;
 }
 .card-hover-fx:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  background-color: #141418;
+  border-color: #DCE2EF;
+  background-color: #FDF8F8;
 }
 
 /* Tab active state line animation */
@@ -26,7 +26,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #3b82f6;
+  background-color: #E75D50;
   border-top-left-radius: 2px;
   border-top-right-radius: 2px;
 }
