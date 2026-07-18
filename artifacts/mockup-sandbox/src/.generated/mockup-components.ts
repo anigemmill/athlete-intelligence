@@ -4,6 +4,7 @@ export const modules: ModuleMap = {
   "./components/mockups/athlete-intelligence/AIChat.tsx": () => import("../components/mockups/athlete-intelligence/AIChat.tsx"),
   "./components/mockups/athlete-intelligence/AgentCreation.tsx": () => import("../components/mockups/athlete-intelligence/AgentCreation.tsx"),
   "./components/mockups/athlete-intelligence/AlertConfig.tsx": () => import("../components/mockups/athlete-intelligence/AlertConfig.tsx"),
+  "./components/mockups/athlete-intelligence/AthleteCompare.tsx": () => import("../components/mockups/athlete-intelligence/AthleteCompare.tsx"),
   "./components/mockups/athlete-intelligence/AthleteFeed.tsx": () => import("../components/mockups/athlete-intelligence/AthleteFeed.tsx"),
   "./components/mockups/athlete-intelligence/CareerTimeline.tsx": () => import("../components/mockups/athlete-intelligence/CareerTimeline.tsx"),
   "./components/mockups/athlete-intelligence/Dashboard.tsx": () => import("../components/mockups/athlete-intelligence/Dashboard.tsx"),
