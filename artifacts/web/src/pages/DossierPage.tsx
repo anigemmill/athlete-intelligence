@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Clock,
   AlertCircle,
+  Trophy,
 } from "lucide-react";
 import {
   useGetAthlete,
@@ -129,12 +130,16 @@ export default function DossierPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [athlete?.id, intel.length, contacts.length, athlete?.worldRank]);
 
+  const completedComps = competitions.filter((c: any) => c.status === "completed");
+  const upcomingComps = competitions.filter((c: any) => c.status === "upcoming");
+
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "intelligence", label: "Intelligence" },
+    { id: "results", label: "Results", count: completedComps.length },
     { id: "contacts", label: "Contacts" },
     { id: "timeline", label: "Timeline" },
-    { id: "competitions", label: "Competitions" },
+    { id: "schedule", label: "Schedule", count: upcomingComps.length },
   ];
 
   const initials = athlete?.name
@@ -249,7 +254,13 @@ export default function DossierPage() {
                     <Download size={13} className="text-[#7A8090]" />
                     Export
                   </button>
-                  <Link href={`/athletes/${athleteId}/alerts`}>
+                  <Link href={`/athletes/compare?ids=${athleteId}`}>
+                    <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-[#344F9F] text-[#344F9F] text-[13px] font-medium shadow-sm hover:bg-[rgba(52,79,159,0.05)] transition-colors">
+                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      Compare
+                    </button>
+                  </Link>
+                  <Link href="/alerts">
                     <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#E75D50] text-white text-[13px] font-medium shadow-sm hover:bg-[#D04840] transition-colors">
                       <Bell size={13} />
                       Configure Alerts
@@ -269,11 +280,16 @@ export default function DossierPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`pb-3 pt-3 text-[13px] font-medium transition-colors relative ${
+                    className={`pb-3 pt-3 text-[13px] font-medium transition-colors relative flex items-center gap-1.5 ${
                       isActive ? "text-[#293055]" : "text-[#8A90A8] hover:text-[#6B7080]"
                     }`}
                   >
                     {tab.label}
+                    {"count" in tab && (tab as any).count > 0 && (
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? "bg-[rgba(231,93,80,0.12)] text-[#E75D50]" : "bg-[rgba(160,168,192,0.15)] text-[#9097B0]"}`}>
+                        {(tab as any).count}
+                      </span>
+                    )}
                     {isActive && (
                       <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E75D50] rounded-t-full" />
                     )}
@@ -591,35 +607,119 @@ export default function DossierPage() {
             </div>
           )}
 
-          {/* Competitions tab */}
-          {activeTab === "competitions" && (
-            <div className="max-w-6xl mx-auto w-full px-8 py-6 space-y-3">
-              {Array.isArray(competitions) && competitions.length > 0 ? (
-                competitions.map((comp: any) => (
-                  <div key={comp.id} className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[rgba(52,79,159,0.08)] flex items-center justify-center shrink-0">
-                        <Calendar size={14} className="text-[#344F9F]" />
-                      </div>
-                      <div>
-                        <div className="text-[13px] font-semibold text-[#1C1F3A]">{comp.meetName}</div>
-                        <div className="text-[11px] text-[#8A90A8]">{comp.location} · {comp.event}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${comp.tier === "A" ? "bg-[rgba(231,93,80,0.10)] text-[#E75D50]" : "bg-[rgba(52,79,159,0.08)] text-[#344F9F]"}`}>
-                        Tier {comp.tier}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${comp.status === "upcoming" ? "bg-[rgba(16,185,129,0.10)] text-[#059669]" : "bg-[rgba(107,112,128,0.10)] text-[#6B7080]"}`}>
-                        {comp.status}
-                      </span>
-                      <span className="text-[12px] text-[#8A90A8]">{comp.date}</span>
-                      {comp.result && <span className="text-[12px] font-semibold text-[#1C1F3A]">{comp.result}</span>}
-                    </div>
+          {/* Results tab */}
+          {activeTab === "results" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6">
+              {completedComps.length > 0 ? (
+                <>
+                  {/* Summary bar */}
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    {(() => {
+                      const podiums = completedComps.filter((c: any) => /^(1st|2nd|3rd|gold|silver|bronze)/i.test(c.result ?? "")).length;
+                      const wins = completedComps.filter((c: any) => /^(1st|gold|win)/i.test(c.result ?? "")).length;
+                      return (
+                        <>
+                          <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm text-center">
+                            <div className="text-[26px] font-bold text-[#1C1F3A]">{completedComps.length}</div>
+                            <div className="text-[11px] text-[#8A90A8] font-medium mt-0.5">Races on Record</div>
+                          </div>
+                          <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm text-center">
+                            <div className="text-[26px] font-bold text-[#E75D50]">{wins}</div>
+                            <div className="text-[11px] text-[#8A90A8] font-medium mt-0.5">Wins</div>
+                          </div>
+                          <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm text-center">
+                            <div className="text-[26px] font-bold text-[#344F9F]">{podiums}</div>
+                            <div className="text-[11px] text-[#8A90A8] font-medium mt-0.5">Podiums</div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
-                ))
+
+                  {/* Results table */}
+                  <div className="rounded-xl border border-[#DCE2EF] bg-white shadow-sm overflow-hidden">
+                    <div className="grid grid-cols-[1fr_2fr_1fr_80px_120px] gap-0 border-b border-[#DCE2EF] bg-[#FCFAFA] px-5 py-2.5">
+                      {["Date", "Competition", "Event", "Tier", "Result"].map((h) => (
+                        <div key={h} className="text-[10px] font-bold uppercase tracking-widest text-[#A0A8C0]">{h}</div>
+                      ))}
+                    </div>
+                    {completedComps
+                      .slice()
+                      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((comp: any, i: number) => {
+                        const result = comp.result ?? "";
+                        const isWin = /^(1st|gold|win)/i.test(result);
+                        const isPodium = /^(2nd|silver|3rd|bronze)/i.test(result);
+                        const medalColor = isWin ? "#F59E0B" : isPodium ? "#9CA3AF" : null;
+                        return (
+                          <div
+                            key={comp.id}
+                            className={`grid grid-cols-[1fr_2fr_1fr_80px_120px] gap-0 px-5 py-3.5 items-center ${i % 2 === 0 ? "bg-white" : "bg-[#FAFBFD]"} border-b border-[#F0F2F8] last:border-0 hover:bg-[#F5F7FC] transition-colors`}
+                          >
+                            <div className="text-[12px] text-[#8A90A8] font-medium">{comp.date}</div>
+                            <div>
+                              <div className="text-[13px] font-semibold text-[#1C1F3A] leading-snug">{comp.meetName}</div>
+                              {comp.location && <div className="text-[11px] text-[#A0A8C0] flex items-center gap-1 mt-0.5"><MapPin size={9} />{comp.location}</div>}
+                            </div>
+                            <div className="text-[12px] text-[#6B7080]">{comp.event}</div>
+                            <div>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${comp.tier === "A" ? "bg-[rgba(231,93,80,0.10)] text-[#E75D50]" : comp.tier === "B" ? "bg-[rgba(52,79,159,0.08)] text-[#344F9F]" : "bg-[rgba(160,168,192,0.10)] text-[#8A90A8]"}`}>
+                                Tier {comp.tier}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {medalColor && (
+                                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: medalColor }}>
+                                  {isWin ? "1" : isPodium && /2nd/i.test(result) ? "2" : "3"}
+                                </div>
+                              )}
+                              <span className={`text-[13px] font-semibold ${isWin ? "text-[#F59E0B]" : isPodium ? "text-[#6B7280]" : "text-[#1C1F3A]"}`}>
+                                {result || "—"}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </>
               ) : (
-                <EmptyState icon={<Calendar size={20} className="text-[#9097B0]" />} label="No competitions found" />
+                <EmptyState icon={<Trophy size={20} className="text-[#9097B0]" />} label="No results recorded yet" />
+              )}
+            </div>
+          )}
+
+          {/* Schedule tab */}
+          {activeTab === "schedule" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6 space-y-3">
+              {upcomingComps.length > 0 ? (
+                upcomingComps
+                  .slice()
+                  .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((comp: any) => (
+                    <div key={comp.id} className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm flex items-center justify-between gap-4 hover:border-[#C8D0E8] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[rgba(52,79,159,0.07)] flex flex-col items-center justify-center shrink-0">
+                          <div className="text-[14px] font-bold text-[#344F9F] leading-none">{new Date(comp.date).getDate()}</div>
+                          <div className="text-[9px] font-semibold text-[#8A90A8] uppercase tracking-wide">{new Date(comp.date).toLocaleString("default", { month: "short" })}</div>
+                        </div>
+                        <div>
+                          <div className="text-[13px] font-semibold text-[#1C1F3A]">{comp.meetName}</div>
+                          <div className="text-[11px] text-[#8A90A8] flex items-center gap-1 mt-0.5">
+                            {comp.location && <><MapPin size={9} />{comp.location} · </>}
+                            {comp.event}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${comp.tier === "A" ? "bg-[rgba(231,93,80,0.10)] text-[#E75D50]" : comp.tier === "B" ? "bg-[rgba(52,79,159,0.08)] text-[#344F9F]" : "bg-[rgba(160,168,192,0.10)] text-[#8A90A8]"}`}>
+                          Tier {comp.tier}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[rgba(16,185,129,0.10)] text-[#059669]">Upcoming</span>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <EmptyState icon={<Calendar size={20} className="text-[#9097B0]" />} label="No upcoming competitions" />
               )}
             </div>
           )}
