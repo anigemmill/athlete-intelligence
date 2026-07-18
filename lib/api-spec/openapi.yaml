@@ -3,20 +3,36 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Athlete Intelligence API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: athletes
+    description: Monitored athlete management
+  - name: intelligence
+    description: Intelligence feed items
+  - name: dashboard
+    description: Dashboard aggregates
+  - name: alerts
+    description: Alert configuration
+  - name: competitions
+    description: Competition schedule
+  - name: contacts
+    description: Verified contacts
+  - name: timeline
+    description: Career timeline events
+  - name: chat
+    description: AI chat
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +40,738 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Dashboard ──────────────────────────────────────────────────────────────
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Aggregated dashboard stats and priority targets
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+
+  # ── Athletes ───────────────────────────────────────────────────────────────
+
+  /athletes:
+    get:
+      operationId: listAthletes
+      tags: [athletes]
+      summary: List all monitored athletes
+      responses:
+        "200":
+          description: List of athletes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Athlete"
+    post:
+      operationId: createAthlete
+      tags: [athletes]
+      summary: Add an athlete to monitoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AthleteInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Athlete"
+
+  /athletes/{id}:
+    get:
+      operationId: getAthlete
+      tags: [athletes]
+      summary: Get athlete dossier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Athlete dossier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Athlete"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateAthlete
+      tags: [athletes]
+      summary: Update athlete monitoring settings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AthleteUpdate"
+      responses:
+        "200":
+          description: Updated athlete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Athlete"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAthlete
+      tags: [athletes]
+      summary: Remove athlete from monitoring
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Intelligence ───────────────────────────────────────────────────────────
+
+  /intelligence:
+    get:
+      operationId: listIntelligence
+      tags: [intelligence]
+      summary: Combined intelligence feed for all athletes
+      responses:
+        "200":
+          description: Intelligence items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntelligenceItem"
+
+  /athletes/{id}/intelligence:
+    get:
+      operationId: listAthleteIntelligence
+      tags: [intelligence]
+      summary: Intelligence feed for a specific athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Intelligence items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntelligenceItem"
+
+  # ── Alerts ─────────────────────────────────────────────────────────────────
+
+  /athletes/{id}/alerts:
+    get:
+      operationId: getAthleteAlerts
+      tags: [alerts]
+      summary: Get alert configuration for an athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Alert configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertConfig"
+    put:
+      operationId: updateAthleteAlerts
+      tags: [alerts]
+      summary: Update alert configuration for an athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlertConfigInput"
+      responses:
+        "200":
+          description: Updated alert configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertConfig"
+
+  # ── Competitions ───────────────────────────────────────────────────────────
+
+  /competitions:
+    get:
+      operationId: listCompetitions
+      tags: [competitions]
+      summary: Upcoming competitions for all monitored athletes
+      responses:
+        "200":
+          description: Competition list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Competition"
+
+  /athletes/{id}/competitions:
+    get:
+      operationId: listAthleteCompetitions
+      tags: [competitions]
+      summary: Competitions for a specific athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Competition list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Competition"
+
+  # ── Contacts ───────────────────────────────────────────────────────────────
+
+  /athletes/{id}/contacts:
+    get:
+      operationId: listAthleteContacts
+      tags: [contacts]
+      summary: Verified contacts for an athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contact list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+
+  # ── Timeline ───────────────────────────────────────────────────────────────
+
+  /athletes/{id}/timeline:
+    get:
+      operationId: listAthleteTimeline
+      tags: [timeline]
+      summary: Career timeline events for an athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  # ── Chat ───────────────────────────────────────────────────────────────────
+
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message and receive an AI response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  # ── Compare ────────────────────────────────────────────────────────────────
+
+  /athletes/compare:
+    get:
+      operationId: compareAthletes
+      tags: [athletes]
+      summary: Side-by-side comparison data for multiple athletes
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Comma-separated athlete IDs
+      responses:
+        "200":
+          description: Comparison data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Athlete"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    # ── Dashboard ─────────────────────────────────────────────────────────────
+
+    Dashboard:
+      type: object
+      required:
+        - totalAthletes
+        - activeAgents
+        - newIntelligence
+        - upcomingCompetitions
+        - priorityAlerts
+        - recentIntelligence
+        - priorityAthletes
+      properties:
+        totalAthletes:
+          type: integer
+        activeAgents:
+          type: integer
+        newIntelligence:
+          type: integer
+        upcomingCompetitions:
+          type: integer
+        priorityAlerts:
+          type: integer
+        recentIntelligence:
+          type: array
+          items:
+            $ref: "#/components/schemas/IntelligenceItem"
+        priorityAthletes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Athlete"
+
+    # ── Athlete ───────────────────────────────────────────────────────────────
+
+    Athlete:
+      type: object
+      required:
+        - id
+        - name
+        - sport
+        - event
+        - nationality
+        - squad
+        - agentStatus
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sport:
+          type: string
+        event:
+          type: string
+        nationality:
+          type: string
+        age:
+          type: ["integer", "null"]
+        squad:
+          type: string
+        worldRank:
+          type: ["integer", "null"]
+        worldRankDelta:
+          type: integer
+        nationalRank:
+          type: ["integer", "null"]
+        personalBest:
+          type: ["string", "null"]
+        seasonBest:
+          type: ["string", "null"]
+        instagramHandle:
+          type: ["string", "null"]
+        instagramFollowers:
+          type: integer
+        instagramEngagement:
+          type: number
+        twitterHandle:
+          type: ["string", "null"]
+        twitterFollowers:
+          type: integer
+        tiktokHandle:
+          type: ["string", "null"]
+        tiktokFollowers:
+          type: integer
+        followerGrowth30d:
+          type: number
+        avgEngagement:
+          type: number
+        agentStatus:
+          type: string
+        lastCrawledAt:
+          type: ["string", "null"]
+        intelligenceCount:
+          type: integer
+        hasNewIntelligence:
+          type: boolean
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    AthleteInput:
+      type: object
+      required: [name, sport, event, nationality]
+      properties:
+        name:
+          type: string
+        sport:
+          type: string
+        event:
+          type: string
+        nationality:
+          type: string
+        age:
+          type: ["integer", "null"]
+        squad:
+          type: string
+
+    AthleteUpdate:
+      type: object
+      properties:
+        squad:
+          type: string
+        agentStatus:
+          type: string
+
+    # ── Intelligence ──────────────────────────────────────────────────────────
+
+    IntelligenceItem:
+      type: object
+      required:
+        - id
+        - athleteId
+        - athleteName
+        - category
+        - title
+        - sourceDomain
+        - confidence
+        - discoveredAt
+      properties:
+        id:
+          type: integer
+        athleteId:
+          type: integer
+        athleteName:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        summary:
+          type: ["string", "null"]
+        sourceDomain:
+          type: string
+        sourceUrl:
+          type: ["string", "null"]
+        confidence:
+          type: integer
+        publishedAt:
+          type: ["string", "null"]
+        discoveredAt:
+          type: string
+
+    # ── Alert Config ──────────────────────────────────────────────────────────
+
+    AlertConfig:
+      type: object
+      required:
+        - athleteId
+        - resultsEnabled
+        - resultsFrequency
+        - mediaEnabled
+        - mediaFrequency
+        - sponsorshipsEnabled
+        - sponsorshipsFrequency
+        - careerEnabled
+        - careerFrequency
+      properties:
+        athleteId:
+          type: integer
+        resultsEnabled:
+          type: boolean
+        resultsFrequency:
+          type: string
+        mediaEnabled:
+          type: boolean
+        mediaFrequency:
+          type: string
+        sponsorshipsEnabled:
+          type: boolean
+        sponsorshipsFrequency:
+          type: string
+        careerEnabled:
+          type: boolean
+        careerFrequency:
+          type: string
+
+    AlertConfigInput:
+      type: object
+      properties:
+        resultsEnabled:
+          type: boolean
+        resultsFrequency:
+          type: string
+        mediaEnabled:
+          type: boolean
+        mediaFrequency:
+          type: string
+        sponsorshipsEnabled:
+          type: boolean
+        sponsorshipsFrequency:
+          type: string
+        careerEnabled:
+          type: boolean
+        careerFrequency:
+          type: string
+
+    # ── Competition ───────────────────────────────────────────────────────────
+
+    Competition:
+      type: object
+      required:
+        - id
+        - athleteId
+        - athleteName
+        - meetName
+        - event
+        - date
+        - tier
+        - status
+      properties:
+        id:
+          type: integer
+        athleteId:
+          type: integer
+        athleteName:
+          type: string
+        meetName:
+          type: string
+        event:
+          type: string
+        location:
+          type: ["string", "null"]
+        date:
+          type: string
+        tier:
+          type: string
+        status:
+          type: string
+        result:
+          type: ["string", "null"]
+        daysAway:
+          type: ["integer", "null"]
+
+    # ── Contact ───────────────────────────────────────────────────────────────
+
+    Contact:
+      type: object
+      required:
+        - id
+        - athleteId
+        - role
+        - category
+        - name
+        - org
+        - status
+        - confidence
+        - lastVerified
+        - dateDiscovered
+        - sourceDomain
+      properties:
+        id:
+          type: integer
+        athleteId:
+          type: integer
+        role:
+          type: string
+        category:
+          type: string
+        name:
+          type: string
+        org:
+          type: string
+        orgType:
+          type: ["string", "null"]
+        status:
+          type: string
+        confidence:
+          type: integer
+        publicEmail:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        note:
+          type: ["string", "null"]
+        lastVerified:
+          type: string
+        dateDiscovered:
+          type: string
+        sourceDomain:
+          type: string
+        sourceExcerpt:
+          type: ["string", "null"]
+
+    # ── Timeline ──────────────────────────────────────────────────────────────
+
+    TimelineEvent:
+      type: object
+      required:
+        - id
+        - athleteId
+        - date
+        - category
+        - title
+        - sourceDomain
+        - confidence
+        - significant
+      properties:
+        id:
+          type: integer
+        athleteId:
+          type: integer
+        date:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        sourceDomain:
+          type: string
+        sourceUrl:
+          type: ["string", "null"]
+        confidence:
+          type: integer
+        significant:
+          type: boolean
+
+    # ── Chat ──────────────────────────────────────────────────────────────────
+
+    ChatHistoryMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+        content:
+          type: string
+
+    ChatMessageInput:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        athleteId:
+          type: ["integer", "null"]
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatHistoryMessage"
+
+    ChatSource:
+      type: object
+      required: [domain, confidence]
+      properties:
+        domain:
+          type: string
+        date:
+          type: ["string", "null"]
+        confidence:
+          type: integer
+
+    ChatResponse:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+        content:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatSource"

@@ -1,0 +1,3 @@
+- [Clerk canonical setup](clerk-setup.md) — publishableKeyFromHost + proxyUrl unconditional + /*? wildcard routes + basePath in SignIn path prop
+- [OpenAPI Orval Params collision](openapi-params.md) — Orval emits Params type for query params in both api.ts and types/; causes TS2308; remove conflicting query params and filter client-side
+- [Seed data apostrophes](seed-contacts.md) — multi-row INSERT with apostrophes in SQL strings causes silent failure; use parameterised single-row inserts

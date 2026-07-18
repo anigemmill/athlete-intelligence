@@ -1,0 +1,594 @@
+import React, { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Link, useParams } from "wouter";
+import {
+  MapPin,
+  Bell,
+  Download,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Sparkles,
+  BarChart2,
+  Calendar,
+  Globe,
+  Mail,
+  ShieldCheck,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
+import {
+  useGetAthlete,
+  useListAthleteIntelligence,
+  useListAthleteContacts,
+  useListAthleteTimeline,
+  useListAthleteCompetitions,
+} from "@workspace/api-client-react";
+
+const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const w = 80;
+  const h = 28;
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
+      <polyline points={pts} stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={(data.length - 1) / (data.length - 1) * w} cy={h - ((data[data.length - 1] - min) / range) * h} r="2.5" fill={color} />
+    </svg>
+  );
+};
+
+const categoryColors: Record<string, string> = {
+  results_rankings: "#344F9F",
+  media_interviews: "#059669",
+  sponsorships: "#D97706",
+  career_changes: "#7C3AED",
+};
+const categoryLabel: Record<string, string> = {
+  results_rankings: "Results",
+  media_interviews: "Media",
+  sponsorships: "Sponsorship",
+  career_changes: "Career",
+};
+
+const statusColor: Record<string, string> = {
+  verified: "#059669",
+  unconfirmed: "#D97706",
+  historical: "#6B7080",
+};
+
+export default function DossierPage() {
+  const params = useParams<{ id: string }>();
+  const athleteId = parseInt(params.id ?? "0");
+  const [activeTab, setActiveTab] = useState<string>("overview");
+
+  const { data: athleteData, isLoading: athleteLoading } = useGetAthlete(athleteId, {
+    query: { enabled: !!athleteId },
+  });
+  const { data: intelData } = useListAthleteIntelligence(athleteId, {
+    query: { enabled: !!athleteId },
+  });
+  const { data: contactsData } = useListAthleteContacts(athleteId, {
+    query: { enabled: !!athleteId },
+  });
+  const { data: timelineData } = useListAthleteTimeline(athleteId, {
+    query: { enabled: !!athleteId },
+  });
+  const { data: competitionsData } = useListAthleteCompetitions(athleteId, {
+    query: { enabled: !!athleteId },
+  });
+
+  const athlete = (athleteData as any)?.athlete ?? (athleteData as any);
+  const intel = (intelData as any)?.items ?? (intelData as any) ?? [];
+  const contacts = (contactsData as any)?.contacts ?? (contactsData as any) ?? [];
+  const timeline = (timelineData as any)?.events ?? (timelineData as any) ?? [];
+  const competitions = (competitionsData as any)?.competitions ?? (competitionsData as any) ?? [];
+
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "intelligence", label: "Intelligence" },
+    { id: "contacts", label: "Contacts" },
+    { id: "timeline", label: "Timeline" },
+    { id: "competitions", label: "Competitions" },
+  ];
+
+  const initials = athlete?.name
+    ? athlete.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "??";
+
+  if (athleteLoading) {
+    return (
+      <AppLayout activePage="athletes">
+        <div className="h-full flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!athlete) {
+    return (
+      <AppLayout activePage="athletes">
+        <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-8">
+          <AlertCircle className="w-10 h-10 text-muted-foreground" />
+          <div>
+            <h3 className="text-base font-semibold text-foreground mb-1">Athlete not found</h3>
+            <p className="text-sm text-muted-foreground">No athlete exists with this ID.</p>
+          </div>
+          <Link href="/dashboard">
+            <span className="text-sm text-primary hover:underline cursor-pointer">Back to dashboard</span>
+          </Link>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout activePage="athletes">
+      <div className="h-full flex flex-col bg-[#FCFAFA] overflow-hidden">
+
+        {/* Breadcrumb */}
+        <div className="h-14 border-b border-[#DCE2EF] flex items-center px-6 shrink-0 bg-[#FCFAFA]">
+          <div className="flex items-center gap-2 text-[13px] font-medium text-[#8A90A8]">
+            <Link href="/athletes">
+              <span className="hover:text-[#3D426A] cursor-pointer transition-colors">Athletes</span>
+            </Link>
+            <ChevronRight size={14} className="text-[#C0C8DC]" />
+            <span className="text-[#293055]">{athlete.name}</span>
+            <ChevronRight size={14} className="text-[#C0C8DC]" />
+            <span className="text-[#E75D50] font-semibold">Intelligence Dossier</span>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {/* Hero */}
+          <div className="px-8 py-7 border-b border-[#DCE2EF] bg-gradient-to-b from-[#FDF8F8] to-[#FCFAFA] shrink-0">
+            <div className="max-w-6xl mx-auto flex items-start justify-between gap-6">
+              <div className="flex gap-5">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden border border-[#DCE2EF] shadow-md shrink-0 flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br from-[#E75D50] to-[#C84840]">
+                  {initials}
+                </div>
+                <div className="flex flex-col justify-center">
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <h1 className="text-[24px] font-semibold text-[#1C1F3A] tracking-tight leading-none">{athlete.name}</h1>
+                    {athlete.squad && (
+                      <span className="px-2 py-0.5 rounded-md bg-[rgba(52,79,159,0.10)] text-[#344F9F] text-[11px] font-semibold tracking-wide border border-[rgba(52,79,159,0.18)]">
+                        {athlete.squad}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[13px] text-[#7A8090] mb-3 flex items-center gap-2 font-medium">
+                    <span>{athlete.event}</span>
+                    <span className="w-1 h-1 rounded-full bg-[#C0C8DC]" />
+                    <MapPin size={12} className="text-[#9097B0]" />
+                    <span>{athlete.nationality}{athlete.age ? ` · Age ${athlete.age}` : ""}</span>
+                  </div>
+                  <div className="flex items-center gap-5">
+                    {athlete.worldRank && (
+                      <div className="flex flex-col">
+                        <span className="text-[11px] text-[#9097B0] font-medium">World Rank</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight">#{athlete.worldRank}</span>
+                          {athlete.worldRankDelta != null && athlete.worldRankDelta !== 0 && (
+                            <span className={`text-[11px] font-semibold flex items-center gap-0.5 ${athlete.worldRankDelta > 0 ? "text-[#059669]" : "text-[#E75D50]"}`}>
+                              {athlete.worldRankDelta > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                              {Math.abs(athlete.worldRankDelta)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {athlete.personalBest && (
+                      <div className="flex flex-col">
+                        <span className="text-[11px] text-[#9097B0] font-medium">Personal Best</span>
+                        <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight">{athlete.personalBest}</span>
+                      </div>
+                    )}
+                    {athlete.seasonBest && (
+                      <div className="flex flex-col">
+                        <span className="text-[11px] text-[#9097B0] font-medium">Season Best</span>
+                        <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight">{athlete.seasonBest}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end gap-3 shrink-0">
+                <div className="flex items-center gap-2 text-[11px] text-[#8A90A8] font-medium border border-[#DCE2EF] rounded-full px-3 py-1 bg-white shadow-sm">
+                  <div className={`w-1.5 h-1.5 rounded-full ${athlete.agentStatus === "active" ? "bg-[#10b981]" : "bg-[#9097B0]"}`} />
+                  Agent {athlete.agentStatus === "active" ? "Active" : "Paused"}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-[#DCE2EF] text-[#293055] text-[13px] font-medium shadow-sm hover:bg-[#FCFAFA] transition-colors">
+                    <Download size={13} className="text-[#7A8090]" />
+                    Export
+                  </button>
+                  <Link href={`/athletes/${athleteId}/alerts`}>
+                    <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#E75D50] text-white text-[13px] font-medium shadow-sm hover:bg-[#D04840] transition-colors">
+                      <Bell size={13} />
+                      Configure Alerts
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab bar */}
+          <div className="border-b border-[#DCE2EF] px-8 bg-[#FCFAFA] shrink-0">
+            <div className="max-w-6xl mx-auto flex items-center gap-6">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-3 pt-3 text-[13px] font-medium transition-colors relative ${
+                      isActive ? "text-[#293055]" : "text-[#8A90A8] hover:text-[#6B7080]"
+                    }`}
+                  >
+                    {tab.label}
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E75D50] rounded-t-full" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Overview */}
+          {activeTab === "overview" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6">
+              <div className="grid grid-cols-3 gap-5">
+                <div className="col-span-2 space-y-5">
+                  {/* AI Intelligence Summary */}
+                  <div
+                    className="rounded-xl p-5 shadow-sm"
+                    style={{ background: "linear-gradient(135deg, #293055 0%, #1e2440 100%)" }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "rgba(231,93,80,0.20)" }}>
+                        <Sparkles size={12} style={{ color: "#E75D50" }} />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#E75D50" }}>
+                        Recent Intelligence
+                      </span>
+                      <span className="ml-auto text-[10px]" style={{ color: "rgba(252,250,250,0.35)" }}>
+                        {Array.isArray(intel) ? intel.length : 0} items found
+                      </span>
+                    </div>
+                    {Array.isArray(intel) && intel.length > 0 ? (
+                      <div className="space-y-3">
+                        {intel.slice(0, 2).map((item: any) => (
+                          <div key={item.id} className="border-t border-white/10 pt-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                style={{
+                                  background: `${categoryColors[item.category] ?? "#344F9F"}22`,
+                                  color: categoryColors[item.category] ?? "#344F9F",
+                                }}
+                              >
+                                {categoryLabel[item.category] ?? item.category}
+                              </span>
+                              <span className="text-[10px]" style={{ color: "rgba(252,250,250,0.40)" }}>
+                                {item.sourceDomain}
+                              </span>
+                              <span className="ml-auto text-[10px] font-medium" style={{ color: "rgba(252,250,250,0.45)" }}>
+                                {item.confidence}% confidence
+                              </span>
+                            </div>
+                            <p className="text-[13px] font-medium mb-1" style={{ color: "rgba(252,250,250,0.90)" }}>
+                              {item.title}
+                            </p>
+                            <p className="text-[12px] leading-relaxed" style={{ color: "rgba(252,250,250,0.60)" }}>
+                              {item.summary}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[13px]" style={{ color: "rgba(252,250,250,0.60)" }}>
+                        No intelligence items yet. The agent will surface updates as it crawls relevant sources.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Performance Snapshot */}
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-3">Performance Snapshot</h3>
+                    <div className="grid grid-cols-4 gap-3">
+                      {athlete.worldRank && (
+                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                          <div className="text-[11px] text-[#9097B0] font-medium mb-1">World Rank</div>
+                          <div className="text-[22px] font-bold text-[#1C1F3A] leading-tight mb-0.5">#{athlete.worldRank}</div>
+                          <div className="text-[10px] text-[#A0A8C0]">{athlete.event}</div>
+                          {athlete.worldRankDelta != null && athlete.worldRankDelta !== 0 && (
+                            <div className={`text-[10px] font-semibold mt-1.5 flex items-center gap-1 ${athlete.worldRankDelta > 0 ? "text-[#059669]" : "text-[#E75D50]"}`}>
+                              {athlete.worldRankDelta > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                              {Math.abs(athlete.worldRankDelta)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {athlete.personalBest && (
+                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                          <div className="text-[11px] text-[#9097B0] font-medium mb-1">Personal Best</div>
+                          <div className="text-[22px] font-bold text-[#1C1F3A] leading-tight mb-0.5">{athlete.personalBest}</div>
+                          <div className="text-[10px] text-[#A0A8C0]">{athlete.event}</div>
+                        </div>
+                      )}
+                      {athlete.seasonBest && (
+                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                          <div className="text-[11px] text-[#9097B0] font-medium mb-1">Season Best</div>
+                          <div className="text-[22px] font-bold text-[#1C1F3A] leading-tight mb-0.5">{athlete.seasonBest}</div>
+                          <div className="text-[10px] text-[#A0A8C0]">2025 season</div>
+                        </div>
+                      )}
+                      {athlete.nationalRank && (
+                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                          <div className="text-[11px] text-[#9097B0] font-medium mb-1">National Rank</div>
+                          <div className="text-[22px] font-bold text-[#1C1F3A] leading-tight mb-0.5">#{athlete.nationalRank}</div>
+                          <div className="text-[10px] text-[#A0A8C0]">{athlete.nationality}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Upcoming Competitions */}
+                  {Array.isArray(competitions) && competitions.filter((c: any) => c.status === "upcoming").length > 0 && (
+                    <div>
+                      <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-3">Upcoming Competitions</h3>
+                      <div className="rounded-xl border border-[#DCE2EF] bg-white shadow-sm overflow-hidden">
+                        {competitions
+                          .filter((c: any) => c.status === "upcoming")
+                          .slice(0, 3)
+                          .map((comp: any, i: number, arr: any[]) => (
+                            <div key={comp.id} className={`flex items-center justify-between px-5 py-3.5 ${i < arr.length - 1 ? "border-b border-[#DCE2EF]" : ""}`}>
+                              <div className="flex items-center gap-3">
+                                <div className="w-7 h-7 rounded-lg bg-[rgba(52,79,159,0.08)] flex items-center justify-center">
+                                  <Calendar size={13} className="text-[#344F9F]" />
+                                </div>
+                                <div>
+                                  <div className="text-[13px] font-medium text-[#1C1F3A]">{comp.meetName}</div>
+                                  <div className="text-[11px] text-[#8A90A8]">{comp.location} · {comp.event}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${comp.tier === "A" ? "bg-[rgba(231,93,80,0.10)] text-[#E75D50]" : "bg-[rgba(52,79,159,0.08)] text-[#344F9F]"}`}>
+                                  Tier {comp.tier}
+                                </span>
+                                <span className="text-[12px] text-[#8A90A8]">{comp.date}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right column */}
+                <div className="space-y-5">
+                  {/* Social Media */}
+                  {(athlete.instagramHandle || athlete.twitterHandle) && (
+                    <div className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users size={13} className="text-[#9097B0]" />
+                        <h3 className="text-[13px] font-semibold text-[#1C1F3A]">Social Media</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {athlete.instagramHandle && athlete.instagramFollowers && (
+                          <div className="pb-4 border-b border-[#DCE2EF]">
+                            <div className="text-[12px] font-semibold text-[#1C1F3A] mb-0.5">@{athlete.instagramHandle}</div>
+                            <div className="text-[11px] text-[#8A90A8] mb-1">Instagram</div>
+                            <div className="text-[20px] font-bold text-[#1C1F3A]">
+                              {(athlete.instagramFollowers / 1000).toFixed(1)}K{" "}
+                              <span className="text-xs text-[#9097B0] font-normal">followers</span>
+                            </div>
+                            <Sparkline data={[60, 62, 65, 63, 70, 74, 72, 78, 80, 83, 85, 100]} color="#E75D50" />
+                          </div>
+                        )}
+                        {athlete.twitterHandle && athlete.twitterFollowers && (
+                          <div>
+                            <div className="text-[12px] font-semibold text-[#1C1F3A] mb-0.5">@{athlete.twitterHandle}</div>
+                            <div className="text-[11px] text-[#8A90A8] mb-1">X / Twitter</div>
+                            <div className="text-[20px] font-bold text-[#1C1F3A]">
+                              {(athlete.twitterFollowers / 1000).toFixed(1)}K{" "}
+                              <span className="text-xs text-[#9097B0] font-normal">followers</span>
+                            </div>
+                            <Sparkline data={[50, 52, 55, 60, 58, 63, 65, 68, 70, 72, 75, 80]} color="#344F9F" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agent Status */}
+                  <div className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
+                    <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-3">Agent Status</h3>
+                    <div className="space-y-2 text-[12px]">
+                      <div className="flex justify-between">
+                        <span className="text-[#8A90A8]">Status</span>
+                        <span className={`font-semibold ${athlete.agentStatus === "active" ? "text-[#059669]" : "text-[#8A90A8]"}`}>
+                          {athlete.agentStatus === "active" ? "Active" : "Paused"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A90A8]">Intel items</span>
+                        <span className="font-semibold text-[#1C1F3A]">{athlete.intelligenceCount ?? 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Intelligence tab */}
+          {activeTab === "intelligence" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6 space-y-3">
+              {Array.isArray(intel) && intel.length > 0 ? (
+                intel.map((item: any) => (
+                  <div key={item.id} className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="px-2 py-0.5 rounded text-[11px] font-semibold"
+                          style={{
+                            background: `${categoryColors[item.category] ?? "#344F9F"}18`,
+                            color: categoryColors[item.category] ?? "#344F9F",
+                          }}
+                        >
+                          {categoryLabel[item.category] ?? item.category}
+                        </span>
+                        <span className="text-[11px] text-[#8A90A8]">{item.sourceDomain}</span>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[11px] text-[#8A90A8]">{item.confidence}% confidence</span>
+                        {item.sourceUrl && (
+                          <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#344F9F] hover:underline flex items-center gap-1">
+                            <Globe size={11} />
+                            Source
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <h4 className="text-[14px] font-semibold text-[#1C1F3A] mb-1">{item.title}</h4>
+                    <p className="text-[13px] text-[#6B7080] leading-relaxed">{item.summary}</p>
+                  </div>
+                ))
+              ) : (
+                <EmptyState icon={<BarChart2 size={20} className="text-[#9097B0]" />} label="No intelligence items yet" />
+              )}
+            </div>
+          )}
+
+          {/* Contacts tab */}
+          {activeTab === "contacts" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6 space-y-3">
+              {Array.isArray(contacts) && contacts.length > 0 ? (
+                contacts.map((c: any) => (
+                  <div key={c.id} className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[14px] font-semibold text-[#1C1F3A]">{c.name || "Unknown"}</span>
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                          style={{ background: `${statusColor[c.status]}18`, color: statusColor[c.status] }}
+                        >
+                          {c.status}
+                        </span>
+                      </div>
+                      <div className="text-[12px] text-[#6B7080] mb-1">{c.role} · {c.org}</div>
+                      {c.note && <p className="text-[12px] text-[#8A90A8]">{c.note}</p>}
+                      {c.sourceExcerpt && (
+                        <p className="text-[11px] text-[#A0A8C0] mt-1 italic border-l-2 border-[#DCE2EF] pl-2">{c.sourceExcerpt}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end gap-2">
+                      <span className="text-[11px] text-[#8A90A8]">{c.confidence}% confidence</span>
+                      {c.publicEmail && (
+                        <a href={`mailto:${c.publicEmail}`} className="text-[11px] text-[#344F9F] hover:underline flex items-center gap-1">
+                          <Mail size={11} /> {c.publicEmail}
+                        </a>
+                      )}
+                      {c.website && (
+                        <a href={`https://${c.website}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#344F9F] hover:underline flex items-center gap-1">
+                          <Globe size={11} /> {c.website}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState icon={<ShieldCheck size={20} className="text-[#9097B0]" />} label="No verified contacts yet" />
+              )}
+            </div>
+          )}
+
+          {/* Timeline tab */}
+          {activeTab === "timeline" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6">
+              {Array.isArray(timeline) && timeline.length > 0 ? (
+                <div className="relative pl-6 border-l-2 border-[#DCE2EF] space-y-6">
+                  {timeline.map((evt: any) => (
+                    <div key={evt.id} className="relative">
+                      <div className="absolute -left-[25px] top-1 w-4 h-4 rounded-full border-2 border-[#E75D50] bg-white flex items-center justify-center">
+                        {evt.significant && <div className="w-2 h-2 rounded-full bg-[#E75D50]" />}
+                      </div>
+                      <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <h4 className="text-[13px] font-semibold text-[#1C1F3A]">{evt.title}</h4>
+                          <span className="text-[11px] text-[#8A90A8] shrink-0">{evt.date}</span>
+                        </div>
+                        {evt.location && <div className="flex items-center gap-1 text-[11px] text-[#8A90A8] mb-1"><MapPin size={10} />{evt.location}</div>}
+                        {evt.description && <p className="text-[12px] text-[#6B7080] leading-relaxed">{evt.description}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={<Clock size={20} className="text-[#9097B0]" />} label="No timeline events yet" />
+              )}
+            </div>
+          )}
+
+          {/* Competitions tab */}
+          {activeTab === "competitions" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6 space-y-3">
+              {Array.isArray(competitions) && competitions.length > 0 ? (
+                competitions.map((comp: any) => (
+                  <div key={comp.id} className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[rgba(52,79,159,0.08)] flex items-center justify-center shrink-0">
+                        <Calendar size={14} className="text-[#344F9F]" />
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-semibold text-[#1C1F3A]">{comp.meetName}</div>
+                        <div className="text-[11px] text-[#8A90A8]">{comp.location} · {comp.event}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${comp.tier === "A" ? "bg-[rgba(231,93,80,0.10)] text-[#E75D50]" : "bg-[rgba(52,79,159,0.08)] text-[#344F9F]"}`}>
+                        Tier {comp.tier}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${comp.status === "upcoming" ? "bg-[rgba(16,185,129,0.10)] text-[#059669]" : "bg-[rgba(107,112,128,0.10)] text-[#6B7080]"}`}>
+                        {comp.status}
+                      </span>
+                      <span className="text-[12px] text-[#8A90A8]">{comp.date}</span>
+                      {comp.result && <span className="text-[12px] font-semibold text-[#1C1F3A]">{comp.result}</span>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState icon={<Calendar size={20} className="text-[#9097B0]" />} label="No competitions found" />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </AppLayout>
+  );
+}
+
+function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-12 h-12 rounded-full bg-[rgba(41,48,85,0.06)] flex items-center justify-center mb-3">
+        {icon}
+      </div>
+      <p className="text-[13px] text-[#8A90A8]">{label}</p>
+    </div>
+  );
+}
