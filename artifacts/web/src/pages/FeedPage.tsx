@@ -112,7 +112,7 @@ export default function FeedPage() {
         {/* Breadcrumb / Top Bar */}
         <div className="h-14 border-b border-[#DCE2EF] flex items-center px-6 shrink-0 bg-[#FCFAFA]">
           <div className="flex items-center gap-2 text-[13px] font-medium text-[#8A90A8]">
-            <Link href="/dashboard"><span className="hover:text-[#3D426A] cursor-pointer transition-colors">Athletics NZ</span></Link>
+            <Link href="/dashboard"><span className="hover:text-[#3D426A] cursor-pointer transition-colors">Overview</span></Link>
             <ChevronRight size={14} className="text-[#C0C8DC]" />
             <span className="text-[#293055]">Global Intelligence Feed</span>
           </div>

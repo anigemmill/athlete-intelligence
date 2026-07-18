@@ -23,7 +23,7 @@ export default function Dashboard() {
       athlete: "Lola Anderson", 
       summary: "New race entry detected: Sydney Track Classic (100m). Performance projection indicates 65% chance of PB based on recent training data.", 
       category: "Competition", 
-      source: "World Athletics DB / Regional Entry Lists",
+      source: "World Athletics DB / Regional Entry Lists (mock data)",
       time: "12m ago",
       active: true,
       icon: <Medal size={14} className="text-[#E75D50]" />
@@ -41,7 +41,7 @@ export default function Dashboard() {
     { 
       id: 3, 
       athlete: "Marcus Webb", 
-      summary: "Mentioned in Athletics Australia preliminary selection narrative for upcoming Oceania Champs.", 
+      summary: "Mentioned in national federation preliminary selection narrative for upcoming regional championships.", 
       category: "Selection", 
       source: "Internal Comm / Pathway Memos",
       time: "Yesterday",
@@ -51,9 +51,9 @@ export default function Dashboard() {
     { 
       id: 4, 
       athlete: "James Kowalski", 
-      summary: "UK Athletics published new High Jump standards. Current PB (2.24m) is 3cm short of automatic A-qualifier.", 
+      summary: "National federation published updated qualifying standards. Current PB is 3cm short of the automatic A-qualifier.", 
       category: "Standards", 
-      source: "UK Athletics / Official Criteria",
+      source: "National Federation / Official Criteria",
       time: "Yesterday",
       active: false,
       icon: <Database size={14} className="text-[#6B7080]" />
@@ -88,7 +88,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-[#1C1F3A]">Overview</h1>
             <p className="text-sm mt-1 text-[#6B7080]">
-              Monitoring {stats.totalMonitored} active intelligence agents for Athletics NZ.
+              Monitoring {stats.totalMonitored} active intelligence agents across your roster.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -106,7 +106,7 @@ export default function Dashboard() {
             </div>
             <Link href="/athletes/new" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#E75D50] hover:bg-[#D04840] text-white shadow-sm transition-colors">
               <Plus className="w-4 h-4" />
-              New Target
+              Add Athlete
             </Link>
           </div>
         </header>
