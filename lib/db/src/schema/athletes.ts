@@ -37,6 +37,8 @@ export const athletesTable = pgTable("athletes", {
   intelligenceCount: integer("intelligence_count").notNull().default(0),
   hasNewIntelligence: boolean("has_new_intelligence").notNull().default(false),
   avatarUrl: text("avatar_url"),
+  aiSummary: text("ai_summary"),
+  aiSummaryGeneratedAt: timestamp("ai_summary_generated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

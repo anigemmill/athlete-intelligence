@@ -134,12 +134,14 @@ export default function DossierPage() {
   const upcomingComps = competitions.filter((c: any) => c.status === "upcoming");
 
   const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "intelligence", label: "Intelligence" },
-    { id: "results", label: "Results", count: completedComps.length },
-    { id: "contacts", label: "Contacts" },
-    { id: "timeline", label: "Timeline" },
-    { id: "schedule", label: "Schedule", count: upcomingComps.length },
+    { id: "overview",     label: "Overview" },
+    { id: "summary",      label: "AI Summary" },
+    { id: "intelligence", label: "Intelligence", count: intel.length },
+    { id: "sources",      label: "Sources" },
+    { id: "results",      label: "Results",   count: completedComps.length },
+    { id: "contacts",     label: "Contacts" },
+    { id: "timeline",     label: "Timeline" },
+    { id: "schedule",     label: "Schedule",  count: upcomingComps.length },
   ];
 
   const initials = athlete?.name
@@ -153,6 +155,12 @@ export default function DossierPage() {
   const [togglingAgent, setTogglingAgent] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
+
+  // AI Summary state
+  const [summaryText, setSummaryText] = useState<string>("");
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
+  const [summaryStreaming, setSummaryStreaming] = useState(false);
+  const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   // Sync photoUrl when athlete loads
   useEffect(() => {
@@ -189,6 +197,51 @@ export default function DossierPage() {
       refetchAthlete();
     } finally {
       setTogglingAgent(false);
+    }
+  };
+
+  // Load cached summary when athlete loads
+  useEffect(() => {
+    if (!athleteId || summaryLoaded) return;
+    fetch(`/api/athletes/${athleteId}/summary`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.summary) { setSummaryText(d.summary); setSummaryGeneratedAt(d.generatedAt); }
+        setSummaryLoaded(true);
+      })
+      .catch(() => setSummaryLoaded(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [athleteId]);
+
+  const generateSummary = async () => {
+    if (summaryStreaming) return;
+    setSummaryStreaming(true);
+    setSummaryText("");
+    try {
+      const resp = await fetch(`/api/athletes/${athleteId}/summary`, { method: "POST" });
+      if (!resp.ok || !resp.body) throw new Error("Stream failed");
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const evt = JSON.parse(line.slice(6));
+            if (evt.token) setSummaryText((t) => t + evt.token);
+            if (evt.done) { setSummaryGeneratedAt(new Date().toISOString()); }
+          } catch {}
+        }
+      }
+    } catch {
+      setSummaryText("Failed to generate summary. Please try again.");
+    } finally {
+      setSummaryStreaming(false);
     }
   };
 
@@ -653,6 +706,149 @@ export default function DossierPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* AI Summary tab */}
+          {activeTab === "summary" && (
+            <div className="max-w-3xl mx-auto w-full px-8 py-6">
+              {/* Header actions */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-[16px] font-semibold text-[#1C1F3A]">AI Intelligence Summary</h2>
+                  <p className="text-[12px] text-[#8A90A8] mt-0.5">
+                    {summaryGeneratedAt
+                      ? `Generated ${new Date(summaryGeneratedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                      : "AI-generated career and intelligence briefing"}
+                  </p>
+                </div>
+                <button
+                  onClick={generateSummary}
+                  disabled={summaryStreaming}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#293055] text-white text-[12px] font-medium hover:bg-[#1E2440] transition-colors disabled:opacity-60"
+                >
+                  {summaryStreaming ? (
+                    <><span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Generating…</>
+                  ) : summaryText ? (
+                    <>↺ Regenerate</>
+                  ) : (
+                    <>✦ Generate Summary</>
+                  )}
+                </button>
+              </div>
+
+              {summaryStreaming && !summaryText && (
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                  <div className="w-10 h-10 rounded-full border-2 border-[#DCE2EF] border-t-[#293055] animate-spin" />
+                  <p className="text-[13px] text-[#8A90A8]">Analysing intelligence data…</p>
+                </div>
+              )}
+
+              {summaryText ? (
+                <div className="bg-white rounded-xl border border-[#DCE2EF] p-6 shadow-sm">
+                  <div className="prose prose-sm max-w-none text-[#3D426A] leading-relaxed">
+                    {summaryText.split(/\n/).map((line, i) => {
+                      if (line.startsWith("## ")) return (
+                        <h3 key={i} className="text-[14px] font-bold text-[#1C1F3A] mt-5 mb-2 first:mt-0 border-b border-[#F0F2F8] pb-1">
+                          {line.replace("## ", "")}
+                        </h3>
+                      );
+                      if (line.startsWith("# ")) return (
+                        <h2 key={i} className="text-[15px] font-bold text-[#1C1F3A] mt-5 mb-2 first:mt-0">{line.replace("# ", "")}</h2>
+                      );
+                      if (!line.trim()) return <div key={i} className="h-2" />;
+                      return <p key={i} className="text-[13px] text-[#3D426A] leading-relaxed mb-0">{line}</p>;
+                    })}
+                    {summaryStreaming && (
+                      <span className="inline-block w-0.5 h-4 bg-[#293055] animate-pulse ml-0.5 translate-y-0.5" />
+                    )}
+                  </div>
+                </div>
+              ) : !summaryStreaming && (
+                <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[#DCE2EF] rounded-xl gap-4">
+                  <div className="w-12 h-12 rounded-full bg-[rgba(41,48,85,0.05)] flex items-center justify-center">
+                    <span className="text-[20px]">✦</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[14px] font-medium text-[#293055] mb-1">No summary generated yet</p>
+                    <p className="text-[13px] text-[#8A90A8] max-w-xs">
+                      Generate an AI briefing covering career arc, current form, key relationships, and intelligence assessment.
+                    </p>
+                  </div>
+                  <button
+                    onClick={generateSummary}
+                    className="px-5 py-2.5 rounded-lg bg-[#293055] text-white text-[13px] font-medium hover:bg-[#1E2440] transition-colors"
+                  >
+                    Generate Summary
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sources tab */}
+          {activeTab === "sources" && (
+            <div className="max-w-6xl mx-auto w-full px-8 py-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-[16px] font-semibold text-[#1C1F3A]">Source Evidence</h2>
+                  <p className="text-[12px] text-[#8A90A8] mt-0.5">Every intelligence item traced to its origin</p>
+                </div>
+                <span className="text-[12px] text-[#8A90A8]">{Array.isArray(intel) ? intel.length : 0} citations</span>
+              </div>
+              {Array.isArray(intel) && intel.length > 0 ? (
+                <div className="space-y-3">
+                  {intel.map((item: any) => (
+                    <div key={item.id} className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className="px-2 py-0.5 rounded text-[11px] font-semibold"
+                            style={{
+                              background: `${categoryColors[item.category] ?? "#344F9F"}18`,
+                              color: categoryColors[item.category] ?? "#344F9F",
+                            }}
+                          >
+                            {categoryLabel[item.category] ?? item.category}
+                          </span>
+                          <Globe size={11} className="text-[#A0A8C0]" />
+                          <span className="text-[11px] font-medium text-[#3D426A]">{item.sourceDomain}</span>
+                          {item.sourceUrl && (
+                            <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                              className="text-[11px] text-[#344F9F] hover:underline flex items-center gap-1">
+                              <Globe size={10} /> View source
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {/* Confidence bar */}
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-16 h-1.5 bg-[#EEF0F8] rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${item.confidence}%`,
+                                  background: (item.confidence ?? 0) >= 90 ? "#059669" : (item.confidence ?? 0) >= 80 ? "#344F9F" : "#D97706",
+                                }}
+                              />
+                            </div>
+                            <span className="text-[11px] font-semibold text-[#6B7080]">{item.confidence}%</span>
+                          </div>
+                          {item.publishedAt && (
+                            <span className="text-[11px] text-[#A0A8C0]">
+                              {new Date(item.publishedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <h4 className="text-[14px] font-semibold text-[#1C1F3A] mb-1">{item.title}</h4>
+                      <p className="text-[13px] text-[#6B7080] leading-relaxed">{item.summary}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={<Globe size={20} className="text-[#9097B0]" />} label="No source evidence yet" />
+              )}
             </div>
           )}
 

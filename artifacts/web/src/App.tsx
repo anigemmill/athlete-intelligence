@@ -26,6 +26,7 @@ import ChatPage from '@/pages/ChatPage';
 import AlertsPage from '@/pages/AlertsPage';
 import SettingsPage from '@/pages/SettingsPage';
 import AdminPage from '@/pages/AdminPage';
+import SourcesPage from '@/pages/SourcesPage';
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ function Router() {
       <Route path="/alerts"><ProtectedRoute component={AlertsPage} /></Route>
       <Route path="/settings"><ProtectedRoute component={SettingsPage} /></Route>
       <Route path="/admin"><ProtectedRoute component={AdminPage} /></Route>
+      <Route path="/sources"><ProtectedRoute component={SourcesPage} /></Route>
       <Route path="/athletes/new"><ProtectedRoute component={NewAgentPage} /></Route>
       <Route path="/athletes/compare"><ProtectedRoute component={ComparePage} /></Route>
       <Route path="/athletes/:id"><ProtectedRoute component={DossierPage} /></Route>

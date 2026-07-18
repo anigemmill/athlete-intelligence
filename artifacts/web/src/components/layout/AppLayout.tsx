@@ -9,7 +9,9 @@ export type ActivePage =
   | "alerts"
   | "settings"
   | "admin"
-  | "athletes";
+  | "athletes"
+  | "sources"
+  | "compare";
 
 interface AppLayoutProps {
   children: React.ReactNode;

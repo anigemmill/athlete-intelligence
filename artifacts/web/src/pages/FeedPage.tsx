@@ -1,131 +1,105 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link } from "wouter";
 import {
   Activity,
-  MapPin,
   Trophy,
-  Bell,
-  MoreHorizontal,
   Newspaper,
   Award,
   Briefcase,
-  Flag,
   ExternalLink,
   ShieldCheck,
   ChevronRight,
   Filter,
-  Timer,
-  Calendar,
+  Globe,
+  Sparkles,
 } from "lucide-react";
 import { useListIntelligence } from "@workspace/api-client-react";
 
-type ItemCategory = "result" | "media" | "sponsorship" | "career" | string;
-
-const mockFeedData = [
-  {
-    id: "item-1",
-    athlete: "Lola Anderson",
-    category: "result",
-    summary: "Secured 1st place in the 100m final at the Sir Graeme Douglas International, setting a season-best time.",
-    quote: "Anderson dominated the field from the blocks, crossing the line in 11.28s (+1.2m/s), signaling strong early-season form ahead of the Oceania Championships.",
-    sourceDomain: "athletics.org.nz",
-    date: "14 Mar 2024",
-    confidence: 99,
-    sourcesCount: 3,
-    timestamp: "2 hours ago"
+// Map DB category keys → display config
+const categoryConfig: Record<string, { label: string; icon: any; color: string; bg: string; filterKey: string }> = {
+  results_rankings: {
+    label: "Results & Rankings", icon: Trophy,
+    color: "#344F9F", bg: "rgba(52,79,159,0.10)", filterKey: "results_rankings",
   },
-  {
-    id: "item-2",
-    athlete: "Priya Nair",
-    category: "media",
-    summary: "Featured in an exclusive interview discussing Olympic qualification pathways and domestic preparation.",
-    quote: "The 22-year-old sprint sensation revealed she has shifted her training base to Auckland to access specialised biomechanical analysis facilities, a move she hopes will shave crucial milliseconds off her PB.",
-    sourceDomain: "nzherald.co.nz",
-    date: "12 Mar 2024",
-    confidence: 95,
-    sourcesCount: 1,
-    timestamp: "1 day ago"
+  media_interviews: {
+    label: "Media & Interviews", icon: Newspaper,
+    color: "#7C3AED", bg: "rgba(124,58,237,0.10)", filterKey: "media_interviews",
   },
-  {
-    id: "item-3",
-    athlete: "Marcus Webb",
-    category: "sponsorship",
-    summary: "Signed a 2-year regional ambassadorship deal with Puma Athletics Oceania.",
-    quote: "Puma is thrilled to welcome Lola Anderson to our elite roster. Her trajectory over the past 18 months aligns perfectly with our high-performance sprint division.",
-    sourceDomain: "sportsbusinessjournal.com",
-    date: "05 Mar 2024",
-    confidence: 88,
-    sourcesCount: 2,
-    timestamp: "1 week ago"
+  sponsorships: {
+    label: "Sponsorships", icon: Award,
+    color: "#059669", bg: "rgba(5,150,105,0.10)", filterKey: "sponsorships",
   },
-  {
-    id: "item-4",
-    athlete: "James Kowalski",
-    category: "career",
-    summary: "Transitioned primary coaching relationship to former national sprint coach David Liti.",
-    quote: "Official registration changes filed with Athletics NZ confirm Anderson has joined the elite squad at AUT Millennium under Liti's direct supervision.",
-    sourceDomain: "athletics.org.nz",
-    date: "28 Feb 2024",
-    confidence: 100,
-    sourcesCount: 1,
-    timestamp: "2 weeks ago"
+  career_changes: {
+    label: "Career Changes", icon: Briefcase,
+    color: "#D97706", bg: "rgba(217,119,6,0.10)", filterKey: "career_changes",
   },
-];
-
-const categoryConfig: Record<string, any> = {
-  result: { label: "Results & Rankings", icon: Trophy, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
-  media: { label: "Media & Interviews", icon: Newspaper, color: "#a855f7", bg: "rgba(168, 85, 247, 0.1)" },
-  sponsorship: { label: "Sponsorships & Partnerships", icon: Award, color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
-  career: { label: "Career Changes", icon: Briefcase, color: "#ec4899", bg: "rgba(236, 72, 153, 0.1)" },
-  default: { label: "General Updates", icon: Activity, color: "#344F9F", bg: "rgba(52, 79, 159, 0.1)" }
 };
+
+const defaultCfg = { label: "General", icon: Activity, color: "#344F9F", bg: "rgba(52,79,159,0.10)", filterKey: "" };
 
 type TabFilter = "all" | string;
 
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Yesterday";
+  if (d < 7) return `${d} days ago`;
+  return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+const tabs = [
+  { id: "all",              label: "All Intelligence" },
+  { id: "results_rankings", label: "Results & Rankings" },
+  { id: "media_interviews", label: "Media & Interviews" },
+  { id: "sponsorships",     label: "Sponsorships" },
+  { id: "career_changes",   label: "Career Changes" },
+];
+
 export default function FeedPage() {
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
-  const { data: apiFeedData } = useListIntelligence();
+  const { data: rawData } = useListIntelligence();
 
-  // Prefer API data, otherwise use mock
-  const feedData = apiFeedData || mockFeedData;
+  const feedData: any[] = useMemo(() => {
+    const raw = Array.isArray(rawData) ? rawData : (rawData as any)?.items ?? [];
+    return raw.sort((a: any, b: any) =>
+      new Date(b.discoveredAt ?? 0).getTime() - new Date(a.discoveredAt ?? 0).getTime()
+    );
+  }, [rawData]);
 
-  const filteredData = activeTab === "all" ? feedData : feedData.filter((item: any) => item.category === activeTab);
-
-  const getCount = (tab: TabFilter) => {
-    if (tab === "all") return feedData.length;
-    return feedData.filter((item: any) => item.category === tab).length;
-  };
-
-  const tabs: { id: TabFilter; label: string }[] = [
-    { id: "all", label: "All Intelligence" },
-    { id: "result", label: "Results & Rankings" },
-    { id: "media", label: "Media & Interviews" },
-    { id: "sponsorship", label: "Sponsorships & Partnerships" },
-    { id: "career", label: "Career Changes" }
-  ];
+  const filtered = activeTab === "all" ? feedData : feedData.filter((i: any) => i.category === activeTab);
+  const getCount = (tab: TabFilter) =>
+    tab === "all" ? feedData.length : feedData.filter((i: any) => i.category === tab).length;
 
   return (
     <AppLayout activePage="intelligence">
       <div className="flex flex-col relative w-full h-full overflow-hidden bg-[#FCFAFA]">
-        
-        {/* Breadcrumb / Top Bar */}
+
+        {/* Breadcrumb */}
         <div className="h-14 border-b border-[#DCE2EF] flex items-center px-6 shrink-0 bg-[#FCFAFA]">
           <div className="flex items-center gap-2 text-[13px] font-medium text-[#8A90A8]">
             <Link href="/dashboard"><span className="hover:text-[#3D426A] cursor-pointer transition-colors">Overview</span></Link>
             <ChevronRight size={14} className="text-[#C0C8DC]" />
-            <span className="text-[#293055]">Global Intelligence Feed</span>
+            <span className="text-[#293055]">Intelligence Feed</span>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto hide-scrollbar pb-20 px-8 py-6">
           <div className="max-w-5xl mx-auto w-full">
-            
-            <div className="flex items-center justify-between mb-8">
+
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-[#1C1F3A]">Live Intelligence</h1>
-                <p className="text-sm mt-1 text-[#6B7080]">
-                  Real-time updates across all monitored athletes and sources.
+                <h1 className="text-[22px] font-semibold tracking-tight text-[#1C1F3A] flex items-center gap-2.5">
+                  <Sparkles size={20} className="text-[#E75D50]" />
+                  Intelligence Feed
+                </h1>
+                <p className="text-[13px] mt-1 text-[#6B7080]">
+                  {feedData.length} intelligence items across your monitored roster — sorted by most recent.
                 </p>
               </div>
             </div>
@@ -146,117 +120,103 @@ export default function FeedPage() {
                     >
                       {tab.label}
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        isActive 
-                          ? "bg-[rgba(41,48,85,0.15)] text-[#293055]" 
-                          : "bg-[rgba(41,48,85,0.08)] text-[#9097B0]"
+                        isActive ? "bg-[rgba(41,48,85,0.15)] text-[#293055]" : "bg-[rgba(41,48,85,0.08)] text-[#9097B0]"
                       }`}>
                         {count}
                       </span>
-                      {isActive && <div className="tab-active-indicator" />}
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E75D50] rounded-t-full" />
+                      )}
                     </button>
                   );
                 })}
               </div>
-              <div className="pb-3 flex items-center gap-2 text-[#8A90A8] text-[13px] cursor-pointer hover:text-[#293055] transition-colors shrink-0 pl-4">
-                <Filter size={14} />
-                Filters
-              </div>
             </div>
 
-            {/* Intelligence Feed */}
-            <div className="flex flex-col space-y-4">
-              {filteredData.map((item: any) => {
-                const config = categoryConfig[item.category] || categoryConfig.default;
-                const Icon = config.icon;
-                
-                return (
-                  <div key={item.id} className="card-hover-fx border border-[#DCE2EF] rounded-xl bg-white p-5 relative overflow-hidden group shadow-sm">
-                    {/* Category and timestamp */}
-                    <div className="flex items-center justify-between mb-3.5">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold"
-                          style={{
-                            backgroundColor: config.bg,
-                            borderColor: `rgba(${config.color.replace('#', '')}, 0.2)`,
-                            color: config.color
-                          }}
-                        >
-                          <Icon size={12} strokeWidth={2.5} />
-                          {config.label}
-                        </div>
-                        <div className="text-[12px] font-medium text-[#9097B0]">
-                          Athlete: <span className="text-[#1C1F3A]">{item.athlete?.name || item.athlete || "Unknown"}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-[12px] font-medium text-[#9097B0]">{item.timestamp || new Date(item.date).toLocaleDateString()}</div>
-                        <button className="text-[#B0B8D0] hover:text-[#293055] transition-colors opacity-0 group-hover:opacity-100">
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Summary */}
-                    <h3 className="text-[15px] font-medium text-[#293055] leading-snug mb-3">
-                      {item.summary}
-                    </h3>
-                    
-                    {/* Quote block */}
-                    {item.quote && (
-                      <div className="border-l-2 border-[#DCE2EF] pl-4 py-0.5 mb-4 text-[#7A8090] text-[13px] leading-relaxed">
-                        "{item.quote}"
-                      </div>
-                    )}
-                    
-                    {/* Attribution and Confidence */}
-                    <div className="flex items-center justify-between pt-3.5 border-t border-[#DCE2EF] mt-2">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1.5 text-[12px] text-[#8A90A8] font-medium">
-                          <ExternalLink size={12} className="text-[#9097B0]" />
-                          {item.sourceDomain || item.source?.domain || "Unknown Source"}
-                        </div>
-                        
-                        <div className="w-px h-3 bg-[#DCE2EF]"></div>
-                        
-                        <div className="flex items-center gap-1.5 text-[12px] font-medium">
-                          <ShieldCheck size={14} className={(item.confidence || 0) >= 95 ? "text-[#E75D50]" : "text-[#10b981]"} />
-                          <span className="text-[#6B7080]">
-                            {item.confidence || 90}% Confidence
-                          </span>
-                          {(item.sourcesCount || 1) > 1 && (
-                            <span className="text-[#9097B0] ml-1">
-                              ({item.sourcesCount} sources)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <button className="flex items-center gap-1.5 text-[11px] font-medium text-[#9097B0] hover:text-[#ef4444] transition-colors opacity-0 group-hover:opacity-100">
-                        <Flag size={12} />
-                        Report
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {filteredData.length === 0 && (
-                <div className="py-16 flex flex-col items-center justify-center text-center border border-[#DCE2EF] rounded-xl border-dashed">
-                  <div className="w-12 h-12 rounded-full bg-[rgba(41,48,85,0.04)] flex items-center justify-center mb-3">
-                    <Activity size={20} className="text-[#9097B0]" />
-                  </div>
-                  <h3 className="text-[14px] font-medium text-[#293055] mb-1">No intelligence found</h3>
-                  <p className="text-[13px] text-[#8A90A8]">There are no recent updates in this category.</p>
+            {/* Feed items */}
+            {feedData.length === 0 ? (
+              <div className="py-20 flex flex-col items-center justify-center text-center border border-dashed border-[#DCE2EF] rounded-xl">
+                <div className="w-14 h-14 rounded-full bg-[rgba(41,48,85,0.04)] flex items-center justify-center mb-4">
+                  <Activity size={22} className="text-[#9097B0]" />
                 </div>
-              )}
-            </div>
-            
-            <div className="mt-6 flex justify-center pb-8">
-              <button className="text-[13px] font-medium text-[#8A90A8] hover:text-[#293055] transition-colors flex items-center gap-2 px-4 py-2 border border-[#DCE2EF] rounded-lg bg-white shadow-sm hover:bg-[#FCFAFA]">
-                Load more activity
-              </button>
-            </div>
+                <h3 className="text-[14px] font-semibold text-[#293055] mb-2">No intelligence yet</h3>
+                <p className="text-[13px] text-[#8A90A8] max-w-sm">
+                  Add athletes to your roster and the intelligence engine will start surfacing updates automatically.
+                </p>
+                <Link href="/athletes/new">
+                  <span className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#E75D50] text-white text-[13px] font-medium hover:bg-[#D04840] transition-colors cursor-pointer">
+                    Add first athlete
+                  </span>
+                </Link>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 flex flex-col items-center justify-center text-center border border-dashed border-[#DCE2EF] rounded-xl">
+                <Activity size={20} className="text-[#9097B0] mb-3" />
+                <p className="text-[13px] text-[#8A90A8]">No items in this category yet</p>
+              </div>
+            ) : (
+              <div className="flex flex-col space-y-4">
+                {filtered.map((item: any) => {
+                  const cfg = categoryConfig[item.category] ?? defaultCfg;
+                  const Icon = cfg.icon;
+                  return (
+                    <div key={item.id} className="border border-[#DCE2EF] rounded-xl bg-white p-5 relative overflow-hidden group shadow-sm hover:border-[#C8D0E8] transition-colors">
+                      {/* Top row */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex items-center gap-1.5 px-2 py-1 rounded border text-[11px] font-semibold"
+                            style={{ background: cfg.bg, borderColor: `${cfg.color}30`, color: cfg.color }}
+                          >
+                            <Icon size={11} strokeWidth={2.5} />
+                            {cfg.label}
+                          </div>
+                          <Link href={`/athletes/${item.athleteId}`}>
+                            <span className="text-[12px] font-semibold text-[#293055] hover:underline cursor-pointer">
+                              {item.athleteName}
+                            </span>
+                          </Link>
+                        </div>
+                        <div className="text-[12px] text-[#9097B0]">{timeAgo(item.discoveredAt)}</div>
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-[14px] font-semibold text-[#1C1F3A] leading-snug mb-2">{item.title}</h3>
+
+                      {/* Summary */}
+                      {item.summary && (
+                        <p className="text-[13px] text-[#6B7080] leading-relaxed mb-4">{item.summary}</p>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-3 border-t border-[#F0F2F8]">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5 text-[12px] text-[#8A90A8]">
+                            <Globe size={11} className="text-[#A0A8C0]" />
+                            {item.sourceDomain}
+                          </div>
+                          {item.sourceUrl && (
+                            <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[11px] text-[#344F9F] hover:underline">
+                              <ExternalLink size={10} /> View source
+                            </a>
+                          )}
+                          <div className="flex items-center gap-1.5 text-[12px] text-[#6B7080]">
+                            <ShieldCheck size={13} className={(item.confidence ?? 0) >= 90 ? "text-[#059669]" : "text-[#344F9F]"} />
+                            {item.confidence ?? 80}% confidence
+                          </div>
+                        </div>
+                        <Link href={`/athletes/${item.athleteId}`}>
+                          <span className="text-[11px] text-[#8A90A8] hover:text-[#293055] transition-colors cursor-pointer flex items-center gap-1">
+                            View dossier <ChevronRight size={11} />
+                          </span>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

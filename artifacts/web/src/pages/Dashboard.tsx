@@ -1,83 +1,57 @@
-import React from "react";
-import { Link } from "wouter";
+import React, { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Plus, Activity, Bell, Users, Search, ArrowUpRight, Clock, FileText, Database, ShieldAlert, BarChart3, Medal, MoveRight } from "lucide-react";
+import { Plus, Activity, Bell, Users, Search, ArrowUpRight, Clock, FileText, Database, ShieldAlert, BarChart3, Medal, MoveRight, ChevronRight, Sparkles, MessageSquare } from "lucide-react";
 import { useGetDashboard, useListAthletes, useListIntelligence } from "@workspace/api-client-react";
 
+const ONBOARDING_KEY = "ai_onboarding_dismissed";
+
+const CATEGORY_LABELS: Record<string, string> = {
+  results_rankings: "Results",
+  media_interviews: "Media",
+  sponsorships: "Sponsorship",
+  career_changes: "Career",
+};
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Yesterday";
+  return `${d} days ago`;
+}
+
 export default function Dashboard() {
+  const [, navigate] = useLocation();
   const { data: dashboard } = useGetDashboard();
   const { data: athletesData } = useListAthletes();
-  const { data: feedData } = useListIntelligence();
+  const { data: rawFeed } = useListIntelligence();
+  const [onboardingDismissed, setOnboardingDismissed] = useState(
+    () => localStorage.getItem(ONBOARDING_KEY) === "1"
+  );
 
-  const mockAthletes = [
-    { id: 1, name: "Lola Anderson", sport: "100m/200m Sprint", age: 22, country: "NZ", status: "active", lastUpdate: "12m ago", unread: 2, alert: true, avatar: "LA", rank: "3rd NZ", pb: "11.24s" },
-    { id: 2, name: "Marcus Webb", sport: "Decathlon", age: 25, country: "AUS", status: "active", lastUpdate: "2h ago", unread: 0, alert: false, avatar: "MW", rank: "National Squad", pb: "7,842pts" },
-    { id: 3, name: "Priya Nair", sport: "5000m/10000m", age: 20, country: "NZ", status: "active", lastUpdate: "5h ago", unread: 1, alert: true, avatar: "PN", rank: "Olympic Pathway", pb: "15:08" },
-    { id: 4, name: "James Kowalski", sport: "High Jump", age: 23, country: "UK", status: "active", lastUpdate: "1d ago", unread: 0, alert: false, avatar: "JK", rank: "World Athletics", pb: "2.24m" },
-    { id: 5, name: "Sophie Chen", sport: "400m Hurdles", age: 21, country: "NZ", status: "paused", lastUpdate: "3d ago", unread: 0, alert: false, avatar: "SC", rank: "Paused Agent", pb: "-" },
-  ];
+  const athletes = (athletesData ?? []) as any[];
+  const feedItems = ((Array.isArray(rawFeed) ? rawFeed : (rawFeed as any)?.items ?? []) as any[])
+    .slice(0, 8);
 
-  const mockFeedItems = [
-    { 
-      id: 1, 
-      athlete: "Lola Anderson", 
-      summary: "New race entry detected: Sydney Track Classic (100m). Performance projection indicates 65% chance of PB based on recent training data.", 
-      category: "Competition", 
-      source: "World Athletics DB / Regional Entry Lists (mock data)",
-      time: "12m ago",
-      active: true,
-      icon: <Medal size={14} className="text-[#E75D50]" />
-    },
-    { 
-      id: 2, 
-      athlete: "Priya Nair", 
-      summary: "Biomechanical analysis report uploaded from Auckland HP camp. Ground contact times show 4% improvement since last mesocycle.", 
-      category: "Performance", 
-      source: "Sports Science Dept. / Force Plates",
-      time: "5h ago",
-      active: true,
-      icon: <BarChart3 size={14} className="text-[#E75D50]" />
-    },
-    { 
-      id: 3, 
-      athlete: "Marcus Webb", 
-      summary: "Mentioned in national federation preliminary selection narrative for upcoming regional championships.", 
-      category: "Selection", 
-      source: "Internal Comm / Pathway Memos",
-      time: "Yesterday",
-      active: false,
-      icon: <FileText size={14} className="text-[#6B7080]" />
-    },
-    { 
-      id: 4, 
-      athlete: "James Kowalski", 
-      summary: "National federation published updated qualifying standards. Current PB is 3cm short of the automatic A-qualifier.", 
-      category: "Standards", 
-      source: "National Federation / Official Criteria",
-      time: "Yesterday",
-      active: false,
-      icon: <Database size={14} className="text-[#6B7080]" />
-    },
-    { 
-      id: 5, 
-      athlete: "Lola Anderson", 
-      summary: "Physio flag updated: Minor hamstring tightness reported post-session. Intervention planned.", 
-      category: "Medical", 
-      source: "AMS Integration / Medical Notes",
-      time: "2 days ago",
-      active: false,
-      icon: <ShieldAlert size={14} className="text-[#6B7080]" />
-    },
-  ];
+  const isEmptyRoster = athletesData !== undefined && athletes.length === 0;
+  const showOnboarding = isEmptyRoster && !onboardingDismissed;
+
+  const dismissOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, "1");
+    setOnboardingDismissed(true);
+  };
 
   const stats = {
-    totalMonitored: dashboard?.totalAthletes ?? 42,
-    newItemsToday: dashboard?.newIntelligence ?? 18,
-    unreadAlerts: dashboard?.priorityAlerts ?? 3,
-    agentsActivePercent: dashboard ? Math.round((dashboard.activeAgents / dashboard.totalAthletes) * 100) || 0 : 98
+    totalMonitored: dashboard?.totalAthletes ?? athletes.length,
+    newItemsToday: dashboard?.newIntelligence ?? feedItems.length,
+    unreadAlerts: dashboard?.priorityAlerts ?? 0,
+    agentsActivePercent: dashboard ? Math.round((dashboard.activeAgents / Math.max(dashboard.totalAthletes, 1)) * 100) : (athletes.length > 0 ? 100 : 0),
   };
-  const athletes = athletesData || mockAthletes;
-  const feedItems = feedData || mockFeedItems;
 
   return (
     <AppLayout activePage="dashboard">
@@ -88,7 +62,9 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-[#1C1F3A]">Overview</h1>
             <p className="text-sm mt-1 text-[#6B7080]">
-              Monitoring {stats.totalMonitored} active intelligence agents across your roster.
+              {athletes.length > 0
+                ? `Monitoring ${stats.totalMonitored} athlete${stats.totalMonitored === 1 ? "" : "s"} across your roster.`
+                : "Welcome to Athlete Intelligence — let's get started."}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -114,6 +90,57 @@ export default function Dashboard() {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-8 hide-scrollbar">
           
+          {/* Onboarding — shown only when roster is empty */}
+          {showOnboarding && (
+            <div className="mb-8 rounded-2xl border border-[#DCE2EF] bg-gradient-to-br from-[#293055] to-[#344F9F] p-8 shadow-lg relative overflow-hidden">
+              {/* Background texture */}
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, #E75D50 0%, transparent 40%), radial-gradient(circle at 20% 80%, #FFFFFF 0%, transparent 40%)" }} />
+              <button onClick={dismissOnboarding} className="absolute top-4 right-4 text-white/40 hover:text-white/80 transition-colors text-lg font-light">✕</button>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={18} className="text-[#E75D50]" />
+                  <span className="text-white/70 text-[12px] font-medium uppercase tracking-wider">Getting started</span>
+                </div>
+                <h2 className="text-[22px] font-bold text-white mb-1">Welcome to Athlete Intelligence</h2>
+                <p className="text-white/70 text-[13px] mb-8 max-w-xl">
+                  Your AI-powered intelligence platform for tracking and analysing athletes across all sports. Follow these steps to get your first dossier live.
+                </p>
+                <div className="grid grid-cols-4 gap-4 mb-8">
+                  {[
+                    { step: 1, label: "Add an athlete", desc: "Search by name — our AI identifies and populates the full dossier automatically.", action: () => navigate("/athletes/new"), cta: "Add athlete", icon: <Users size={16} /> },
+                    { step: 2, label: "Review the dossier", desc: "Intelligence, rankings, career timeline, contacts and source evidence — all in one place.", action: null, cta: null, icon: <Activity size={16} /> },
+                    { step: 3, label: "Generate AI summary", desc: "Get a full career briefing powered by AI — regenerate any time.", action: null, cta: null, icon: <Sparkles size={16} /> },
+                    { step: 4, label: "Ask AI anything", desc: "Chat with your full roster using natural language to extract intelligence fast.", action: () => navigate("/chat"), cta: "Open chat", icon: <MessageSquare size={16} /> },
+                  ].map(({ step, label, desc, action, cta, icon }) => (
+                    <div key={step} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/15">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-6 h-6 rounded-full bg-[#E75D50] flex items-center justify-center text-[11px] font-bold text-white">{step}</span>
+                        <span className="text-white/60">{icon}</span>
+                      </div>
+                      <h4 className="text-[13px] font-semibold text-white mb-1">{label}</h4>
+                      <p className="text-[11px] text-white/60 leading-relaxed mb-3">{desc}</p>
+                      {action && cta && (
+                        <button onClick={action} className="text-[11px] font-medium text-[#E75D50] hover:text-white transition-colors flex items-center gap-1">
+                          {cta} <ChevronRight size={11} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-4">
+                  <Link href="/athletes/new">
+                    <span className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#E75D50] hover:bg-[#D04840] text-white text-[13px] font-semibold transition-colors cursor-pointer shadow-lg">
+                      <Plus size={14} /> Add your first athlete
+                    </span>
+                  </Link>
+                  <button onClick={dismissOnboarding} className="text-white/50 hover:text-white/80 text-[12px] transition-colors">
+                    Skip for now
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Summary Stats */}
           <div className="grid grid-cols-4 gap-4 mb-8">
             <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
@@ -240,38 +267,47 @@ export default function Dashboard() {
                   <Activity size={14} className="text-[#E75D50]" />
                   Live Intelligence
                 </h2>
+                <Link href="/intelligence">
+                  <span className="text-xs text-[#6B7080] hover:text-[#E75D50] font-medium transition-colors cursor-pointer flex items-center gap-1">
+                    View all <ChevronRight size={11} />
+                  </span>
+                </Link>
               </div>
               
               <div className="p-5 flex-1 overflow-y-auto hide-scrollbar relative">
-                <div className="absolute left-[29px] top-5 bottom-5 w-px bg-[#DCE2EF]"></div>
-                <div className="flex flex-col gap-6 relative z-10">
-                  {feedItems.map((item: any) => (
-                    <div key={item.id} className="relative pl-8">
-                      <div className={`absolute left-0 top-1.5 w-2 h-2 rounded-full border-2 border-white ${item.active ? 'bg-[#E75D50]' : 'bg-[#C0C8DC] shadow-sm'}`}></div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-xs font-semibold text-[#1C1F3A]">{item.athlete}</span>
-                        <span className="text-[10px] text-[#8A90A8] px-1.5 py-0.5 rounded bg-[#FCFAFA] border border-[#DCE2EF]">
-                          {item.category}
-                        </span>
-                        <span className="text-[10px] text-[#A0A8C0] ml-auto">{item.time}</span>
-                      </div>
-                      <p className={`text-xs leading-relaxed mb-2 ${item.active ? 'text-[#3D426A]' : 'text-[#6B7080]'}`}>
-                        {item.summary}
-                      </p>
-                      
-                      <div className="flex items-center gap-1.5 mt-2 bg-[#FCFAFA] p-2 rounded border border-[#DCE2EF]">
-                        {item.icon || <FileText size={14} className="text-[#A0A8C0]" />}
-                        <span className="text-[10px] font-mono text-[#8A90A8] uppercase tracking-wide truncate">
-                          {item.source}
-                        </span>
-                      </div>
+                {feedItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+                    <Activity size={16} className="text-[#C0C8DC]" />
+                    <p className="text-[12px] text-[#8A90A8]">No intelligence yet — add athletes to begin monitoring.</p>
+                    <Link href="/athletes/new">
+                      <span className="text-[11px] text-[#344F9F] hover:underline cursor-pointer">Add first athlete →</span>
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="absolute left-[29px] top-5 bottom-5 w-px bg-[#DCE2EF]"></div>
+                    <div className="flex flex-col gap-5 relative z-10">
+                      {feedItems.map((item: any, i: number) => (
+                        <div key={item.id} className="relative pl-8">
+                          <div className={`absolute left-0 top-1.5 w-2 h-2 rounded-full border-2 border-white ${i < 2 ? 'bg-[#E75D50]' : 'bg-[#C0C8DC] shadow-sm'}`}></div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-semibold text-[#1C1F3A]">{item.athleteName}</span>
+                            <span className="text-[10px] text-[#8A90A8] px-1.5 py-0.5 rounded bg-[#FCFAFA] border border-[#DCE2EF]">
+                              {CATEGORY_LABELS[item.category] ?? item.category}
+                            </span>
+                            <span className="text-[10px] text-[#A0A8C0] ml-auto">{timeAgo(item.discoveredAt)}</span>
+                          </div>
+                          <p className="text-xs leading-relaxed text-[#3D426A] mb-1.5">{item.title}</p>
+                          <div className="flex items-center gap-1.5 bg-[#FCFAFA] p-1.5 rounded border border-[#DCE2EF]">
+                            <FileText size={11} className="text-[#A0A8C0]" />
+                            <span className="text-[10px] font-mono text-[#8A90A8] truncate">{item.sourceDomain}</span>
+                            <span className="text-[10px] text-[#A0A8C0] ml-auto">{item.confidence}%</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                
-                <button className="w-full mt-6 py-2 text-xs font-medium text-[#6B7080] hover:text-[#1C1F3A] transition-colors border border-dashed border-[#DCE2EF] rounded-md hover:bg-[#FCFAFA] flex items-center justify-center gap-1">
-                  Load Older Items <Activity size={12} />
-                </button>
+                  </>
+                )}
               </div>
             </div>
 
