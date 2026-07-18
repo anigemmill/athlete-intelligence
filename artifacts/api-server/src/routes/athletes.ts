@@ -6,7 +6,7 @@ import {
   alertConfigsTable,
   type Athlete,
 } from "@workspace/db";
-import { autoPopulateAthlete } from "../lib/auto-populate.js";
+import { autoPopulateAthlete, discoverAthleteProfile } from "../lib/auto-populate.js";
 import {
   GetAthleteParams,
   UpdateAthleteParams,
@@ -55,6 +55,61 @@ function toApiAthlete(a: Athlete) {
     updatedAt: a.updatedAt.toISOString(),
   };
 }
+
+// POST /athletes/discover — create an athlete by name only; AI identifies sport/event/nationality
+router.post("/athletes/discover", async (req, res): Promise<void> => {
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  if (!name) {
+    res.status(400).json({ error: "name is required" });
+    return;
+  }
+
+  // Check if athlete already exists by name (case-insensitive)
+  const existing = await db
+    .select()
+    .from(athletesTable)
+    .where(eq(athletesTable.name, name));
+
+  if (existing.length > 0) {
+    res.status(200).json({ athlete: toApiAthlete(existing[0]), created: false });
+    return;
+  }
+
+  // Ask AI to identify the athlete's profile
+  let profile: { sport: string; event: string; nationality: string; age: number | null };
+  try {
+    profile = await discoverAthleteProfile(name);
+  } catch {
+    profile = { sport: "Athletics", event: "", nationality: "", age: null };
+  }
+
+  const [athlete] = await db
+    .insert(athletesTable)
+    .values({
+      name,
+      sport: profile.sport,
+      event: profile.event,
+      nationality: profile.nationality,
+      age: profile.age,
+      squad: "",
+      agentStatus: "active",
+    })
+    .returning();
+
+  await db.insert(alertConfigsTable).values({ athleteId: athlete.id }).onConflictDoNothing();
+
+  // Fire-and-forget full population
+  autoPopulateAthlete({
+    id: athlete.id,
+    name: athlete.name,
+    sport: profile.sport,
+    event: profile.event,
+    nationality: profile.nationality,
+    age: profile.age,
+  });
+
+  res.status(201).json({ athlete: toApiAthlete(athlete), created: true });
+});
 
 // POST /athletes/bulk — must come BEFORE /:id
 router.post("/athletes/bulk", async (req, res): Promise<void> => {

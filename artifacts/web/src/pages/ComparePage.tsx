@@ -105,6 +105,8 @@ export default function ComparePage() {
   const [selectedIds, setSelectedIds] = useState<number[]>(initialIds.slice(0, 4));
   const [showPicker, setShowPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [discovering, setDiscovering] = useState(false);
+  const [discoverError, setDiscoverError] = useState("");
 
   const { data: athletesRaw } = useListAthletes();
   const allAthletes: any[] = (athletesRaw as any)?.athletes ?? (athletesRaw as any) ?? [];
@@ -143,6 +145,24 @@ export default function ComparePage() {
     setSelectedIds((prev) => [...prev, id].slice(0, 4));
     setShowPicker(false);
     setPickerSearch("");
+  };
+
+  const discoverAthlete = async (name: string) => {
+    setDiscovering(true);
+    setDiscoverError("");
+    try {
+      const res = await fetch("/api/athletes/discover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error("Discovery failed");
+      const data = await res.json();
+      addAthlete(data.athlete.id);
+    } catch {
+      setDiscoverError(`Couldn't find "${name}" — try adding them manually.`);
+      setDiscovering(false);
+    }
   };
 
   const removeAthlete = (id: number) => {
@@ -281,25 +301,59 @@ export default function ComparePage() {
                     />
                   </div>
                   <div className="max-h-52 overflow-y-auto">
-                    {filtered.length === 0 ? (
-                      <div className="px-4 py-3 text-[12px] text-[#A0A8C0]">No athletes found</div>
-                    ) : (
-                      filtered.map((a: any) => (
-                        <button
-                          key={a.id}
-                          onClick={() => addAthlete(a.id)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F5F7FC] transition-colors text-left"
-                        >
-                          <div className="w-7 h-7 rounded-full bg-[rgba(41,48,85,0.10)] flex items-center justify-center text-[10px] font-bold text-[#293055] shrink-0">
-                            {(a.name ?? "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    {filtered.map((a: any) => (
+                      <button
+                        key={a.id}
+                        onClick={() => addAthlete(a.id)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F5F7FC] transition-colors text-left"
+                      >
+                        <div className="w-7 h-7 rounded-full overflow-hidden bg-[rgba(41,48,85,0.10)] flex items-center justify-center text-[10px] font-bold text-[#293055] shrink-0">
+                          {a.avatarUrl ? (
+                            <img src={a.avatarUrl} alt={a.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                          ) : (
+                            (a.name ?? "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-[12px] font-semibold text-[#1C1F3A]">{a.name}</div>
+                          <div className="text-[11px] text-[#8A90A8]">{a.sport} · {a.event}</div>
+                        </div>
+                        {a.worldRank && <span className="ml-auto text-[11px] text-[#8A90A8]">#{a.worldRank}</span>}
+                      </button>
+                    ))}
+
+                    {/* Web discovery fallback */}
+                    {pickerSearch.trim().length > 1 && (
+                      <div className="border-t border-[#F0F2F8] mt-1 pt-1">
+                        {discovering ? (
+                          <div className="flex items-center gap-2 px-4 py-3 text-[12px] text-[#8A90A8]">
+                            <div className="w-3.5 h-3.5 border-2 border-[#344F9F] border-t-transparent rounded-full animate-spin shrink-0" />
+                            Searching for "{pickerSearch}"…
                           </div>
-                          <div>
-                            <div className="text-[12px] font-semibold text-[#1C1F3A]">{a.name}</div>
-                            <div className="text-[11px] text-[#8A90A8]">{a.sport} · {a.event}</div>
-                          </div>
-                          {a.worldRank && <span className="ml-auto text-[11px] text-[#8A90A8]">#{a.worldRank}</span>}
-                        </button>
-                      ))
+                        ) : (
+                          <button
+                            onClick={() => discoverAthlete(pickerSearch.trim())}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F0F4FF] transition-colors text-left group"
+                          >
+                            <div className="w-7 h-7 rounded-full bg-[rgba(52,79,159,0.10)] flex items-center justify-center shrink-0">
+                              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#344F9F" strokeWidth={2.2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="text-[12px] font-semibold text-[#344F9F]">Search web for "{pickerSearch}"</div>
+                              <div className="text-[10px] text-[#A0A8C0]">Pull from the internet and add to comparison</div>
+                            </div>
+                          </button>
+                        )}
+                        {discoverError && (
+                          <div className="px-4 pb-2 text-[11px] text-[#E75D50]">{discoverError}</div>
+                        )}
+                      </div>
+                    )}
+
+                    {filtered.length === 0 && pickerSearch.trim().length <= 1 && (
+                      <div className="px-4 py-3 text-[12px] text-[#A0A8C0]">Type a name to search…</div>
                     )}
                   </div>
                 </div>

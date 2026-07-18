@@ -146,6 +146,46 @@ Generate the following JSON object:
 }
 `;
 
+/**
+ * Given only an athlete's name, call OpenAI to identify their sport, event,
+ * nationality, and approximate age. Used by the "discover from web" flow on
+ * the Compare page so users don't have to pre-add athletes.
+ */
+export async function discoverAthleteProfile(name: string): Promise<{
+  sport: string;
+  event: string;
+  nationality: string;
+  age: number | null;
+}> {
+  const response = await openai.chat.completions.create({
+    model: "gpt-5.6-luna",
+    max_completion_tokens: 256,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a sports data assistant. Given an athlete's name, return a JSON object with their primary sport, specific event or position, nationality (country name), and approximate age. Return ONLY valid JSON, no markdown.",
+      },
+      {
+        role: "user",
+        content: `Athlete name: "${name}"\n\nReturn: { "sport": string, "event": string, "nationality": string, "age": integer or null }`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const raw = response.choices[0]?.message?.content;
+  if (!raw) throw new Error("Empty response from OpenAI");
+
+  const data = JSON.parse(raw);
+  return {
+    sport: typeof data.sport === "string" ? data.sport : "Athletics",
+    event: typeof data.event === "string" ? data.event : "",
+    nationality: typeof data.nationality === "string" ? data.nationality : "",
+    age: typeof data.age === "number" ? data.age : null,
+  };
+}
+
 export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
     const response = await openai.chat.completions.create({
