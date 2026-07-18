@@ -1,0 +1,358 @@
+This is actually a very good set of questions. Replit is thinking like a CTO rather than just generating code.
+
+Based on everything we've discussed, here are the answers I would give today, along with the few questions I'd leave open.
+
+---
+
+# Business Model & Positioning
+
+### 1. Who is your primary paying customer in year one?
+
+**Answer:**
+
+Professional and semi-professional sports organisations.
+
+This includes:
+
+* National Sporting Organisations (NSOs)
+* Professional clubs
+* High-performance programmes
+* Sports academies
+* Athlete management agencies
+
+These organisations have recurring research needs and are more likely to pay for ongoing intelligence than individual athletes.
+
+Secondary customers (later):
+
+* Journalists
+* Sponsors
+* Universities
+* Broadcasters
+* Recruitment agencies
+
+---
+
+### 2. Geographic Market
+
+**Answer:**
+
+English-speaking markets first.
+
+Priority:
+
+1. New Zealand
+2. Australia
+3. United Kingdom
+4. United States
+5. Canada
+
+No multilingual support for MVP.
+
+Design the architecture so additional languages can be added later.
+
+---
+
+### 3. Pricing Model
+
+I would actually change what Replit suggested.
+
+I **would not charge per athlete.**
+
+That creates terrible incentives and unpredictable infrastructure costs.
+
+Instead:
+
+Professional
+
+* Up to X intelligence agents
+
+Business
+
+* Unlimited users
+* Larger organisation
+
+Enterprise
+
+* Custom
+
+Users should create as many athlete profiles as they like within reasonable usage limits.
+
+---
+
+### 4. Existing Relationships
+
+You know far more people in tourism than sport.
+
+So answer honestly.
+
+> No existing design partners.
+
+Goal:
+
+Secure 3–5 pilot organisations before public launch.
+
+---
+
+# Scope
+
+### 5. Which Sports?
+
+I would deliberately avoid football.
+
+The market is crowded.
+
+Instead I'd focus on sports where data exists but intelligence platforms are limited.
+
+My order would be:
+
+1. Cycling
+2. Triathlon
+3. Athletics
+4. Mountain biking
+5. Rugby
+
+Why?
+
+Less competition.
+
+Strong governing bodies.
+
+Public results.
+
+Growing sponsorship interest.
+
+---
+
+### 6. Athlete Tier
+
+I actually think this is where your opportunity is.
+
+Don't build another Opta.
+
+Focus on:
+
+Emerging
+
+Semi-professional
+
+National
+
+Olympic pathway
+
+Elite amateur
+
+This is where people still research manually.
+
+---
+
+### 7. Languages
+
+English only.
+
+Everything should be designed so multilingual support is modular.
+
+---
+
+# Legal
+
+### 8. Lawyer?
+
+Answer:
+
+No.
+
+Legal review before commercial launch.
+
+Don't spend thousands before proving demand.
+
+Instead:
+
+Only collect publicly available information.
+
+Always retain original sources.
+
+Never scrape private information.
+
+Never infer medical information.
+
+Never invent facts.
+
+---
+
+### 9. Terms
+
+Needed before launch.
+
+Not before MVP.
+
+---
+
+# Technical
+
+### 10. Cost Per Agent
+
+This is impossible to answer today.
+
+Instead answer:
+
+> The architecture should minimise unnecessary AI calls by aggressively caching information and using deterministic software wherever possible.
+
+Then measure cost during MVP.
+
+---
+
+### 11. Team
+
+Solo founder.
+
+Architecture should optimise for one developer.
+
+Keep the first version extremely small.
+
+---
+
+### 12. Licensed Data
+
+No.
+
+Everything uses public sources.
+
+---
+
+# Product
+
+### 13. Significant Alerts
+
+This is actually where I think Replit missed an opportunity.
+
+I would answer:
+
+Significance is configurable.
+
+Every organisation has different needs.
+
+Examples
+
+Scout
+
+* New results
+* New rankings
+* Injury news
+* Team changes
+
+Brand
+
+* Sponsorships
+* Viral social growth
+* Media mentions
+
+Journalist
+
+* Interviews
+* Transfers
+* Records
+
+Administrator
+
+* Eligibility
+* Selection
+* Competition announcements
+
+One alert engine.
+
+Different rule sets.
+
+---
+
+### 14. Incorrect Intelligence
+
+Every AI statement should include:
+
+Confidence
+
+Source
+
+Timestamp
+
+Evidence
+
+Users can:
+
+Flag
+
+Suggest correction
+
+Hide
+
+Report
+
+AI should never overwrite verified structured data.
+
+---
+
+### 15. Six-Month Success
+
+I would make this realistic.
+
+Success
+
+* 5 pilot organisations
+* 50 active users
+* 500 monitored athletes
+* 90% weekly retention among pilot users
+* 3 organisations willing to pay
+* Positive feedback that the product saves significant research time
+
+I would not set an ARR target yet. Early validation matters more than revenue projections.
+
+---
+
+# The Three Questions I'd Add
+
+These are the questions I think are *missing*, and they're arguably the most important.
+
+## 1. Why wouldn't someone just use ChatGPT or Perplexity?
+
+This is your biggest competitive question.
+
+Your answer should be something like:
+
+> Because ChatGPT and Perplexity answer questions when asked. Athlete Intelligence Agents continuously monitor, structure, verify, and proactively notify users of changes over time.
+
+That difference should be reflected in every feature.
+
+---
+
+## 2. What proprietary asset are we building?
+
+If your answer is:
+
+"An AI app"
+
+you're vulnerable.
+
+If your answer is:
+
+"A continuously updating, structured athlete knowledge graph with verified relationships and historical change tracking."
+
+that's much stronger.
+
+---
+
+## 3. What happens after Athlete Intelligence?
+
+I wouldn't mention this publicly, but internally I'd define the long-term vision:
+
+> Build the Intelligence Platform once.
+
+> Launch Athlete Intelligence first.
+
+> Reuse the same platform to power Tourism Intelligence and future verticals.
+
+That gives you a coherent product strategy without diluting the initial focus.
+
+## One strategic adjustment
+
+One answer I would *not* lock in yet is the choice of sport. Before deciding on cycling, triathlon, rugby, or another niche, I'd spend a week interviewing 10–15 potential users (scouts, performance directors, agents, or national sporting organisations) and ask about their current research workflow. The best launch market isn't necessarily the one with the least competition—it's the one where people have a painful, frequent problem and no tool they're genuinely happy with.
+
+Everything else can be documented now, but I'd treat the initial sport selection as a hypothesis to validate rather than a fixed decision.
