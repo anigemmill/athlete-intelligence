@@ -1,9 +1,19 @@
 import React from "react";
 import { Sidebar } from "./Sidebar";
 
+export type ActivePage =
+  | "dashboard"
+  | "intelligence"
+  | "chat"
+  | "schedule"
+  | "alerts"
+  | "settings"
+  | "admin"
+  | "athletes";
+
 interface AppLayoutProps {
   children: React.ReactNode;
-  activePage?: "dashboard" | "intelligence" | "schedule" | "alerts" | "settings";
+  activePage?: ActivePage;
 }
 
 export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps) {

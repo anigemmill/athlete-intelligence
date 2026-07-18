@@ -7,13 +7,25 @@ import { Route, Switch, Router as WouterRouter, Redirect, useLocation } from 'wo
 import { ClerkProvider, SignUp, useAuth, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 
+// Public pages
+import LandingPage from '@/pages/LandingPage';
+import PricingPage from '@/pages/PricingPage';
+import AboutPage from '@/pages/AboutPage';
+import ContactPage from '@/pages/ContactPage';
+import SecurityPage from '@/pages/SecurityPage';
+import SignInPage from '@/pages/SignInPage';
+
+// Authenticated app pages
 import Dashboard from '@/pages/Dashboard';
 import FeedPage from '@/pages/FeedPage';
 import SchedulePage from '@/pages/SchedulePage';
 import ComparePage from '@/pages/ComparePage';
 import DossierPage from '@/pages/DossierPage';
 import NewAgentPage from '@/pages/NewAgentPage';
-import SignInPage from '@/pages/SignInPage';
+import ChatPage from '@/pages/ChatPage';
+import AlertsPage from '@/pages/AlertsPage';
+import SettingsPage from '@/pages/SettingsPage';
+import AdminPage from '@/pages/AdminPage';
 
 const queryClient = new QueryClient();
 
@@ -82,14 +94,12 @@ function Router() {
 
   return (
     <Switch>
-      {/* Root redirect */}
-      <Route path="/">
-        {isLoaded
-          ? isSignedIn
-            ? <Redirect to="/dashboard" />
-            : <Redirect to="/sign-in" />
-          : null}
-      </Route>
+      {/* Public marketing site */}
+      <Route path="/" component={LandingPage} />
+      <Route path="/pricing" component={PricingPage} />
+      <Route path="/about" component={AboutPage} />
+      <Route path="/contact" component={ContactPage} />
+      <Route path="/security" component={SecurityPage} />
 
       {/* Auth routes — MUST be /*? for Clerk's OAuth sub-paths */}
       <Route path="/sign-in/*?" component={SignInPage} />
@@ -99,6 +109,10 @@ function Router() {
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/intelligence"><ProtectedRoute component={FeedPage} /></Route>
       <Route path="/schedule"><ProtectedRoute component={SchedulePage} /></Route>
+      <Route path="/chat"><ProtectedRoute component={ChatPage} /></Route>
+      <Route path="/alerts"><ProtectedRoute component={AlertsPage} /></Route>
+      <Route path="/settings"><ProtectedRoute component={SettingsPage} /></Route>
+      <Route path="/admin"><ProtectedRoute component={AdminPage} /></Route>
       <Route path="/athletes/new"><ProtectedRoute component={NewAgentPage} /></Route>
       <Route path="/athletes/compare"><ProtectedRoute component={ComparePage} /></Route>
       <Route path="/athletes/:id"><ProtectedRoute component={DossierPage} /></Route>
