@@ -6,12 +6,6 @@ export function requireAuth(
   res: Response,
   next: NextFunction,
 ): void {
-  // Clerk proxy routes must be public — Clerk JS loads through /__clerk/
-  if (req.path.startsWith("/__clerk")) {
-    next();
-    return;
-  }
-
   const auth = getAuth(req);
   const userId = auth?.sessionClaims?.userId || auth?.userId;
   if (!userId) {

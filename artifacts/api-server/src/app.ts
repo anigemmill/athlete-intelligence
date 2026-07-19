@@ -2,11 +2,18 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
+import {
+  CLERK_PROXY_PATH,
+  clerkProxyMiddleware,
+} from "./middlewares/clerkProxyMiddleware.js";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./lib/webhookHandlers.js";
 
 const app: Express = express();
+
+// ── Clerk proxy — MUST be before body parsers (streams raw bytes) ─────────────
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 // ── Stripe webhook MUST be registered before express.json() ──────────────────
 // Stripe requires the raw Buffer — json() would destroy it.
@@ -49,7 +56,8 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
