@@ -276,6 +276,12 @@ router.patch("/athletes/:id", async (req, res): Promise<void> => {
   if (parsed.data.squad !== undefined) updates.squad = parsed.data.squad;
   if (parsed.data.agentStatus !== undefined) updates.agentStatus = parsed.data.agentStatus;
   if (parsed.data.avatarUrl !== undefined) updates.avatarUrl = parsed.data.avatarUrl ?? null;
+  if (parsed.data.instagramHandle !== undefined) updates.instagramHandle = parsed.data.instagramHandle ?? null;
+  if (parsed.data.instagramFollowers !== undefined) updates.instagramFollowers = parsed.data.instagramFollowers;
+  if (parsed.data.twitterHandle !== undefined) updates.twitterHandle = parsed.data.twitterHandle ?? null;
+  if (parsed.data.twitterFollowers !== undefined) updates.twitterFollowers = parsed.data.twitterFollowers;
+  if (parsed.data.tiktokHandle !== undefined) updates.tiktokHandle = parsed.data.tiktokHandle ?? null;
+  if (parsed.data.tiktokFollowers !== undefined) updates.tiktokFollowers = parsed.data.tiktokFollowers;
 
   const [updated] = await db
     .update(athletesTable)

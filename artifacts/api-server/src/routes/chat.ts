@@ -556,7 +556,9 @@ router.post("/chat", chatLimiter, async (req, res): Promise<void> => {
         tool_choice: isLastIteration ? undefined : "auto",
         stream: true,
         max_completion_tokens: 3000,
-      });
+        // reasoning_effort must be 'none' to use function tools on this model
+        reasoning_effort: "none",
+      } as any);
 
       let fullContent = "";
       const toolCalls: Record<string, { name: string; arguments: string }> = {};

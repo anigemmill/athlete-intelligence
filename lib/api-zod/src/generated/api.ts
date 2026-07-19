@@ -199,7 +199,14 @@ export const UpdateAthleteParams = zod.object({
 
 export const UpdateAthleteBody = zod.object({
   "squad": zod.string().optional(),
-  "agentStatus": zod.string().optional()
+  "agentStatus": zod.string().optional(),
+  "avatarUrl": zod.string().nullish(),
+  "instagramHandle": zod.string().nullish(),
+  "instagramFollowers": zod.number().optional(),
+  "twitterHandle": zod.string().nullish(),
+  "twitterFollowers": zod.number().optional(),
+  "tiktokHandle": zod.string().nullish(),
+  "tiktokFollowers": zod.number().optional(),
 })
 
 export const UpdateAthleteResponse = zod.object({

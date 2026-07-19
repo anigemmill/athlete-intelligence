@@ -156,6 +156,15 @@ export default function DossierPage() {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
 
+  // Social stats edit state
+  const [editingSocial, setEditingSocial] = useState(false);
+  const [savingSocial, setSavingSocial] = useState(false);
+  const [socialDraft, setSocialDraft] = useState({
+    instagramHandle: "", instagramFollowers: "",
+    twitterHandle: "", twitterFollowers: "",
+    tiktokHandle: "", tiktokFollowers: "",
+  });
+
   // AI Summary state
   const [summaryText, setSummaryText] = useState<string>("");
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<string | null>(null);
@@ -169,6 +178,42 @@ export default function DossierPage() {
       setPhotoError(false);
     }
   }, [athlete?.avatarUrl]);
+
+  // Sync social draft when athlete loads
+  useEffect(() => {
+    if (!athlete) return;
+    setSocialDraft({
+      instagramHandle: athlete.instagramHandle ?? "",
+      instagramFollowers: athlete.instagramFollowers ? String(athlete.instagramFollowers) : "",
+      twitterHandle: athlete.twitterHandle ?? "",
+      twitterFollowers: athlete.twitterFollowers ? String(athlete.twitterFollowers) : "",
+      tiktokHandle: athlete.tiktokHandle ?? "",
+      tiktokFollowers: athlete.tiktokFollowers ? String(athlete.tiktokFollowers) : "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [athlete?.id]);
+
+  const saveSocial = async () => {
+    setSavingSocial(true);
+    try {
+      await fetch(`/api/athletes/${athleteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instagramHandle: socialDraft.instagramHandle.trim() || null,
+          instagramFollowers: socialDraft.instagramFollowers ? Number(socialDraft.instagramFollowers.replace(/[^0-9]/g, "")) : 0,
+          twitterHandle: socialDraft.twitterHandle.trim() || null,
+          twitterFollowers: socialDraft.twitterFollowers ? Number(socialDraft.twitterFollowers.replace(/[^0-9]/g, "")) : 0,
+          tiktokHandle: socialDraft.tiktokHandle.trim() || null,
+          tiktokFollowers: socialDraft.tiktokFollowers ? Number(socialDraft.tiktokFollowers.replace(/[^0-9]/g, "")) : 0,
+        }),
+      });
+      setEditingSocial(false);
+      refetchAthlete();
+    } finally {
+      setSavingSocial(false);
+    }
+  };
 
   const savePhotoUrl = async () => {
     try {
@@ -656,38 +701,110 @@ export default function DossierPage() {
                 {/* Right column */}
                 <div className="space-y-5">
                   {/* Social Media */}
-                  {(athlete.instagramHandle || athlete.twitterHandle) && (
-                    <div className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
-                      <div className="flex items-center gap-2 mb-4">
+                  <div className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
                         <Users size={13} className="text-[#9097B0]" />
                         <h3 className="text-[13px] font-semibold text-[#1C1F3A]">Social Media</h3>
                       </div>
-                      <div className="space-y-4">
-                        {athlete.instagramHandle && athlete.instagramFollowers && (
-                          <div className="pb-4 border-b border-[#DCE2EF]">
-                            <div className="text-[12px] font-semibold text-[#1C1F3A] mb-0.5">@{athlete.instagramHandle}</div>
-                            <div className="text-[11px] text-[#8A90A8] mb-1">Instagram</div>
-                            <div className="text-[20px] font-bold text-[#1C1F3A]">
-                              {(athlete.instagramFollowers / 1000).toFixed(1)}K{" "}
-                              <span className="text-xs text-[#9097B0] font-normal">followers</span>
-                            </div>
-                            <Sparkline data={[60, 62, 65, 63, 70, 74, 72, 78, 80, 83, 85, 100]} color="#E75D50" />
-                          </div>
-                        )}
-                        {athlete.twitterHandle && athlete.twitterFollowers && (
-                          <div>
-                            <div className="text-[12px] font-semibold text-[#1C1F3A] mb-0.5">@{athlete.twitterHandle}</div>
-                            <div className="text-[11px] text-[#8A90A8] mb-1">X / Twitter</div>
-                            <div className="text-[20px] font-bold text-[#1C1F3A]">
-                              {(athlete.twitterFollowers / 1000).toFixed(1)}K{" "}
-                              <span className="text-xs text-[#9097B0] font-normal">followers</span>
-                            </div>
-                            <Sparkline data={[50, 52, 55, 60, 58, 63, 65, 68, 70, 72, 75, 80]} color="#344F9F" />
-                          </div>
-                        )}
-                      </div>
+                      {!editingSocial ? (
+                        <button
+                          onClick={() => setEditingSocial(true)}
+                          aria-label="Edit social media stats"
+                          className="text-[11px] text-[#8A90A8] hover:text-[#E75D50] transition-colors flex items-center gap-1"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { setEditingSocial(false); }} className="text-[11px] text-[#8A90A8] hover:text-[#1C1F3A] transition-colors">Cancel</button>
+                          <button
+                            onClick={saveSocial}
+                            disabled={savingSocial}
+                            className="text-[11px] px-2.5 py-1 rounded-md bg-[#293055] text-white hover:bg-[#1e2440] transition-colors disabled:opacity-60"
+                          >
+                            {savingSocial ? "Saving…" : "Save"}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {editingSocial ? (
+                      /* ── Edit mode ── */
+                      <div className="space-y-4">
+                        {(["instagram", "twitter", "tiktok"] as const).map((platform) => {
+                          const handleKey = `${platform}Handle` as keyof typeof socialDraft;
+                          const followersKey = `${platform}Followers` as keyof typeof socialDraft;
+                          const label = platform === "twitter" ? "X / Twitter" : platform.charAt(0).toUpperCase() + platform.slice(1);
+                          return (
+                            <div key={platform} className="space-y-1.5">
+                              <div className="text-[11px] font-medium text-[#8A90A8]">{label}</div>
+                              <input
+                                type="text"
+                                aria-label={`${label} handle`}
+                                placeholder="username (no @)"
+                                value={socialDraft[handleKey]}
+                                onChange={(e) => setSocialDraft((d) => ({ ...d, [handleKey]: e.target.value.replace(/^@/, "") }))}
+                                className="w-full text-[12px] border border-[#DCE2EF] rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#E75D50] focus:ring-1 focus:ring-[#E75D50]"
+                              />
+                              <input
+                                type="text"
+                                aria-label={`${label} follower count`}
+                                placeholder="Followers (e.g. 250000)"
+                                value={socialDraft[followersKey]}
+                                onChange={(e) => setSocialDraft((d) => ({ ...d, [followersKey]: e.target.value }))}
+                                className="w-full text-[12px] border border-[#DCE2EF] rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#E75D50] focus:ring-1 focus:ring-[#E75D50]"
+                              />
+                            </div>
+                          );
+                        })}
+                        <p className="text-[10px] text-[#9097B0] pt-1">Enter the current follower count from the platform directly — this keeps numbers accurate.</p>
+                      </div>
+                    ) : (
+                      /* ── Read mode ── */
+                      (() => {
+                        const platforms = [
+                          { handle: athlete.instagramHandle, followers: athlete.instagramFollowers, label: "Instagram", color: "#E75D50", sparkline: [60,62,65,63,70,74,72,78,80,83,85,100] as number[] },
+                          { handle: athlete.twitterHandle,   followers: athlete.twitterFollowers,   label: "X / Twitter", color: "#344F9F", sparkline: [50,52,55,60,58,63,65,68,70,72,75,80] as number[] },
+                          { handle: athlete.tiktokHandle,    followers: athlete.tiktokFollowers,    label: "TikTok",    color: "#1C1F3A", sparkline: [40,45,48,50,55,58,62,66,70,74,78,85] as number[] },
+                        ].filter((p) => p.handle);
+
+                        if (platforms.length === 0) {
+                          return (
+                            <div className="text-center py-4">
+                              <p className="text-[12px] text-[#9097B0] mb-2">No social accounts added yet.</p>
+                              <button onClick={() => setEditingSocial(true)} className="text-[12px] text-[#E75D50] hover:underline">Add social accounts →</button>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-4">
+                            {platforms.map((p, i) => (
+                              <div key={p.label} className={i < platforms.length - 1 ? "pb-4 border-b border-[#DCE2EF]" : ""}>
+                                <div className="text-[12px] font-semibold text-[#1C1F3A] mb-0.5">@{p.handle}</div>
+                                <div className="text-[11px] text-[#8A90A8] mb-1">{p.label}</div>
+                                {p.followers ? (
+                                  <>
+                                    <div className="text-[20px] font-bold text-[#1C1F3A]">
+                                      {p.followers >= 1_000_000
+                                        ? `${(p.followers / 1_000_000).toFixed(1)}M`
+                                        : `${(p.followers / 1000).toFixed(1)}K`}{" "}
+                                      <span className="text-xs text-[#9097B0] font-normal">followers</span>
+                                    </div>
+                                    <Sparkline data={p.sparkline} color={p.color} />
+                                  </>
+                                ) : (
+                                  <button onClick={() => setEditingSocial(true)} className="text-[11px] text-[#9097B0] hover:text-[#E75D50] transition-colors">Add follower count →</button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
 
                   {/* Agent Status */}
                   <div className="rounded-xl border border-[#DCE2EF] bg-white p-5 shadow-sm">
