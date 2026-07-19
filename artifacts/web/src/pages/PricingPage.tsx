@@ -1,9 +1,12 @@
-import React, { useState } from "react";
-import { Link } from "wouter";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { CheckCircle2, Minus } from "lucide-react";
+import { CheckCircle2, Minus, Loader2 } from "lucide-react";
 
 type Cycle = "monthly" | "annual";
+
+// Stripe tier → price ID map (loaded from API)
+type PriceMap = Record<string, { monthly: string | null; annual: string | null }>;
 
 const TIERS = [
   {
@@ -15,8 +18,8 @@ const TIERS = [
     athletes: 50,
     users: 5,
     highlight: false,
-    cta: "Request a trial",
-    ctaHref: "/contact",
+    cta: "Start free trial",
+    enterprise: false,
   },
   {
     id: "pro",
@@ -28,8 +31,8 @@ const TIERS = [
     users: 15,
     highlight: true,
     badge: "Most popular",
-    cta: "Request a trial",
-    ctaHref: "/contact",
+    cta: "Start free trial",
+    enterprise: false,
   },
   {
     id: "enterprise",
@@ -41,7 +44,7 @@ const TIERS = [
     users: -1,
     highlight: false,
     cta: "Contact sales",
-    ctaHref: "/contact",
+    enterprise: true,
   },
 ];
 
@@ -85,8 +88,8 @@ const FEATURES: FeatureRow[] = [
 
 const FAQ = [
   {
-    q: "How does the trial work?",
-    a: "We run a guided pilot rather than a self-serve trial — we set up your account with athletes from your actual roster so the first thing you see is real intelligence, not sample data. Reach out via the contact form to get started.",
+    q: "How does the free trial work?",
+    a: "You get 14 days free — no charge until the trial ends. We'll set up your account with athletes from your actual roster so the first thing you see is real intelligence, not sample data. Cancel any time before the trial ends and you won't be charged.",
   },
   {
     q: "Can I change plans later?",
@@ -116,9 +119,90 @@ function Cell({ value }: { value: boolean | string }) {
   return <span className="text-[13px] text-white/70 font-medium">{value}</span>;
 }
 
+// ── Checkout button ───────────────────────────────────────────────────────────
+
+function CheckoutButton({
+  tierId,
+  cycle,
+  prices,
+  highlight,
+  cta,
+}: {
+  tierId: string;
+  cycle: Cycle;
+  prices: PriceMap | null;
+  highlight: boolean;
+  cta: string;
+}) {
+  const [, setLocation] = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const priceId = prices?.[tierId]?.[cycle === "monthly" ? "monthly" : "annual"] ?? null;
+
+  const handleClick = async () => {
+    if (!priceId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const origin = window.location.origin;
+      const resp = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceId,
+          trialDays: 14,
+          successUrl: `${origin}/billing/success`,
+          cancelUrl: `${origin}/pricing`,
+        }),
+      });
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error ?? "Could not start checkout");
+        setLoading(false);
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const baseClass = `w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-semibold transition-all`;
+  const activeClass = highlight
+    ? "bg-[#E75D50] hover:bg-[#D04840] text-white shadow-[0_4px_16px_rgba(231,93,80,0.35)]"
+    : "border border-white/15 text-white/70 hover:text-white hover:border-white/30 hover:bg-white/5";
+  const disabledClass = "opacity-60 cursor-not-allowed";
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        disabled={loading || !priceId}
+        className={`${baseClass} ${priceId ? activeClass : disabledClass} ${loading ? "opacity-70" : ""}`}
+      >
+        {loading ? <Loader2 size={15} className="animate-spin" /> : null}
+        {loading ? "Redirecting…" : !priceId && prices !== null ? "Coming soon" : cta}
+      </button>
+      {error && <p className="text-[11px] text-red-400 text-center mt-2">{error}</p>}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function PricingPage() {
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [prices, setPrices] = useState<PriceMap | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stripe/prices")
+      .then((r) => r.json())
+      .then((d) => setPrices(d.prices ?? null))
+      .catch(() => setPrices(null));
+  }, []);
 
   return (
     <PublicLayout>
@@ -128,19 +212,20 @@ export default function PricingPage() {
         <div className="relative max-w-6xl mx-auto px-6">
           <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Pricing</div>
           <h1 className="text-5xl font-bold text-white tracking-tight mb-4">Simple, transparent pricing</h1>
-          <p className="text-white/40 text-lg mb-10 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. Scale up or down as your roster changes.</p>
+          <p className="text-white/40 text-lg mb-3 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. 14-day free trial on all plans.</p>
+          <p className="text-white/25 text-[13px] mb-10">No credit card required to start your trial.</p>
 
           {/* Billing toggle */}
           <div className="inline-flex items-center gap-1 bg-[#131929] border border-white/[0.07] rounded-xl p-1">
             <button
               onClick={() => setCycle("monthly")}
-              className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all ${cycle === "monthly" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"}`}
+              className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all ${cycle === "monthly" ? "bg-white/10 text-white" : "text-white/40 hover:text/60"}`}
             >
               Monthly
             </button>
             <button
               onClick={() => setCycle("annual")}
-              className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all flex items-center gap-2 ${cycle === "annual" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"}`}
+              className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all flex items-center gap-2 ${cycle === "annual" ? "bg-white/10 text-white" : "text-white/40 hover:text/60"}`}
             >
               Annual
               <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold">Save 17%</span>
@@ -154,7 +239,14 @@ export default function PricingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-5">
             {TIERS.map((tier) => (
-              <div key={tier.id} className={`relative rounded-2xl p-7 border ${tier.highlight ? "bg-gradient-to-b from-[#E75D50]/10 to-[#131929] border-[#E75D50]/40 shadow-[0_0_60px_rgba(231,93,80,0.1)]" : "bg-[#131929] border-white/[0.07]"}`}>
+              <div
+                key={tier.id}
+                className={`relative rounded-2xl p-7 border ${
+                  tier.highlight
+                    ? "bg-gradient-to-b from-[#E75D50]/10 to-[#131929] border-[#E75D50]/40 shadow-[0_0_60px_rgba(231,93,80,0.1)]"
+                    : "bg-[#131929] border-white/[0.07]"
+                }`}
+              >
                 {tier.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#E75D50] text-white text-[11px] font-semibold shadow-[0_2px_12px_rgba(231,93,80,0.4)]">
                     {tier.badge}
@@ -167,7 +259,9 @@ export default function PricingPage() {
                 <div className="flex items-end gap-1 mb-2">
                   {tier.monthly !== null ? (
                     <>
-                      <span className="text-4xl font-bold text-white">${cycle === "monthly" ? tier.monthly : tier.annual}</span>
+                      <span className="text-4xl font-bold text-white">
+                        ${cycle === "monthly" ? tier.monthly : tier.annual}
+                      </span>
                       <span className="text-[13px] text-white/30 mb-1.5">/month</span>
                     </>
                   ) : (
@@ -175,7 +269,9 @@ export default function PricingPage() {
                   )}
                 </div>
                 {tier.monthly !== null && cycle === "annual" && (
-                  <p className="text-[11px] text-emerald-400 mb-5">Billed annually — save ${(tier.monthly - (tier.annual ?? 0)) * 12}/yr</p>
+                  <p className="text-[11px] text-emerald-400 mb-5">
+                    Billed annually — save ${(tier.monthly - (tier.annual ?? 0)) * 12}/yr
+                  </p>
                 )}
                 {(tier.monthly === null || cycle !== "annual") && <div className="mb-5" />}
 
@@ -183,16 +279,33 @@ export default function PricingPage() {
                   <div>{tier.athletes === -1 ? "Unlimited athletes" : `${tier.athletes} athletes`}</div>
                   <div>{tier.users === -1 ? "Unlimited users" : `${tier.users} team seats`}</div>
                   <div>All sports & disciplines</div>
+                  {!tier.enterprise && (
+                    <div className="text-emerald-400/70 text-[12px]">14-day free trial included</div>
+                  )}
                 </div>
 
-                <Link href={tier.ctaHref}>
-                  <span className={`block text-center py-3 rounded-xl text-[14px] font-semibold cursor-pointer transition-all ${tier.highlight ? "bg-[#E75D50] hover:bg-[#D04840] text-white shadow-[0_4px_16px_rgba(231,93,80,0.35)]" : "border border-white/15 text-white/70 hover:text-white hover:border-white/30 hover:bg-white/5"}`}>
-                    {tier.cta}
-                  </span>
-                </Link>
+                {tier.enterprise ? (
+                  <Link href="/contact">
+                    <span className="block text-center py-3 rounded-xl text-[14px] font-semibold cursor-pointer transition-all border border-white/15 text-white/70 hover:text-white hover:border-white/30 hover:bg-white/5">
+                      {tier.cta}
+                    </span>
+                  </Link>
+                ) : (
+                  <CheckoutButton
+                    tierId={tier.id}
+                    cycle={cycle}
+                    prices={prices}
+                    highlight={tier.highlight}
+                    cta={tier.cta}
+                  />
+                )}
               </div>
             ))}
           </div>
+
+          <p className="text-center text-white/20 text-[12px] mt-6">
+            Prices in USD. Annual plans billed as a single payment. Cancel any time.
+          </p>
         </div>
       </section>
 
@@ -206,7 +319,12 @@ export default function PricingPage() {
                 <tr className="border-b border-white/[0.07] bg-[#131929]">
                   <th className="text-left px-6 py-4 text-[12px] font-semibold text-white/30 uppercase tracking-wider w-1/2">Feature</th>
                   {TIERS.map((t) => (
-                    <th key={t.id} className={`px-4 py-4 text-[13px] font-semibold text-center w-[16%] ${t.highlight ? "text-[#E75D50]" : "text-white/60"}`}>{t.name}</th>
+                    <th
+                      key={t.id}
+                      className={`px-4 py-4 text-[13px] font-semibold text-center w-[16%] ${t.highlight ? "text-[#E75D50]" : "text-white/60"}`}
+                    >
+                      {t.name}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -215,10 +333,12 @@ export default function PricingPage() {
                   <React.Fragment key={i}>
                     {f.section && (
                       <tr className="border-t border-white/[0.07]">
-                        <td colSpan={4} className="px-6 py-3 text-[11px] font-semibold text-white/25 uppercase tracking-widest bg-[#0E1525]">{f.section}</td>
+                        <td colSpan={4} className="px-6 py-3 text-[11px] font-semibold text-white/25 uppercase tracking-widest bg-[#0E1525]">
+                          {f.section}
+                        </td>
                       </tr>
                     )}
-                    <tr className={`border-t border-white/[0.04] hover:bg-white/[0.01] ${f.section ? "" : ""}`}>
+                    <tr className="border-t border-white/[0.04] hover:bg-white/[0.01]">
                       <td className="px-6 py-3.5 text-[13px] text-white/55">{f.label}</td>
                       <td className="px-4 py-3.5 text-center"><Cell value={f.starter} /></td>
                       <td className="px-4 py-3.5 text-center bg-[#E75D50]/[0.025]"><Cell value={f.pro} /></td>
@@ -251,7 +371,9 @@ export default function PricingPage() {
                   </span>
                 </button>
                 {openFaq === i && (
-                  <div className="px-6 pb-5 text-[13px] text-white/45 leading-relaxed border-t border-white/[0.05] pt-4">{item.a}</div>
+                  <div className="px-6 pb-5 text-[13px] text-white/45 leading-relaxed border-t border-white/[0.05] pt-4">
+                    {item.a}
+                  </div>
                 )}
               </div>
             ))}
@@ -264,7 +386,9 @@ export default function PricingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="rounded-2xl bg-gradient-to-br from-[#131929] to-[#0E1525] border border-white/[0.07] p-10 text-center">
             <h2 className="text-2xl font-bold text-white mb-3">Running a major programme?</h2>
-            <p className="text-white/40 mb-7 max-w-lg mx-auto text-[14px]">Enterprise plans are scoped to your organisation — unlimited athletes, dedicated customer success, SLA, SSO, API access, and structured onboarding. Let's have a conversation.</p>
+            <p className="text-white/40 mb-7 max-w-lg mx-auto text-[14px]">
+              Enterprise plans are scoped to your organisation — unlimited athletes, dedicated customer success, SLA, SSO, API access, and structured onboarding. Let's have a conversation.
+            </p>
             <Link href="/contact">
               <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E75D50] hover:bg-[#D04840] text-white font-semibold text-[14px] cursor-pointer transition-all shadow-[0_4px_16px_rgba(231,93,80,0.35)]">
                 Contact sales →

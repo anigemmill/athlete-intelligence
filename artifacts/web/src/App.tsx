@@ -27,6 +27,7 @@ import AlertsPage from '@/pages/AlertsPage';
 import SettingsPage from '@/pages/SettingsPage';
 import AdminPage from '@/pages/AdminPage';
 import SourcesPage from '@/pages/SourcesPage';
+import BillingSuccessPage from '@/pages/BillingSuccessPage';
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,9 @@ function Router() {
       <Route path="/athletes/new"><ProtectedRoute component={NewAgentPage} /></Route>
       <Route path="/athletes/compare"><ProtectedRoute component={ComparePage} /></Route>
       <Route path="/athletes/:id"><ProtectedRoute component={DossierPage} /></Route>
+
+      {/* Billing */}
+      <Route path="/billing/success" component={BillingSuccessPage} />
 
       <Route component={NotFound} />
     </Switch>

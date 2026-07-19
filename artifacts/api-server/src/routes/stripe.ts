@@ -4,6 +4,41 @@ import { getUncachableStripeClient } from "../lib/stripeClient.js";
 
 const router: IRouter = Router();
 
+// GET /api/stripe/prices — fetch live prices directly from Stripe API
+// Used by PricingPage to get real priceIds without depending on webhook sync.
+router.get("/stripe/prices", async (_req, res): Promise<void> => {
+  try {
+    const stripe = await getUncachableStripeClient();
+
+    // Fetch all active products
+    const products = await stripe.products.list({ active: true, limit: 20 });
+    // Fetch all active prices
+    const prices = await stripe.prices.list({ active: true, limit: 50, expand: ["data.product"] });
+
+    const result: Record<string, { monthly: string | null; annual: string | null }> = {};
+
+    for (const product of products.data) {
+      const tier = (product.metadata as any)?.tier as string | undefined;
+      if (!tier) continue;
+      result[tier] = { monthly: null, annual: null };
+    }
+
+    for (const price of prices.data) {
+      const prod = typeof price.product === "string" ? null : price.product as any;
+      if (!prod || prod.deleted) continue;
+      const tier = prod.metadata?.tier as string | undefined;
+      if (!tier || !result[tier]) continue;
+      if (price.recurring?.interval === "month") result[tier].monthly = price.id;
+      if (price.recurring?.interval === "year") result[tier].annual = price.id;
+    }
+
+    res.json({ prices: result });
+  } catch (err: any) {
+    console.error("[stripe] prices error:", err);
+    res.status(500).json({ error: err.message ?? "Failed to load prices" });
+  }
+});
+
 // GET /api/stripe/products-with-prices
 router.get("/stripe/products-with-prices", async (_req, res): Promise<void> => {
   try {
@@ -58,12 +93,16 @@ router.post("/stripe/checkout", async (req, res): Promise<void> => {
       }
     }
 
+    const { trialDays } = req.body;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : email,
+      customer_email: customerId ? undefined : (email || undefined),
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
+      allow_promotion_codes: true,
+      subscription_data: trialDays ? { trial_period_days: Number(trialDays) } : undefined,
       success_url: successUrl,
       cancel_url: cancelUrl,
     });
