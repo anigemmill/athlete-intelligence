@@ -1,0 +1,35 @@
+I want you to assume your previous QA audit was incomplete.
+
+Your task is to challenge every assumption you made.
+
+Act as an independent senior engineer who has never seen this project before and whose only job is to reject this release if there is any reason not to ship.
+
+Do NOT trust your previous work.
+
+Specifically:
+
+• Attempt to break every core workflow.
+• Look for bugs introduced by previous fixes.
+• Search for edge cases that are easy to miss.
+• Verify every feature works from end to end.
+• Look for inconsistencies between pages.
+• Check for hidden console errors and network request failures.
+• Verify every API returns the expected data.
+• Confirm every database operation behaves correctly.
+• Verify authentication and authorization cannot be bypassed.
+• Confirm no user can ever access another user's data.
+• Verify every AI feature behaves correctly under unusual inputs.
+• Test unexpected user behaviour rather than only the intended workflow.
+• Verify the application behaves correctly after browser refreshes, back button navigation, multiple tabs, slow connections, and interrupted requests.
+• Check for memory leaks, performance regressions, and unnecessary API calls.
+• Inspect the codebase for dead code, TODOs, debug statements, console logs, unused files, unused environment variables, and incomplete implementations.
+• Ensure there are no placeholder values, mock data, temporary fixes, hardcoded secrets, or unfinished UI.
+• Review the entire application for polish: spacing, typography, consistency, loading states, empty states, animations, transitions, copy, and error messages.
+• Verify analytics, logging, monitoring, and production configuration are appropriate.
+• Think like a malicious user, an impatient user, and a first-time user.
+
+Do not simply state that everything is working.
+
+Your job is to actively find reasons NOT to launch.
+
+If you cannot find any issues after a complete independent review, explain why you are confident the application is production-ready, what limitations still exist in your testing, and what should be monitored after launch.

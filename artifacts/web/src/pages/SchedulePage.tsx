@@ -130,74 +130,19 @@ function CompetitionRow({
   );
 }
 
-const mockCompetitions = [
-  {
-    id: "c1",
-    athleteName: "Lola Anderson",
-    athleteInitials: "LA",
-    athleteColor: "#E75D50",
-    event: "100m Sprint",
-    meet: "NZ Track & Field Championships",
-    venue: "Newtown Park, Wellington",
-    country: "New Zealand",
-    countryFlag: "🇳🇿",
-    dateISO: "2026-07-28T09:30:00",
-    dateLabel: "28 Jul 2026",
-    timeLabel: "09:30 NZST",
-    round: "Final",
-    tier: "A",
-    pbContext: "PB 11.24s — posted +1.2m/s conditions at Sir Graeme Douglas",
-    expectation: "Defending champion. Agent monitoring World Athletics results feed and national federation event portal from race morning.",
-  },
-  {
-    id: "c2",
-    athleteName: "Marcus Webb",
-    athleteInitials: "MW",
-    athleteColor: "#344F9F",
-    event: "Decathlon Day 1",
-    meet: "Trans-Tasman Classic",
-    venue: "Sydney Sports Centre",
-    country: "Australia",
-    countryFlag: "🇦🇺",
-    dateISO: "2026-08-03T08:00:00",
-    dateLabel: "3–4 Aug 2026",
-    timeLabel: "08:00 AEST",
-    round: "Combined Event",
-    tier: "B",
-    pbContext: "PB 7,814 pts — 2025 Oceania Championships",
-    expectation: "First international competition since coaching change. Agent monitoring World Athletics live results and national sports coverage.",
-  },
-  {
-    id: "c3",
-    athleteName: "Lola Anderson",
-    athleteInitials: "LA",
-    athleteColor: "#E75D50",
-    event: "100m Sprint",
-    meet: "Oceania Championships",
-    venue: "Mount Smart Stadium, Auckland",
-    country: "New Zealand",
-    countryFlag: "🇳🇿",
-    dateISO: "2026-08-15T18:00:00",
-    dateLabel: "15 Aug 2026",
-    timeLabel: "18:00 NZST",
-    round: "Final",
-    tier: "A",
-    pbContext: "Won silver here in 2025 (11.31s). Enters with better form.",
-    expectation: "Medal contention. Agent will surface results, post-race interviews, and ranking update within 20 min of finish.",
-  }
-];
 
 export default function SchedulePage() {
-  const { data: apiCompetitions } = useListCompetitions();
-  const competitions: any[] = apiCompetitions?.length ? apiCompetitions : mockCompetitions;
+  const { data: apiCompetitions, isLoading } = useListCompetitions();
+  const competitions: any[] = apiCompetitions ?? [];
 
-  const [selectedId, setSelectedId] = useState(competitions[0]?.id || "c1");
+  const [selectedId, setSelectedId] = useState<string>("");
   const [athleteFilter, setAthleteFilter] = useState<string>("All");
 
-  const nextComp: any = competitions[0] || mockCompetitions[0];
-  const countdown = useCountdown(nextComp.dateISO || nextComp.date);
-  const selected: any = competitions.find((c: any) => c.id === selectedId) || nextComp;
-  const selectedCountdown = useCountdown(selected.dateISO || selected.date);
+  const effectiveId = selectedId || competitions[0]?.id || "";
+  const nextComp: any = competitions[0] ?? null;
+  const countdown = useCountdown(nextComp?.dateISO ?? nextComp?.date ?? "");
+  const selected: any = competitions.find((c: any) => c.id === effectiveId) ?? nextComp;
+  const selectedCountdown = useCountdown(selected?.dateISO ?? selected?.date ?? "");
 
   const athletes = ["All", ...Array.from(new Set(competitions.map((c: any) => c.athleteName || "Unknown")))];
   const filtered = athleteFilter === "All" ? competitions : competitions.filter((c: any) => (c.athleteName || "Unknown") === athleteFilter);
@@ -210,7 +155,31 @@ export default function SchedulePage() {
     grouped[key].push(c);
   });
 
-  const tierDef = tierConfig[selected.tier] || tierConfig.B;
+  const tierDef = tierConfig[selected?.tier ?? "B"] || tierConfig.B;
+
+  // Empty / loading state — shown before the hero band which requires nextComp to be non-null
+  if (!isLoading && competitions.length === 0) {
+    return (
+      <AppLayout activePage="schedule">
+        <div className="flex flex-col h-full bg-[#FCFAFA]">
+          <div className="h-14 border-b border-[#DCE2EF] flex items-center px-6 shrink-0 bg-[#FCFAFA]">
+            <div className="flex items-center gap-2 text-[13px] font-medium text-[#8A90A8]">
+              <Calendar size={14} className="text-[#9097B0]" />
+              <ChevronRight size={14} className="text-[#C0C8DC]" />
+              <span className="text-[#293055]">Competition Schedule</span>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Calendar size={40} className="text-[#DCE2EF] mx-auto mb-3" />
+              <h3 className="text-[15px] font-semibold text-[#1C1F3A] mb-1">No competitions scheduled</h3>
+              <p className="text-[13px] text-[#6B7080]">Competitions linked to your monitored athletes will appear here automatically.</p>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout activePage="schedule">

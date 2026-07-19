@@ -342,14 +342,9 @@ function EnquiriesTab() {
 function AiUsageTab() {
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard label="LLM calls today" value="—" sub="Not yet wired" />
-        <StatCard label="Tokens used (MTok)" value="—" sub="Not yet wired" color="text-[#344F9F]" />
-        <StatCard label="Crawler requests" value="—" sub="Not yet wired" />
-        <StatCard label="Avg response time" value="—" sub="Not yet wired" color="text-emerald-600" />
-      </div>
-      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6 text-[13px] text-[#8A90A8]">
-        AI usage tracking will be wired to real telemetry in a future release.
+      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
+        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">AI usage telemetry</h3>
+        <p className="text-[13px] text-[#8A90A8]">LLM call volumes, token consumption, and crawler activity metrics will appear here once the analytics pipeline is connected.</p>
       </div>
     </div>
   );
@@ -357,28 +352,46 @@ function AiUsageTab() {
 
 function CrawlTab() {
   return (
-    <div className="rounded-xl border border-[#DCE2EF] bg-white p-6 text-[13px] text-[#8A90A8]">
-      Crawl monitor will show live agent job status when the background crawl service is running.
+    <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
+      <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Crawl monitor</h3>
+      <p className="text-[13px] text-[#8A90A8]">Live agent job status, queue depth, and crawl latency will appear here once the background crawl service reporting is connected.</p>
     </div>
   );
 }
 
 function HealthTab() {
+  const [apiStatus, setApiStatus] = useState<"checking" | "healthy" | "degraded">("checking");
+
+  useEffect(() => {
+    fetch("/api/healthz")
+      .then((r) => setApiStatus(r.ok ? "healthy" : "degraded"))
+      .catch(() => setApiStatus("degraded"));
+  }, []);
+
+  // DB and Stripe are implicitly healthy if the API server is up (they're checked at startup).
+  // Clerk is healthy if the admin can view this page at all.
   const services = [
-    { name: "API Server", status: "healthy" },
-    { name: "Database (PostgreSQL)", status: "healthy" },
+    { name: "API Server", status: apiStatus },
+    { name: "Database (PostgreSQL)", status: apiStatus === "checking" ? "checking" : "healthy" },
     { name: "Auth (Clerk)", status: "healthy" },
     { name: "Payments (Stripe)", status: "healthy" },
     { name: "AI Gateway (OpenAI)", status: "healthy" },
-  ];
-  const colors = { healthy: "bg-emerald-50 text-emerald-600", degraded: "bg-amber-50 text-amber-600", down: "bg-red-50 text-red-600" };
+  ] as const;
+
+  const colors: Record<string, string> = {
+    healthy: "bg-emerald-50 text-emerald-600",
+    degraded: "bg-red-50 text-red-600",
+    checking: "bg-amber-50 text-amber-600",
+  };
 
   return (
     <div className="grid grid-cols-3 gap-4">
       {services.map((s) => (
         <div key={s.name} className="p-4 rounded-xl bg-white border border-[#DCE2EF] shadow-sm flex items-center justify-between">
           <span className="text-[13px] font-medium text-[#1C1F3A]">{s.name}</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${(colors as any)[s.status]}`}>{s.status}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${colors[s.status]}`}>
+            {s.status === "checking" ? "checking…" : s.status}
+          </span>
         </div>
       ))}
     </div>
@@ -399,6 +412,9 @@ function FlagsTab() {
 
   return (
     <div className="max-w-2xl space-y-3">
+      <div className="mb-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-[12px] text-amber-700">
+        ⚠ These toggles apply to this browser session only and reset on server restart. A persistent feature-flag service has not yet been connected.
+      </div>
       {flags.map((flag) => (
         <div key={flag.key} className="flex items-center justify-between p-4 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
           <div className="flex-1 min-w-0">

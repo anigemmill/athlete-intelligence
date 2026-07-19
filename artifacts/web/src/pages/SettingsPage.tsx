@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useUser, useClerk } from "@clerk/react";
 import {
   User, CreditCard, Users, Bell, Zap, Key,
-  CheckCircle2, Crown, ChevronRight, Plus, Trash2, Mail, Copy
+  CheckCircle2, Crown, Plus, Copy
 } from "lucide-react";
 
 type Tab = "profile" | "billing" | "team" | "notifications" | "integrations" | "api";
@@ -17,12 +17,6 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "api", label: "API Keys", icon: <Key size={14} /> },
 ];
 
-const MOCK_TEAM = [
-  { id: 1, name: "Alex Thompson", email: "alex@org.com", role: "Owner", avatar: "AT", status: "active" },
-  { id: 2, name: "Jordan Lee", email: "jordan@org.com", role: "Admin", avatar: "JL", status: "active" },
-  { id: 3, name: "Morgan Davis", email: "morgan@org.com", role: "Analyst", avatar: "MD", status: "active" },
-  { id: 4, name: "Casey Williams", email: "casey@org.com", role: "Viewer", avatar: "CW", status: "pending" },
-];
 
 const ROLES = ["Owner", "Admin", "Analyst", "Viewer"];
 const ROLE_DESC: Record<string, string> = {
@@ -36,14 +30,43 @@ function ProfileTab({ user }: { user: any }) {
   const inputCls = "w-full px-3.5 py-2.5 border border-[#DCE2EF] rounded-lg text-[13px] text-[#1C1F3A] bg-white focus:outline-none focus:ring-2 focus:ring-[#E75D50]/30 focus:border-[#E75D50] transition-all";
   const labelCls = "block text-[11px] font-semibold text-[#6B7080] uppercase tracking-wider mb-1.5";
 
+  const [firstName, setFirstName] = useState(user?.firstName ?? "");
+  const [lastName, setLastName]   = useState(user?.lastName ?? "");
+  const [orgName, setOrgName]     = useState((user?.unsafeMetadata as any)?.orgName ?? "");
+  const [jobTitle, setJobTitle]   = useState((user?.unsafeMetadata as any)?.jobTitle ?? "");
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await user.update({
+        firstName,
+        lastName,
+        unsafeMetadata: { ...(user.unsafeMetadata as any), orgName, jobTitle },
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setSaveError("Failed to save — please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-xl space-y-6">
       <div className="flex items-center gap-5 p-5 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#293055] to-[#344F9F] flex items-center justify-center text-white text-xl font-bold">
-          {user?.firstName?.[0]}{user?.lastName?.[0]}
+          {firstName?.[0]}{lastName?.[0]}
         </div>
         <div>
-          <div className="text-[15px] font-semibold text-[#1C1F3A]">{user?.fullName || "User"}</div>
+          <div className="text-[15px] font-semibold text-[#1C1F3A]">
+            {[firstName, lastName].filter(Boolean).join(" ") || "User"}
+          </div>
           <div className="text-[13px] text-[#6B7080]">{user?.primaryEmailAddress?.emailAddress}</div>
         </div>
       </div>
@@ -51,159 +74,233 @@ function ProfileTab({ user }: { user: any }) {
       <div className="p-5 rounded-xl bg-white border border-[#DCE2EF] shadow-sm space-y-4">
         <h3 className="text-[13px] font-semibold text-[#1C1F3A]">Personal information</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div><label className={labelCls}>First name</label><input defaultValue={user?.firstName || ""} className={inputCls} /></div>
-          <div><label className={labelCls}>Last name</label><input defaultValue={user?.lastName || ""} className={inputCls} /></div>
+          <div>
+            <label className={labelCls}>First name</label>
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Last name</label>
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} />
+          </div>
         </div>
-        <div><label className={labelCls}>Email address</label><input defaultValue={user?.primaryEmailAddress?.emailAddress || ""} disabled className={inputCls + " opacity-50 cursor-not-allowed"} /></div>
-        <div><label className={labelCls}>Organisation name</label><input placeholder="e.g. Athletics New Zealand" className={inputCls} /></div>
-        <div><label className={labelCls}>Job title</label><input placeholder="e.g. Performance Director" className={inputCls} /></div>
-        <button className="px-4 py-2 rounded-lg bg-[#293055] hover:bg-[#1e2440] text-white text-[13px] font-medium transition-colors">Save changes</button>
+        <div>
+          <label className={labelCls}>Email address</label>
+          <input value={user?.primaryEmailAddress?.emailAddress || ""} disabled className={inputCls + " opacity-50 cursor-not-allowed"} />
+        </div>
+        <div>
+          <label className={labelCls}>Organisation name</label>
+          <input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="e.g. Athletics New Zealand" className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Job title</label>
+          <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="e.g. Performance Director" className={inputCls} />
+        </div>
+        {saveError && <p className="text-[12px] text-red-500">{saveError}</p>}
+        <button
+          onClick={save}
+          disabled={saving}
+          className={`px-4 py-2 rounded-lg text-white text-[13px] font-medium transition-colors ${saving ? "bg-[#8A90A8] cursor-not-allowed" : "bg-[#293055] hover:bg-[#1e2440]"}`}
+        >
+          {saving ? "Saving…" : saved ? "Saved ✓" : "Save changes"}
+        </button>
       </div>
     </div>
   );
 }
 
 function BillingTab() {
+  const [sub, setSub]                 = useState<any>(undefined); // undefined = loading, null = no subscription
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError]     = useState("");
+
+  useEffect(() => {
+    fetch("/api/stripe/subscription", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((d) => setSub(d.subscription ?? null))
+      .catch(() => setSub(null));
+  }, []);
+
+  const openPortal = async () => {
+    setPortalLoading(true);
+    setPortalError("");
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ returnUrl: window.location.href }),
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error("Portal request failed");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else throw new Error("No portal URL returned");
+    } catch {
+      setPortalError("Could not open billing portal. Please try again.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  // Loading skeleton
+  if (sub === undefined) {
+    return (
+      <div className="max-w-2xl space-y-5">
+        {[0, 1].map((i) => (
+          <div key={i} className="p-6 rounded-xl bg-white border border-[#DCE2EF] shadow-sm space-y-3">
+            <div className="h-5 w-48 bg-[#DCE2EF] rounded animate-pulse" />
+            <div className="h-4 w-64 bg-[#F0F2F7] rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // No subscription
+  if (!sub) {
+    return (
+      <div className="max-w-2xl">
+        <div className="p-10 rounded-xl bg-white border border-[#DCE2EF] shadow-sm text-center">
+          <Crown size={32} className="text-[#DCE2EF] mx-auto mb-3" />
+          <h3 className="text-[15px] font-semibold text-[#1C1F3A] mb-1">No active subscription</h3>
+          <p className="text-[13px] text-[#6B7080] mb-5">Start a 3-day free trial to unlock all features. No charge until the trial ends.</p>
+          <a href="/pricing" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#E75D50] hover:bg-[#D04840] text-white text-[13px] font-semibold transition-colors">
+            View plans
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const status: string    = sub.status ?? "unknown";
+  const isTrialing        = status === "trialing";
+  const isActive          = ["active", "trialing"].includes(status);
+  const periodEnd         = sub.current_period_end ? new Date((sub.current_period_end as number) * 1000) : null;
+  const planName: string  = sub.items?.data?.[0]?.price?.product?.name
+                          ?? sub.plan?.nickname
+                          ?? (sub.metadata as any)?.tier
+                          ?? "Subscription";
+  const amount: number | undefined = sub.items?.data?.[0]?.price?.unit_amount;
+  const currency: string  = sub.items?.data?.[0]?.price?.currency ?? "usd";
+  const interval: string  = sub.items?.data?.[0]?.price?.recurring?.interval ?? "month";
+  const displayAmount     = amount ? `${currency.toUpperCase()} ${(amount / 100).toFixed(0)}` : null;
+  const statusLabel       = isTrialing ? "Trial" : status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+  const statusClass       = isActive
+    ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+    : "bg-amber-50 border-amber-200 text-amber-600";
+
+  const plans = [
+    { name: "Starter", price: "$299/mo", athletes: "50 athletes", users: "5 users" },
+    { name: "Pro",     price: "$799/mo", athletes: "200 athletes", users: "15 users" },
+    { name: "Enterprise", price: "Custom", athletes: "Unlimited", users: "Unlimited" },
+  ];
+
   return (
     <div className="max-w-2xl space-y-5">
-      {/* Current plan */}
+      {/* Active plan card */}
       <div className="p-6 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
-        <div className="flex items-start justify-between mb-5">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Crown size={16} className="text-[#E75D50]" />
-              <span className="text-[15px] font-semibold text-[#1C1F3A]">Pro Plan</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-600">Active</span>
+              <span className="text-[15px] font-semibold text-[#1C1F3A]">{planName}</span>
+              <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${statusClass}`}>{statusLabel}</span>
             </div>
-            <p className="text-[13px] text-[#6B7080]">$799 / month · renews 18 Aug 2026</p>
+            <p className="text-[13px] text-[#6B7080]">
+              {displayAmount ? `${displayAmount} / ${interval}` : ""}
+              {periodEnd
+                ? ` · ${isTrialing ? "trial ends" : "renews"} ${periodEnd.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+                : ""}
+            </p>
           </div>
-          <button className="px-3 py-1.5 rounded-lg border border-[#DCE2EF] text-[12px] font-medium text-[#6B7080] hover:bg-[#F8F9FB] transition-colors">
-            Manage billing
+          <button
+            onClick={openPortal}
+            disabled={portalLoading}
+            className="px-3 py-1.5 rounded-lg border border-[#DCE2EF] text-[12px] font-medium text-[#6B7080] hover:bg-[#F8F9FB] disabled:opacity-50 transition-colors"
+          >
+            {portalLoading ? "Opening…" : "Manage billing"}
           </button>
         </div>
-
-        {/* Usage meters */}
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between text-[12px] mb-1.5">
-              <span className="text-[#6B7080]">Athletes monitored</span>
-              <span className="font-medium text-[#1C1F3A]">5 / 200</span>
-            </div>
-            <div className="h-1.5 bg-[#EEF0F8] rounded-full overflow-hidden">
-              <div className="h-full bg-[#344F9F] rounded-full" style={{ width: "2.5%" }} />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-[12px] mb-1.5">
-              <span className="text-[#6B7080]">Team seats used</span>
-              <span className="font-medium text-[#1C1F3A]">4 / 15</span>
-            </div>
-            <div className="h-1.5 bg-[#EEF0F8] rounded-full overflow-hidden">
-              <div className="h-full bg-[#344F9F] rounded-full" style={{ width: "26.7%" }} />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-[12px] mb-1.5">
-              <span className="text-[#6B7080]">AI queries this month</span>
-              <span className="font-medium text-[#1C1F3A]">43 / Unlimited</span>
-            </div>
-            <div className="h-1.5 bg-[#EEF0F8] rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-400 rounded-full" style={{ width: "8%" }} />
-            </div>
-          </div>
-        </div>
+        {portalError && <p className="text-[12px] text-red-500 mb-2">{portalError}</p>}
+        <p className="text-[12px] text-[#A0A8C0]">
+          Billing is managed via Stripe. Click "Manage billing" to update payment methods, download invoices, or cancel your subscription.
+        </p>
       </div>
 
       {/* Plan comparison */}
       <div className="p-5 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
         <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-4">Available plans</h3>
-        {[
-          { name: "Starter", price: "$299/mo", athletes: "50 athletes", users: "5 users", current: false },
-          { name: "Pro", price: "$799/mo", athletes: "200 athletes", users: "15 users", current: true },
-          { name: "Enterprise", price: "Custom", athletes: "Unlimited", users: "Unlimited", current: false },
-        ].map((p) => (
-          <div key={p.name} className={`flex items-center justify-between p-3.5 rounded-xl mb-2 ${p.current ? "bg-[rgba(231,93,80,0.05)] border border-[rgba(231,93,80,0.25)]" : "bg-[#FAFBFF] border border-[#DCE2EF]"}`}>
-            <div className="flex items-center gap-3">
-              {p.current ? <CheckCircle2 size={14} className="text-[#E75D50] shrink-0" /> : <div className="w-3.5 h-3.5 rounded-full border border-[#DCE2EF] shrink-0" />}
-              <div>
-                <span className="text-[13px] font-medium text-[#1C1F3A]">{p.name}</span>
-                <span className="text-[12px] text-[#8A90A8] ml-2">{p.athletes} · {p.users}</span>
+        {plans.map((p) => {
+          const isCurrent = planName.toLowerCase().includes(p.name.toLowerCase());
+          return (
+            <div key={p.name} className={`flex items-center justify-between p-3.5 rounded-xl mb-2 ${isCurrent ? "bg-[rgba(231,93,80,0.05)] border border-[rgba(231,93,80,0.25)]" : "bg-[#FAFBFF] border border-[#DCE2EF]"}`}>
+              <div className="flex items-center gap-3">
+                {isCurrent
+                  ? <CheckCircle2 size={14} className="text-[#E75D50] shrink-0" />
+                  : <div className="w-3.5 h-3.5 rounded-full border border-[#DCE2EF] shrink-0" />}
+                <div>
+                  <span className="text-[13px] font-medium text-[#1C1F3A]">{p.name}</span>
+                  <span className="text-[12px] text-[#8A90A8] ml-2">{p.athletes} · {p.users}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-semibold text-[#1C1F3A]">{p.price}</span>
+                {!isCurrent && (
+                  <button onClick={openPortal} className="text-[12px] text-[#344F9F] hover:underline font-medium">
+                    {p.name === "Enterprise" ? "Contact sales" : "Upgrade"}
+                  </button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[13px] font-semibold text-[#1C1F3A]">{p.price}</span>
-              {!p.current && (
-                <button className="text-[12px] text-[#344F9F] hover:underline font-medium">
-                  {p.name === "Enterprise" ? "Contact sales" : "Switch"}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Invoice history */}
-      <div className="p-5 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
-        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-4">Invoice history</h3>
-        {[
-          { date: "18 Jul 2026", amount: "$799.00", status: "Paid" },
-          { date: "18 Jun 2026", amount: "$799.00", status: "Paid" },
-          { date: "18 May 2026", amount: "$799.00", status: "Paid" },
-        ].map((inv) => (
-          <div key={inv.date} className="flex items-center justify-between py-3 border-b border-[#F0F2F8] last:border-0">
-            <div className="text-[13px] text-[#1C1F3A]">{inv.date}</div>
-            <div className="flex items-center gap-4">
-              <span className="text-[13px] text-[#6B7080]">{inv.amount}</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-semibold">{inv.status}</span>
-              <button className="text-[12px] text-[#344F9F] hover:underline">Download</button>
-            </div>
-          </div>
-        ))}
-        <p className="text-[11px] text-[#A0A8C0] mt-3">Stripe-powered billing — full payment management coming soon.</p>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function TeamTab() {
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("Analyst");
+  const { user } = useUser();
+
+  const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join("") || "U";
+  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ")
+    || user?.primaryEmailAddress?.emailAddress
+    || "You";
 
   return (
     <div className="max-w-2xl space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[15px] font-semibold text-[#1C1F3A]">Team members</h3>
-          <p className="text-[12px] text-[#6B7080] mt-0.5">4 of 15 seats used</p>
+          <p className="text-[12px] text-[#6B7080] mt-0.5">1 seat used · Multi-user access coming soon</p>
         </div>
-        <button onClick={() => setShowInvite(!showInvite)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#293055] hover:bg-[#1e2440] text-white text-[13px] font-medium transition-colors">
-          <Plus size={14} />{showInvite ? "Cancel" : "Invite member"}
+        <button
+          disabled
+          title="Team invitations are coming in a future release"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#293055]/40 text-white/60 text-[13px] font-medium cursor-not-allowed"
+        >
+          <Plus size={14} />Invite member
         </button>
       </div>
 
-      {showInvite && (
-        <div className="p-5 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
-          <h4 className="text-[13px] font-semibold text-[#1C1F3A] mb-4">Invite a team member</h4>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-[#6B7080] uppercase tracking-wider mb-1">Email address</label>
-              <div className="relative">
-                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0A8C0]" />
-                <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="colleague@org.com" className="w-full pl-8 pr-3 py-2.5 border border-[#DCE2EF] rounded-lg text-[13px] text-[#1C1F3A] bg-[#FAFBFF] focus:outline-none focus:border-[#E75D50] focus:ring-1 focus:ring-[#E75D50]/30 transition-all" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-[#6B7080] uppercase tracking-wider mb-1">Role</label>
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} className="w-full px-3 py-2.5 border border-[#DCE2EF] rounded-lg text-[13px] text-[#1C1F3A] bg-[#FAFBFF] focus:outline-none focus:border-[#E75D50] focus:ring-1 focus:ring-[#E75D50]/30 transition-all">
-                {ROLES.map((r) => <option key={r}>{r}</option>)}
-              </select>
-            </div>
+      {/* Current user — the only real member */}
+      <div className="rounded-xl bg-white border border-[#DCE2EF] shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#293055] to-[#344F9F] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+            {initials}
           </div>
-          <p className="text-[11px] text-[#8A90A8] mb-4">{ROLE_DESC[inviteRole]}</p>
-          <button className="px-4 py-2 rounded-lg bg-[#E75D50] hover:bg-[#D04840] text-white text-[13px] font-medium transition-colors">Send invitation</button>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-medium text-[#1C1F3A] truncate">{displayName}</div>
+            <div className="text-[11px] text-[#8A90A8]">{user?.primaryEmailAddress?.emailAddress}</div>
+          </div>
+          <span className="px-2.5 py-1 rounded-lg border border-[#DCE2EF] text-[12px] text-[#293055] bg-[#FAFBFF]">Owner</span>
         </div>
-      )}
+      </div>
+
+      {/* Coming-soon notice */}
+      <div className="p-5 rounded-xl bg-[#FAFBFF] border border-[#DCE2EF]">
+        <h4 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Team management — coming soon</h4>
+        <p className="text-[12px] text-[#8A90A8]">Multi-user access with role-based permissions will be available in a future release. You will be able to invite teammates and control their access from this screen.</p>
+      </div>
 
       {/* Role legend */}
       <div className="grid grid-cols-2 gap-2">
@@ -211,30 +308,6 @@ function TeamTab() {
           <div key={r} className="flex items-start gap-2 p-3 rounded-lg bg-[#FAFBFF] border border-[#DCE2EF]">
             <div className="text-[12px] font-semibold text-[#293055] w-16 shrink-0">{r}</div>
             <div className="text-[11px] text-[#8A90A8]">{ROLE_DESC[r]}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Member list */}
-      <div className="rounded-xl bg-white border border-[#DCE2EF] shadow-sm overflow-hidden">
-        {MOCK_TEAM.map((member, i) => (
-          <div key={member.id} className={`flex items-center gap-3 px-5 py-4 ${i > 0 ? "border-t border-[#F0F2F8]" : ""}`}>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#293055] to-[#344F9F] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-              {member.avatar}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-medium text-[#1C1F3A] truncate">{member.name}</span>
-                {member.status === "pending" && <span className="px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-600">Pending</span>}
-              </div>
-              <div className="text-[11px] text-[#8A90A8]">{member.email}</div>
-            </div>
-            <select defaultValue={member.role} className="px-2.5 py-1.5 border border-[#DCE2EF] rounded-lg text-[12px] text-[#293055] bg-[#FAFBFF] focus:outline-none disabled:opacity-50" disabled={member.role === "Owner"}>
-              {ROLES.map((r) => <option key={r}>{r}</option>)}
-            </select>
-            {member.role !== "Owner" && (
-              <button className="p-1.5 rounded-lg text-[#A0A8C0] hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
-            )}
           </div>
         ))}
       </div>

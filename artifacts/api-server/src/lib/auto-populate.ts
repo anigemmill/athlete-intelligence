@@ -11,6 +11,7 @@
 
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { db } from "@workspace/db";
+import { logger } from "./logger.js";
 import {
   athletesTable,
   intelligenceItemsTable,
@@ -313,9 +314,9 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       await db.insert(competitionsTable).values(rows);
     }
 
-    console.log(`[auto-populate] ✓ ${athlete.name} (id=${athlete.id}) populated successfully`);
+    logger.info({ athleteId: athlete.id, name: athlete.name }, "auto-populate: completed successfully");
   } catch (err) {
     // Non-fatal — athlete was created, population failed silently
-    console.error(`[auto-populate] ✗ Failed for ${athlete.name} (id=${athlete.id}):`, err);
+    logger.error({ err, athleteId: athlete.id, name: athlete.name }, "auto-populate: failed");
   }
 }
