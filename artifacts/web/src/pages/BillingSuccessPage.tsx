@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "wouter";
 import { CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
+import { PLAN_SELECTED_KEY } from "@/components/PlanSelectionModal";
 
 export default function BillingSuccessPage() {
+  // Mark plan as selected so the modal never shows again on this device
+  useEffect(() => {
+    localStorage.setItem(PLAN_SELECTED_KEY, "1");
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0B0F1E] flex flex-col items-center justify-center px-6">
       {/* Logo */}

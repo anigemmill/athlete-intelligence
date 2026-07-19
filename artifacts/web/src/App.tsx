@@ -15,6 +15,7 @@ import PricingPage from '@/pages/PricingPage';
 import AboutPage from '@/pages/AboutPage';
 import ContactPage from '@/pages/ContactPage';
 import SecurityPage from '@/pages/SecurityPage';
+import TermsPage from '@/pages/TermsPage';
 import SignInPage from '@/pages/SignInPage';
 
 // Authenticated app pages
@@ -131,6 +132,7 @@ function Router() {
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/security" component={SecurityPage} />
+      <Route path="/terms" component={TermsPage} />
 
       {/* Auth routes — MUST be /*? for Clerk's OAuth sub-paths */}
       <Route path="/sign-in/*?" component={SignInPage} />
