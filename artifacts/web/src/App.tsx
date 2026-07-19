@@ -4,8 +4,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter, Redirect, useLocation } from 'wouter';
-import { ClerkProvider, SignUp, useAuth, useClerk } from '@clerk/react';
+import { ClerkProvider, SignUp, useAuth, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
+
+const FOUNDER_EMAIL = 'anigemmill@theoutsidein.nz';
 
 // Public pages
 import LandingPage from '@/pages/LandingPage';
@@ -72,7 +74,12 @@ function ClerkQueryClientCacheInvalidator() {
 function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        signInUrl={`${basePath}/sign-in`}
+        afterSignUpUrl={`${basePath}/dashboard`}
+      />
     </div>
   );
 }
@@ -89,6 +96,28 @@ function ProtectedRoute({ component: Component, ...props }: { component: React.C
   }
   if (!isSignedIn) return <Redirect to="/sign-in" />;
   return <Component {...props} />;
+}
+
+// Redirect the founder to /admin automatically; everyone else sees the dashboard
+function DashboardRoute() {
+  const { user, isLoaded } = useUser();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (isLoaded && user?.primaryEmailAddress?.emailAddress === FOUNDER_EMAIL) {
+      setLocation('/admin');
+    }
+  }, [isLoaded, user]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (user?.primaryEmailAddress?.emailAddress === FOUNDER_EMAIL) return null;
+  return <Dashboard />;
 }
 
 function Router() {
@@ -108,7 +137,7 @@ function Router() {
       <Route path="/sign-up/*?" component={SignUpPage} />
 
       {/* Protected app routes */}
-      <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
+      <Route path="/dashboard"><ProtectedRoute component={DashboardRoute} /></Route>
       <Route path="/intelligence"><ProtectedRoute component={FeedPage} /></Route>
       <Route path="/schedule"><ProtectedRoute component={SchedulePage} /></Route>
       <Route path="/chat"><ProtectedRoute component={ChatPage} /></Route>
@@ -137,6 +166,8 @@ function ClerkProviderWithRoutes() {
       proxyUrl={clerkProxyUrl}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
+      afterSignInUrl={`${basePath}/dashboard`}
+      afterSignUpUrl={`${basePath}/dashboard`}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
