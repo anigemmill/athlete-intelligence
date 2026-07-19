@@ -11,10 +11,21 @@ export default function ContactPage() {
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState("submitting");
-    setTimeout(() => setState("success"), 1200);
+    try {
+      const resp = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, ...form }),
+      });
+      if (!resp.ok) throw new Error("Server error");
+      setState("success");
+    } catch {
+      setState("idle");
+      alert("Something went wrong — please try again or email us directly.");
+    }
   };
 
   const inputCls = "w-full px-4 py-3 rounded-xl bg-[#131929] border border-white/[0.09] text-[13px] text-white/80 placeholder:text-white/20 focus:outline-none focus:border-[#E75D50]/50 focus:ring-1 focus:ring-[#E75D50]/20 transition-all";

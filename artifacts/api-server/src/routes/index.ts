@@ -10,6 +10,8 @@ import timelineRouter from "./timeline";
 import chatRouter from "./chat";
 import stripeRouter from "./stripe";
 import summaryRouter from "./summary";
+import contactFormRouter from "./contact";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -24,5 +26,7 @@ router.use(timelineRouter);
 router.use(chatRouter);
 router.use(stripeRouter);
 router.use(summaryRouter);
+router.use(contactFormRouter);
+router.use(adminRouter);
 
 export default router;
