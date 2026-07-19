@@ -66,7 +66,9 @@ async function fetchTwitterFollowers(handle: string): Promise<number | null> {
 // Searches the web for real, current information about the athlete.
 // Returns a detailed research summary with cited sources.
 
-async function researchAthleteWithPerplexity(athlete: AthleteStub): Promise<string> {
+async function researchAthleteWithPerplexity(
+  athlete: AthleteStub,
+): Promise<{ research: string; citations: string[] }> {
   try {
     const response = await openrouter.chat.completions.create({
       model: "perplexity/sonar",
@@ -95,11 +97,16 @@ Cite your sources where possible. Be as specific and accurate as possible.`,
       ],
     });
     const research = response.choices[0]?.message?.content ?? "";
-    logger.info({ athleteId: athlete.id, name: athlete.name, length: research.length }, "auto-populate: Perplexity research complete");
-    return research;
+    // Perplexity returns real citation URLs at the top level of the response
+    const citations: string[] = (response as any).citations ?? [];
+    logger.info(
+      { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
+      "auto-populate: Perplexity research complete",
+    );
+    return { research, citations };
   } catch (err) {
     logger.warn({ err, athleteId: athlete.id }, "auto-populate: Perplexity research failed, falling back to training knowledge");
-    return ""; // Graceful fallback — extraction step will use its own knowledge
+    return { research: "", citations: [] };
   }
 }
 
@@ -116,7 +123,8 @@ Rules:
 - ACCURACY FIRST: Use the provided research as your primary source of truth. Do not contradict it.
 - If the research states a specific team, result, date, or fact — use it exactly as stated.
 - If the research does not cover something, use your own knowledge to fill gaps — but mark lower confidence (65–75) for inferred data.
-- Source domains must be real, sport-appropriate news/media sites.
+- sourceUrl MUST be chosen from the provided CITATION URLs list. If no citation is relevant, set sourceUrl to null. NEVER invent, guess, or construct a URL — fabricated URLs cause 404 errors for users.
+- sourceDomain must match the domain of the chosen sourceUrl, or be the most relevant real domain from the research if sourceUrl is null.
 - Dates must be ISO-8601 strings reflecting when events actually occurred.
 - Confidence scores: 85–97 for data from research, 65–80 for inferred data.
 - Categories: intelligence_items use one of: results_rankings | media_interviews | sponsorships | career_changes
@@ -124,7 +132,7 @@ Rules:
 - Contact categories: management | coaching | medical | media | sponsorship
 - Competition tiers: A | B | C. Status: upcoming | completed`;
 
-const USER_PROMPT = (a: AthleteStub, research: string) => `
+const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]) => `
 Athlete profile:
 - Name: ${a.name}
 - Sport: ${a.sport}
@@ -132,12 +140,17 @@ Athlete profile:
 - Nationality: ${a.nationality}
 - Age: ${a.age ?? "unknown"}
 
-${research
+${citations.length > 0
+  ? `VERIFIED CITATION URLs — use ONLY these for sourceUrl fields. Pick the most topically relevant one per item, or set sourceUrl to null if none apply. Do NOT invent URLs.
+${citations.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+
+`
+  : ""}${research
   ? `VERIFIED WEB RESEARCH (use this as your primary source of truth — do not contradict it):
 \`\`\`
 ${research}
 \`\`\``
-  : `Note: No live research available. Use your training knowledge, keeping confidence scores at 65–80.`}
+  : `Note: No live research available. Use your training knowledge, keeping confidence scores at 65–80. Set all sourceUrl fields to null.`}
 
 Extract and structure the above into the following JSON object:
 
@@ -160,7 +173,7 @@ Extract and structure the above into the following JSON object:
       "title": <string>,
       "summary": <string, 2-3 sentences with specific details>,
       "sourceDomain": <string>,
-      "sourceUrl": <string>,
+      "sourceUrl": <string or null — MUST be from the citation list above, or null>,
       "confidence": <integer 65-97>,
       "publishedAt": <ISO-8601 date string>
     }
@@ -177,7 +190,7 @@ Extract and structure the above into the following JSON object:
       "description": <string>,
       "location": <string or null>,
       "sourceDomain": <string>,
-      "sourceUrl": <string or null>,
+      "sourceUrl": <string or null — MUST be from the citation list above, or null>,
       "confidence": <integer>,
       "significant": <boolean>
     }
@@ -275,19 +288,19 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
     // Phase 1: Perplexity web research + Wikipedia photo run in parallel
     // Perplexity searches the live web; Wikipedia fetches the real profile photo.
-    const [research, avatarUrl] = await Promise.all([
+    const [{ research, citations }, avatarUrl] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
       fetchWikipediaPhoto(athlete.name, athlete.sport),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-5.6-luna reads the real
-    // Perplexity research as its source of truth and outputs the DB schema.
+    // Perplexity research and citation URLs as its source of truth.
     const response = await openai.chat.completions.create({
       model: "gpt-5.6-luna",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: USER_PROMPT(athlete, research) },
+        { role: "user", content: USER_PROMPT(athlete, research, citations) },
       ],
       response_format: { type: "json_object" },
     });
