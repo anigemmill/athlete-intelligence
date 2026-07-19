@@ -116,7 +116,7 @@ Write the four-section briefing now:
       model: "gpt-5.6-luna",
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_completion_tokens: 1500,
+      max_completion_tokens: 3000,
     });
 
     let full = "";
@@ -138,7 +138,7 @@ Write the four-section briefing now:
     res.end();
   } catch (err: any) {
     logger.error({ err }, "Summary generation error");
-    send({ error: err.message ?? "Generation failed" });
+    send({ error: "Summary generation failed" });
     res.end();
   }
 });

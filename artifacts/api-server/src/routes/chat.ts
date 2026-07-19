@@ -416,7 +416,7 @@ You have access to structured, continuously updated intelligence on every athlet
 
 3. CITE EVERYTHING. Every factual claim must state where it came from (which athlete record, which intelligence item, which tool). Use phrases like "According to platform data...", "The intelligence database shows...", "Platform records indicate...".
 
-4. HONEST CONFIDENCE. If data is limited, conflicting, or older than 90 days, flag this. Use language like "with moderate confidence", "based on available intelligence".
+4. HONEST CONFIDENCE. If data is limited or conflicting, flag this. Use language like "with moderate confidence", "based on available intelligence".
 
 5. STRUCTURED RESPONSES. Always use the response format below for substantive answers.
 
@@ -555,7 +555,7 @@ router.post("/chat", chatLimiter, async (req, res): Promise<void> => {
         tools: isLastIteration ? undefined : TOOLS,
         tool_choice: isLastIteration ? undefined : "auto",
         stream: true,
-        max_completion_tokens: 1500,
+        max_completion_tokens: 3000,
       });
 
       let fullContent = "";
