@@ -20,8 +20,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("ErrorBoundary caught:", error, info);
+  componentDidCatch(_error: Error, _info: React.ErrorInfo) {
+    // In production, forward to your error-tracking service (e.g. Sentry).
+    // Suppressed here to avoid console noise; the fallback UI is shown instead.
   }
 
   render() {

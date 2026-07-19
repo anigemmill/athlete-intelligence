@@ -35,7 +35,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
+const server = app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -43,3 +43,21 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 });
+
+// ── Graceful shutdown ─────────────────────────────────────────────────────────
+// Gives in-flight requests time to finish before the process exits.
+const shutdown = (signal: string) => {
+  logger.info({ signal }, "Shutdown signal received — draining connections");
+  server.close(() => {
+    logger.info("HTTP server closed — exiting");
+    process.exit(0);
+  });
+  // Hard-kill after 10 s if connections are still open
+  setTimeout(() => {
+    logger.warn("Graceful shutdown timeout — forcing exit");
+    process.exit(1);
+  }, 10_000).unref();
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));

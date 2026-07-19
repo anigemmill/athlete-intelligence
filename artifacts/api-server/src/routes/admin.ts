@@ -104,7 +104,7 @@ router.get("/admin/customers", requireAdmin, async (_req, res): Promise<void> =>
     res.json({ customers });
   } catch (err: any) {
     logger.error({ err }, "Failed to load admin customers");
-    res.status(500).json({ error: err.message ?? "Failed to load customers" });
+    res.status(500).json({ error: "Failed to load customers" });
   }
 });
 

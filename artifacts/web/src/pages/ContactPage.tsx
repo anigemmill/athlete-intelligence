@@ -39,6 +39,10 @@ export default function ContactPage() {
         <meta name="description" content="Get in touch with the Athlete Intelligence team to request a demo or learn more about our AI-powered athlete monitoring platform." />
         <meta property="og:title" content="Contact Athlete Intelligence" />
         <meta property="og:description" content="Request a demo or get in touch with the Athlete Intelligence team." />
+        <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
+        <meta property="og:url" content="https://athleteintelligence.ai/contact" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://athleteintelligence.ai/contact" />
       </Helmet>
       <PublicLayout>
       {/* Hero */}

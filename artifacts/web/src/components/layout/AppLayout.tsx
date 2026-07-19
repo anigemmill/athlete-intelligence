@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from "react-helmet-async";
 import { Sidebar } from "./Sidebar";
 
 export type ActivePage =
@@ -20,7 +21,12 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps) {
   return (
-    <div
+    <>
+      {/* All authenticated pages must not be indexed by search engines */}
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      <div
       style={{
         display: "flex",
         height: "100vh",
@@ -46,5 +52,6 @@ export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps
         {children}
       </main>
     </div>
+    </>
   );
 }

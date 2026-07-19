@@ -84,7 +84,8 @@ export default function Dashboard() {
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A90A8] w-4 h-4" />
               <input 
-                type="text" 
+                type="text"
+                aria-label="Search athletes"
                 placeholder="Search athletes..." 
                 className="bg-[#FFFFFF] border border-[#DCE2EF] rounded-lg pl-9 pr-4 py-2 text-sm text-[#1C1F3A] placeholder:text-[#9097B0] focus:outline-none focus:border-[#E75D50] focus:ring-1 focus:ring-[#E75D50] transition-all w-64 shadow-sm"
               />

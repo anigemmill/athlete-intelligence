@@ -1,2 +1,24 @@
 User-agent: *
 Allow: /
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /security
+Allow: /terms
+
+# Authenticated application routes — not indexable
+Disallow: /dashboard
+Disallow: /intelligence
+Disallow: /chat
+Disallow: /schedule
+Disallow: /compare
+Disallow: /athletes
+Disallow: /alerts
+Disallow: /settings
+Disallow: /admin
+Disallow: /sources
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /billing-success
+
+Sitemap: https://athleteintelligence.ai/sitemap.xml

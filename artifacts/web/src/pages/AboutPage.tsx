@@ -18,6 +18,10 @@ export default function AboutPage() {
         <meta name="description" content="Athlete Intelligence was built on the belief that professional sport decisions should be driven by timely, traceable intelligence — not gut feel or slow manual research." />
         <meta property="og:title" content="About Athlete Intelligence" />
         <meta property="og:description" content="Built on the belief that professional sport decisions should be driven by timely, traceable intelligence." />
+        <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
+        <meta property="og:url" content="https://athleteintelligence.ai/about" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://athleteintelligence.ai/about" />
       </Helmet>
       <PublicLayout>
       {/* Hero */}

@@ -52,6 +52,10 @@ export default function TermsPage() {
         <meta name="description" content="Terms of Service for Athlete Intelligence — the AI-powered athlete monitoring platform by The Outside In Limited." />
         <meta property="og:title" content="Terms of Service — Athlete Intelligence" />
         <meta property="og:description" content="Terms of Service for the Athlete Intelligence platform." />
+        <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
+        <meta property="og:url" content="https://athleteintelligence.ai/terms" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://athleteintelligence.ai/terms" />
       </Helmet>
       <PublicLayout>
       <div className="max-w-5xl mx-auto px-6 py-16 lg:py-24">

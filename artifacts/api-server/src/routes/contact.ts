@@ -3,16 +3,29 @@
  *
  * POST /api/contact
  *   Saves an enquiry to the database. No auth required.
+ *   Rate-limited to prevent spam.
  */
 
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 import { db } from "@workspace/db";
 import { contactEnquiriesTable } from "@workspace/db";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 
-router.post("/contact", async (req, res): Promise<void> => {
+// 10 submissions per hour per IP — blocks spam bots while allowing
+// legitimate users to resubmit after a form error
+const contactRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: "Too many submissions — please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+});
+
+router.post("/contact", contactRateLimit, async (req, res): Promise<void> => {
   const { type, name, org, email, role, athletes, message } = req.body ?? {};
 
   if (!name || !org || !email) {

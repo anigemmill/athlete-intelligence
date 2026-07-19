@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SignIn, useClerk } from "@clerk/react";
 import { Play, Activity, Users, Bell, MessageSquare, TrendingUp, Shield, ChevronRight } from "lucide-react";
 
@@ -207,6 +207,21 @@ function ClerkSkeleton() {
 export default function SignInPage() {
   const [clerkLoaded, setClerkLoaded] = useState(false);
 
+  // Poll until Clerk's DOM elements are rendered, then reveal the component.
+  // useEffect with cleanup avoids the memory leak from the previous ref-based approach.
+  useEffect(() => {
+    const t = setInterval(() => {
+      const btn =
+        document.querySelector('[data-localization-key="socialButtonsBlockButton__google"]') ||
+        document.querySelector(".cl-socialButtonsBlockButton") ||
+        document.querySelector(".cl-formButtonPrimary") ||
+        document.querySelector(".cl-rootBox");
+      if (btn) { setClerkLoaded(true); clearInterval(t); }
+    }, 80);
+    const fallback = setTimeout(() => { setClerkLoaded(true); clearInterval(t); }, 3000);
+    return () => { clearInterval(t); clearTimeout(fallback); };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#FCFAFA] text-[#1C1F3A] flex font-sans selection:bg-[#E75D50]/20 athlete-intelligence-root">
 
@@ -259,23 +274,6 @@ export default function SignInPage() {
             />
           </div>
 
-          {/* Hidden iframe trick: listen for Clerk mounting */}
-          <div
-            className="hidden"
-            ref={(el) => {
-              if (el) {
-                // Poll until Clerk button renders
-                const t = setInterval(() => {
-                  const btn = document.querySelector('[data-localization-key="socialButtonsBlockButton__google"]') ||
-                    document.querySelector('.cl-socialButtonsBlockButton') ||
-                    document.querySelector('.cl-formButtonPrimary') ||
-                    document.querySelector('.cl-rootBox');
-                  if (btn) { setClerkLoaded(true); clearInterval(t); }
-                }, 80);
-                setTimeout(() => { setClerkLoaded(true); clearInterval(t); }, 3000);
-              }
-            }}
-          />
         </div>
 
         {/* Footer */}

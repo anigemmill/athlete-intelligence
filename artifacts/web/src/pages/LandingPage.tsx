@@ -81,6 +81,10 @@ export default function LandingPage() {
         <meta name="description" content="Persistent AI agents monitor every athlete on your roster — surfacing results, rankings, media, sponsorship moves, and career changes as they happen. Built for national federations, professional clubs, academies, and agencies." />
         <meta property="og:title" content="Athlete Intelligence — Know more about every athlete than anyone else" />
         <meta property="og:description" content="Persistent AI agents monitor every athlete on your roster. Built for national federations, professional clubs, academies, and agencies." />
+        <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
+        <meta property="og:url" content="https://athleteintelligence.ai/" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://athleteintelligence.ai/" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",

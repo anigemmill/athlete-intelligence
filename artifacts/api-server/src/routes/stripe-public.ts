@@ -50,7 +50,7 @@ router.get("/stripe/prices", async (_req, res): Promise<void> => {
     }
     res.json({ prices: result });
   } catch (err: any) {
-    res.status(500).json({ error: err.message ?? "Failed to load prices" });
+    res.status(500).json({ error: "Failed to load prices" });
   }
 });
 

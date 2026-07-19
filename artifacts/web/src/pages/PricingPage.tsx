@@ -212,6 +212,10 @@ export default function PricingPage() {
         <meta name="description" content="Simple, transparent pricing for national federations, professional clubs, academies, and agencies. Start with a 3-day free trial — no card required until it ends." />
         <meta property="og:title" content="Pricing — Athlete Intelligence" />
         <meta property="og:description" content="Simple pricing for federations, clubs, academies, and agencies. Starter from $249/month. Start with a 3-day free trial." />
+        <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
+        <meta property="og:url" content="https://athleteintelligence.ai/pricing" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://athleteintelligence.ai/pricing" />
       </Helmet>
       <PublicLayout>
       {/* Hero */}

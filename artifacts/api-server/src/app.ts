@@ -13,6 +13,10 @@ import { WebhookHandlers } from "./lib/webhookHandlers.js";
 
 const app: Express = express();
 
+// Trust the first proxy (Replit's reverse proxy) so req.ip reflects the real
+// client address. Required for rate limiters and correct IP logging.
+app.set("trust proxy", 1);
+
 // ── Clerk proxy — MUST be before body parsers (streams raw bytes) ─────────────
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
@@ -101,6 +105,14 @@ app.use(
 // 1 MB body limit — prevents oversized payload attacks
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+// 30-second response timeout — prevents hanging connections tying up the server
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setTimeout(30_000, () => {
+    if (!res.headersSent) res.status(408).json({ error: "Request timeout" });
+  });
+  next();
+});
 
 // Clerk middleware — must be before routes
 app.use(clerkMiddleware());

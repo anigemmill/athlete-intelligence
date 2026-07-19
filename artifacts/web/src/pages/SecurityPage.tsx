@@ -41,6 +41,10 @@ export default function SecurityPage() {
         <meta name="description" content="Athlete Intelligence is built on a foundation of enterprise-grade security: TLS 1.3, AES-256 encryption at rest, SOC 2-aligned controls, and strict data minimisation principles." />
         <meta property="og:title" content="Security & Trust — Athlete Intelligence" />
         <meta property="og:description" content="Enterprise-grade security: TLS 1.3, AES-256 at rest, SOC 2-aligned controls, and strict data minimisation." />
+        <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
+        <meta property="og:url" content="https://athleteintelligence.ai/security" />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://athleteintelligence.ai/security" />
       </Helmet>
       <PublicLayout>
       <section className="bg-[#0B0F1E] pt-24 pb-16 relative overflow-hidden">
