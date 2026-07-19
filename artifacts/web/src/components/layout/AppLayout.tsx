@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Sidebar } from "./Sidebar";
-import { useUser } from "@clerk/react";
+import { useUser, useAuth } from "@clerk/react";
 import PlanSelectionModal, { PLAN_SELECTED_KEY } from "@/components/PlanSelectionModal";
 
 const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
@@ -16,7 +16,10 @@ const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
  */
 type SubStatus = "loading" | "active" | "none" | "bypass";
 
-function useSubscriptionStatus(email: string | null | undefined): SubStatus {
+function useSubscriptionStatus(
+  email: string | null | undefined,
+  getToken: () => Promise<string | null>,
+): SubStatus {
   const [status, setStatus] = useState<SubStatus>("loading");
 
   useEffect(() => {
@@ -40,10 +43,23 @@ function useSubscriptionStatus(email: string | null | undefined): SubStatus {
       return;
     }
 
-    // Server-side check
-    fetch("/api/stripe/subscription")
-      .then((r) => r.json())
+    // Server-side check — attach Clerk JWT so the request never gets a 401
+    getToken()
+      .then((token) =>
+        fetch("/api/stripe/subscription", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+      )
+      .then((r) => {
+        // If the API rejects the request for any reason, fail open — don't block access
+        if (!r.ok) {
+          setStatus("bypass");
+          return;
+        }
+        return r.json();
+      })
       .then((d) => {
+        if (!d) return; // already handled above (non-ok)
         const sub = d.subscription;
         if (sub && (sub.status === "active" || sub.status === "trialing")) {
           // Cache locally so we don't hit the server every navigation
@@ -81,8 +97,9 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps) {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const email = isLoaded ? (user?.primaryEmailAddress?.emailAddress ?? null) : undefined;
-  const subStatus = useSubscriptionStatus(email);
+  const subStatus = useSubscriptionStatus(email, getToken);
 
   const showPaywall = subStatus === "none";
   const userEmail = email ?? null;
