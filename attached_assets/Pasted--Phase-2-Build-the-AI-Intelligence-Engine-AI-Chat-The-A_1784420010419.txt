@@ -1,0 +1,247 @@
+# Phase 2 – Build the AI Intelligence Engine & AI Chat
+
+The AI Chat is the primary differentiator of Athlete Intelligence and should be treated as the centrepiece of the platform.
+
+It must not behave like a generic chatbot.
+
+It should behave like an experienced sports analyst with instant access to continuously updated, evidence-backed athlete intelligence.
+
+---
+
+# Product Vision
+
+Users should feel like they are talking to an intelligent analyst that knows every athlete in their organisation.
+
+The AI should answer questions using structured athlete intelligence stored within the platform first.
+
+Only use external AI reasoning to summarise, compare and explain information.
+
+Never invent facts.
+
+Every important statement should include evidence and source attribution.
+
+---
+
+# AI Chat Capabilities
+
+The AI should support natural language questions including:
+
+## Athlete Research
+
+* Tell me about Sarah Smith.
+* Summarise this athlete.
+* What has changed recently?
+* What are their strengths?
+* What competitions have they entered?
+* Show recent rankings.
+* Who coaches them?
+* Who manages them?
+
+---
+
+## Comparison
+
+Compare:
+
+* Athlete A vs Athlete B
+* Three athletes
+* Entire squads
+
+Compare:
+
+* Results
+* Rankings
+* Performance trends
+* Sponsorships
+* Media attention
+* Competition history
+* Relationship intelligence
+
+---
+
+## Discovery
+
+Examples:
+
+* Show New Zealand cyclists under 23.
+* Show athletes with podium finishes this season.
+* Find athletes represented by Agency X.
+* Show athletes coached by Coach Y.
+* Find athletes with increasing media attention.
+* Show athletes with new sponsorships this year.
+* Show Olympic pathway athletes.
+
+---
+
+## Relationship Intelligence
+
+The AI should understand relationships between entities.
+
+Examples:
+
+* Which athletes share the same coach?
+* Which athletes have competed together?
+* Who is represented by this management agency?
+* Which sponsors support the most emerging riders?
+* Which coach has produced the most national champions?
+* Show connections between Athlete A and Athlete B.
+
+---
+
+## Organisation Intelligence
+
+The AI should answer questions about:
+
+Teams
+
+Sponsors
+
+Managers
+
+Agencies
+
+National Sporting Organisations
+
+Competitions
+
+Examples:
+
+* Tell me about Team X.
+* Which athletes belong to Team X?
+* Which athletes are sponsored by Brand Y?
+* Which competitions does Organisation Z manage?
+
+---
+
+## Trends
+
+Examples:
+
+* Which athletes are improving fastest?
+* Which athletes have declining rankings?
+* Which riders have received the most media coverage recently?
+* Which athletes have had the biggest performance improvement this year?
+
+---
+
+## Reports
+
+The AI should generate:
+
+Athlete reports
+
+Competition summaries
+
+Performance reviews
+
+Media summaries
+
+Sponsor reports
+
+Relationship summaries
+
+---
+
+# AI Workflow
+
+For every user question:
+
+1. Understand the request.
+
+2. Search the structured database.
+
+3. Retrieve relevant athlete intelligence.
+
+4. Retrieve relationship information.
+
+5. Retrieve supporting evidence.
+
+6. Retrieve source citations.
+
+7. Use AI only to generate a readable answer.
+
+8. Return links to evidence.
+
+Never answer using LLM knowledge alone if platform data exists.
+
+---
+
+# Response Format
+
+Every response should include:
+
+Summary
+
+Supporting evidence
+
+Related athletes
+
+Related organisations
+
+Source citations
+
+Confidence score
+
+Suggested follow-up questions
+
+---
+
+# Streaming Responses
+
+Responses should stream naturally.
+
+Display:
+
+Searching athletes…
+
+Searching relationships…
+
+Retrieving sources…
+
+Generating summary…
+
+This gives users confidence that the AI is performing real intelligence work rather than generating generic responses.
+
+---
+
+# Trust Principles
+
+The AI must:
+
+Never hallucinate.
+
+Never invent relationships.
+
+Never invent rankings.
+
+Never invent results.
+
+Never invent contact information.
+
+If confidence is low, say so.
+
+If data is unavailable, explain why.
+
+Every factual statement should be traceable.
+
+---
+
+# Future Architecture
+
+The AI Chat should become the universal interface to the platform.
+
+Eventually users should rarely need to navigate complex menus.
+
+Instead they should simply ask:
+
+"Who should we be watching?"
+
+"Which riders have improved this month?"
+
+"Who has recently changed coaches?"
+
+"What changed overnight?"
+
+The AI should guide users to athlete profiles, reports and relationship intelligence when appropriate.
+
+Build the architecture so this conversational interface can become the primary way users interact with Athlete Intelligence in future versions.
