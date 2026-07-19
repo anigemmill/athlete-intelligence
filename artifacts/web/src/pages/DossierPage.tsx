@@ -156,6 +156,11 @@ export default function DossierPage() {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
 
+  // Refresh / re-populate state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const repopulateRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const preRefreshCrawledAt = useRef<string | null>(null);
+
   // Social stats edit state
   const [editingSocial, setEditingSocial] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
@@ -192,6 +197,41 @@ export default function DossierPage() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [athlete?.id]);
+
+  const refreshData = async () => {
+    if (isRefreshing) return;
+    preRefreshCrawledAt.current = athlete?.lastCrawledAt ?? null;
+    setIsRefreshing(true);
+    try {
+      await fetch(`/api/athletes/${athleteId}/repopulate`, { method: "POST" });
+      // Poll until lastCrawledAt changes (signals auto-populate finished) — max 90s
+      let polls = 0;
+      repopulateRef.current = setInterval(async () => {
+        polls++;
+        await Promise.all([refetchAthlete(), refetchIntel(), refetchContacts(), refetchTimeline(), refetchCompetitions()]);
+        if (polls >= 30) {
+          setIsRefreshing(false);
+          if (repopulateRef.current) { clearInterval(repopulateRef.current); repopulateRef.current = null; }
+        }
+      }, 3000);
+    } catch {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Stop refresh poll when lastCrawledAt changes (new data arrived)
+  useEffect(() => {
+    if (!isRefreshing || !athlete?.lastCrawledAt) return;
+    if (athlete.lastCrawledAt !== preRefreshCrawledAt.current) {
+      setIsRefreshing(false);
+      if (repopulateRef.current) { clearInterval(repopulateRef.current); repopulateRef.current = null; }
+    }
+  }, [athlete?.lastCrawledAt, isRefreshing]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { if (repopulateRef.current) clearInterval(repopulateRef.current); };
+  }, []);
 
   const saveSocial = async () => {
     setSavingSocial(true);
@@ -460,6 +500,21 @@ export default function DossierPage() {
                 </button>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={refreshData}
+                    disabled={isRefreshing}
+                    title="Wipe and regenerate all intelligence, results, contacts and timeline from scratch"
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-[#DCE2EF] text-[#293055] text-[13px] font-medium shadow-sm hover:bg-[#F5F7FC] transition-colors disabled:opacity-60"
+                  >
+                    {isRefreshing ? (
+                      <div className="w-3 h-3 border-[1.5px] border-[#293055] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    {isRefreshing ? "Refreshing…" : "Refresh Data"}
+                  </button>
                   <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-[#DCE2EF] text-[#293055] text-[13px] font-medium shadow-sm hover:bg-[#FCFAFA] transition-colors">
                     <Download size={13} className="text-[#7A8090]" />
                     Export

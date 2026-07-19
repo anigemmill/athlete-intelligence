@@ -5,6 +5,10 @@ import { logger } from "../lib/logger.js";
 import {
   athletesTable,
   alertConfigsTable,
+  intelligenceItemsTable,
+  timelineEventsTable,
+  contactsTable,
+  competitionsTable,
   type Athlete,
 } from "@workspace/db";
 import { autoPopulateAthlete, discoverAthleteProfile } from "../lib/auto-populate.js";
@@ -295,6 +299,40 @@ router.patch("/athletes/:id", async (req, res): Promise<void> => {
   }
 
   res.json(UpdateAthleteResponse.parse(toApiAthlete(updated)));
+});
+
+// POST /athletes/:id/repopulate — wipes all intelligence data and re-runs auto-populate
+router.post("/athletes/:id/repopulate", async (req, res): Promise<void> => {
+  const params = GetAthleteParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const [athlete] = await db.select().from(athletesTable).where(eq(athletesTable.id, params.data.id));
+  if (!athlete) { res.status(404).json({ error: "Athlete not found" }); return; }
+
+  // Clear all existing intelligence data in parallel
+  await Promise.all([
+    db.delete(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, athlete.id)),
+    db.delete(timelineEventsTable).where(eq(timelineEventsTable.athleteId, athlete.id)),
+    db.delete(contactsTable).where(eq(contactsTable.athleteId, athlete.id)),
+    db.delete(competitionsTable).where(eq(competitionsTable.athleteId, athlete.id)),
+  ]);
+
+  // Reset crawl marker so the dossier page shows "populating" state
+  await db.update(athletesTable)
+    .set({ intelligenceCount: 0, hasNewIntelligence: false, lastCrawledAt: null })
+    .where(eq(athletesTable.id, athlete.id));
+
+  // Re-populate in background — do not await
+  autoPopulateAthlete({
+    id: athlete.id,
+    name: athlete.name,
+    sport: athlete.sport,
+    event: athlete.event,
+    nationality: athlete.nationality,
+    age: athlete.age,
+  }).catch((err) => logger.error({ err, athleteId: athlete.id }, "repopulate: background populate failed"));
+
+  res.status(202).json({ message: "Re-population started" });
 });
 
 // DELETE /athletes/:id
