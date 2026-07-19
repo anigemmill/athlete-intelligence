@@ -16,6 +16,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
+import { fetchWikipediaPhoto } from "./photo-lookup.js";
 import {
   athletesTable,
   intelligenceItemsTable,
@@ -59,36 +60,7 @@ async function fetchTwitterFollowers(handle: string): Promise<number | null> {
   }
 }
 
-// ── Wikipedia photo lookup ───────────────────────────────────────────────────
-// Uses the real Wikipedia API to find verified profile photos.
-// Returns the thumbnail URL, or null if no image found or request fails.
-
-async function fetchWikipediaPhoto(athleteName: string): Promise<string | null> {
-  try {
-    const params = new URLSearchParams({
-      action: "query",
-      titles: athleteName,
-      prop: "pageimages",
-      format: "json",
-      pithumbsize: "400",
-      redirects: "1",
-    });
-    const resp = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, {
-      headers: { "User-Agent": "AthleteIntelligence/1.0 (sports-intelligence-platform)" },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json() as any;
-    const pages = data?.query?.pages;
-    if (!pages) return null;
-    const page = Object.values(pages)[0] as any;
-    // page.missing means the article does not exist
-    if ("missing" in page || !page?.thumbnail?.source) return null;
-    return String(page.thumbnail.source);
-  } catch {
-    return null;
-  }
-}
+// Wikipedia photo lookup is now in ./photo-lookup.ts (shared with admin backfill)
 
 // ── Phase 1: Perplexity Sonar Pro — live web research ────────────────────────
 // Searches the web for real, current information about the athlete.
@@ -305,7 +277,7 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     // Perplexity searches the live web; Wikipedia fetches the real profile photo.
     const [research, avatarUrl] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
-      fetchWikipediaPhoto(athlete.name),
+      fetchWikipediaPhoto(athlete.name, athlete.sport),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-5.6-luna reads the real

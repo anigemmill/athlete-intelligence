@@ -351,10 +351,62 @@ function AiUsageTab() {
 }
 
 function CrawlTab() {
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<{ found: number; skipped: number; total: number } | null>(null);
+  const [backfillError, setBackfillError] = useState<string | null>(null);
+
+  const runBackfill = async () => {
+    setBackfilling(true);
+    setBackfillResult(null);
+    setBackfillError(null);
+    try {
+      const r = await fetch("/api/admin/backfill-photos", { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "Backfill failed");
+      setBackfillResult(d);
+    } catch (e: any) {
+      setBackfillError(e.message);
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   return (
-    <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
-      <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Crawl monitor</h3>
-      <p className="text-[13px] text-[#8A90A8]">Live agent job status, queue depth, and crawl latency will appear here once the background crawl service reporting is connected.</p>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
+        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Crawl monitor</h3>
+        <p className="text-[13px] text-[#8A90A8]">Live agent job status, queue depth, and crawl latency will appear here once the background crawl service reporting is connected.</p>
+      </div>
+
+      {/* Photo backfill */}
+      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
+        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Backfill athlete photos</h3>
+        <p className="text-[13px] text-[#8A90A8] mb-4">
+          Runs a Wikipedia lookup for every athlete that has no profile photo. Uses a search fallback for athletes without a direct Wikipedia page. Safe to run multiple times — skips athletes that already have a photo.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={runBackfill}
+            disabled={backfilling}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#344F9F] text-white text-[13px] font-medium hover:bg-[#2B4490] transition-colors disabled:opacity-60"
+          >
+            {backfilling ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+            {backfilling ? "Searching Wikipedia…" : "Backfill Photos"}
+          </button>
+          {backfillResult && (
+            <span className="text-[13px] text-emerald-600 font-medium flex items-center gap-1.5">
+              <CheckCircle2 size={14} />
+              {backfillResult.found} photo{backfillResult.found !== 1 ? "s" : ""} found from {backfillResult.total} athletes
+              {backfillResult.skipped > 0 && <span className="text-[#A0A8C0] font-normal">({backfillResult.skipped} no Wikipedia page)</span>}
+            </span>
+          )}
+          {backfillError && (
+            <span className="text-[13px] text-red-500 flex items-center gap-1.5">
+              <XCircle size={14} /> {backfillError}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

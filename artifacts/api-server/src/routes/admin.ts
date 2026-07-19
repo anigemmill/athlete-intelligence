@@ -10,12 +10,13 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { contactEnquiriesTable } from "@workspace/db";
+import { contactEnquiriesTable, athletesTable } from "@workspace/db";
 import { clerkClient } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
+import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
 
 const router: IRouter = Router();
 
@@ -139,6 +140,44 @@ router.put("/admin/enquiries/:id", requireAdmin, async (req, res): Promise<void>
   } catch (err: any) {
     logger.error({ err }, "Failed to update enquiry");
     res.status(500).json({ error: "Failed to update enquiry" });
+  }
+});
+
+// ── POST /api/admin/backfill-photos ──────────────────────────────────────────
+// Runs Wikipedia photo lookup on all athletes missing an avatar URL.
+// Safe to run multiple times — skips athletes that already have a photo.
+
+router.post("/admin/backfill-photos", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    const athletes = await db
+      .select({ id: athletesTable.id, name: athletesTable.name, sport: athletesTable.sport })
+      .from(athletesTable)
+      .where(isNull(athletesTable.avatarUrl));
+
+    let found = 0;
+    let skipped = 0;
+
+    for (const athlete of athletes) {
+      const url = await fetchWikipediaPhoto(athlete.name, athlete.sport ?? undefined);
+      if (url) {
+        await db
+          .update(athletesTable)
+          .set({ avatarUrl: url })
+          .where(eq(athletesTable.id, athlete.id));
+        found++;
+        logger.info({ athleteId: athlete.id, name: athlete.name, url }, "backfill-photos: saved photo");
+      } else {
+        skipped++;
+        logger.info({ athleteId: athlete.id, name: athlete.name }, "backfill-photos: no photo found");
+      }
+      // Small delay to avoid hammering Wikipedia's API
+      await new Promise((r) => setTimeout(r, 300));
+    }
+
+    res.json({ ok: true, total: athletes.length, found, skipped });
+  } catch (err: any) {
+    logger.error({ err }, "backfill-photos: failed");
+    res.status(500).json({ error: "Backfill failed" });
   }
 });
 
