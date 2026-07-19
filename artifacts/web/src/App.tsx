@@ -168,8 +168,6 @@ function ClerkProviderWithRoutes() {
       proxyUrl={clerkProxyUrl}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      afterSignInUrl={`${basePath}/dashboard`}
-      afterSignUpUrl={`${basePath}/dashboard`}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
