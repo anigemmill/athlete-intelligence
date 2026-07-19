@@ -596,32 +596,38 @@ export default function AdminPage() {
           <p className="text-sm text-[#6B7080]">Platform management. Not visible to customers.</p>
         </header>
 
-        <div className="flex flex-1 overflow-hidden">
-          <nav className="w-48 flex-shrink-0 border-r border-[#DCE2EF] pt-4 px-3">
+        {/* Horizontal tab bar */}
+        <div className="flex-shrink-0 border-b border-[#DCE2EF] px-8 bg-white">
+          <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left text-[13px] mb-1 transition-all ${activeTab === tab.id ? "bg-[rgba(231,93,80,0.08)] text-[#E75D50] font-medium" : "text-[#6B7080] hover:bg-[#F0F2F8] hover:text-[#1C1F3A]"}`}
+                className={`flex items-center gap-2 px-4 py-3.5 text-[13px] font-medium whitespace-nowrap border-b-2 transition-all -mb-px ${
+                  activeTab === tab.id
+                    ? "border-[#E75D50] text-[#E75D50]"
+                    : "border-transparent text-[#6B7080] hover:text-[#1C1F3A] hover:border-[#DCE2EF]"
+                }`}
               >
-                {tab.icon}{tab.label}
+                {tab.icon}
+                {tab.label}
               </button>
             ))}
-          </nav>
-
-          <div className="flex-1 overflow-y-auto p-8">
-            {activeTab === "customers" && <CustomersTab />}
-            {activeTab === "enquiries" && <EnquiriesTab />}
-            {activeTab === "licences" && (
-              <div className="text-[13px] text-[#8A90A8] rounded-xl border border-[#DCE2EF] bg-white p-6">
-                Licence management — plan overrides and custom contracts. Coming soon.
-              </div>
-            )}
-            {activeTab === "ai-usage" && <AiUsageTab />}
-            {activeTab === "crawl" && <CrawlTab />}
-            {activeTab === "health" && <HealthTab />}
-            {activeTab === "flags" && <FlagsTab />}
           </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8">
+          {activeTab === "customers" && <CustomersTab />}
+          {activeTab === "enquiries" && <EnquiriesTab />}
+          {activeTab === "licences" && (
+            <div className="text-[13px] text-[#8A90A8] rounded-xl border border-[#DCE2EF] bg-white p-6">
+              Licence management — plan overrides and custom contracts. Coming soon.
+            </div>
+          )}
+          {activeTab === "ai-usage" && <AiUsageTab />}
+          {activeTab === "crawl" && <CrawlTab />}
+          {activeTab === "health" && <HealthTab />}
+          {activeTab === "flags" && <FlagsTab />}
         </div>
       </div>
     </AppLayout>

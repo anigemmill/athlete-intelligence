@@ -1,12 +1,12 @@
 /**
- * PlanSelectionModal — shown once after sign-up until the user starts a trial.
- * Dismissed permanently when they complete Stripe checkout (BillingSuccessPage sets the flag).
- * Skippable for the current session via sessionStorage.
+ * PlanSelectionModal — shown to users who don't have an active subscription.
+ * Non-dismissible: the only exit is starting a Stripe checkout (trial) or
+ * contacting sales. Founders bypass this entirely via AppLayout.
  */
 
 import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { CheckCircle2, Loader2, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 
 type Cycle = "monthly" | "annual";
 type PriceMap = Record<string, { monthly: string | null; annual: string | null }>;
@@ -21,7 +21,13 @@ const PLANS = [
     monthly: 299,
     annual: 249,
     highlight: false,
-    features: ["50 athletes monitored", "5 team seats", "Intelligence feed & alerts", "Athlete dossiers", "All sports & countries"],
+    features: [
+      "50 athletes monitored",
+      "5 team seats",
+      "Intelligence feed & alerts",
+      "Athlete dossiers",
+      "All sports & countries",
+    ],
   },
   {
     id: "pro",
@@ -31,21 +37,29 @@ const PLANS = [
     monthly: 799,
     annual: 666,
     highlight: true,
-    features: ["200 athletes monitored", "15 team seats", "Everything in Starter", "AI Chat & saved reports", "PDF / CSV exports", "Comparison tool"],
+    features: [
+      "200 athletes monitored",
+      "15 team seats",
+      "Everything in Starter",
+      "AI Chat & saved reports",
+      "PDF / CSV exports",
+      "Comparison tool",
+    ],
   },
 ];
+
+// Key stored in localStorage after a successful Stripe checkout redirect
+export const PLAN_SELECTED_KEY = "ai_plan_selected";
 
 function PlanCard({
   plan,
   cycle,
   prices,
-  onClose,
   userEmail,
 }: {
   plan: (typeof PLANS)[0];
   cycle: Cycle;
   prices: PriceMap | null;
-  onClose: () => void;
   userEmail: string | null;
 }) {
   const [loading, setLoading] = useState(false);
@@ -143,7 +157,11 @@ function PlanCard({
         }`}
       >
         {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-        {loading ? "Redirecting…" : !priceId && prices !== null ? "Coming soon" : "Start 3-day free trial"}
+        {loading
+          ? "Redirecting…"
+          : !priceId && prices !== null
+          ? "Coming soon"
+          : "Start 3-day free trial"}
       </button>
 
       {error && (
@@ -153,34 +171,7 @@ function PlanCard({
   );
 }
 
-export const PLAN_SELECTED_KEY = "ai_plan_selected";
-const PLAN_SKIPPED_KEY = "ai_plan_skipped";
-
-export function useShouldShowPlanModal(isFounder: boolean): [boolean, () => void] {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    if (isFounder) return;
-    const selected = localStorage.getItem(PLAN_SELECTED_KEY) === "1";
-    const skipped = sessionStorage.getItem(PLAN_SKIPPED_KEY) === "1";
-    if (!selected && !skipped) setShow(true);
-  }, [isFounder]);
-
-  const skip = () => {
-    sessionStorage.setItem(PLAN_SKIPPED_KEY, "1");
-    setShow(false);
-  };
-
-  return [show, skip];
-}
-
-export default function PlanSelectionModal({
-  onSkip,
-  userEmail,
-}: {
-  onSkip: () => void;
-  userEmail: string | null;
-}) {
+export default function PlanSelectionModal({ userEmail }: { userEmail: string | null }) {
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const [prices, setPrices] = useState<PriceMap | null>(null);
   const [priceError, setPriceError] = useState(false);
@@ -196,37 +187,33 @@ export default function PlanSelectionModal({
       .catch(() => setPriceError(true));
   };
 
-  useEffect(() => { loadPrices(); }, []);
-
-  // Close on Escape key
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onSkip(); };
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [onSkip]);
+    loadPrices();
+  }, []);
 
   return (
-    /* Backdrop */
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-2xl bg-[#FCFAFA] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.35)] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="plan-modal-title">
-
-        {/* Header */}
+    /* Backdrop — pointer-events on backdrop are disabled so clicking outside does nothing */
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      <div
+        className="relative w-full max-w-2xl bg-[#FCFAFA] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.35)] overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="plan-modal-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* Header — no X button */}
         <div className="px-8 pt-8 pb-6 border-b border-[#DCE2EF]">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 id="plan-modal-title" className="text-[22px] font-bold text-[#1C1F3A] tracking-tight">Choose your plan</h2>
-              <p className="text-[14px] text-[#6B7080] mt-1">
-                Start with a <span className="font-semibold text-[#293055]">3-day free trial</span> — no charge until it ends. Cancel any time.
-              </p>
-            </div>
-            <button
-              onClick={onSkip}
-              className="text-[#9097B0] hover:text-[#1C1F3A] transition-colors mt-0.5"
-              aria-label="Skip for now"
-            >
-              <X size={20} />
-            </button>
-          </div>
+          <h2 id="plan-modal-title" className="text-[22px] font-bold text-[#1C1F3A] tracking-tight">
+            Choose your plan to continue
+          </h2>
+          <p className="text-[14px] text-[#6B7080] mt-1">
+            Start with a{" "}
+            <span className="font-semibold text-[#293055]">3-day free trial</span> — no charge
+            until it ends. Cancel any time before the trial ends.
+          </p>
 
           {/* Billing cycle toggle */}
           <div className="flex items-center gap-1 mt-5 self-start w-fit bg-[#F0F2F8] rounded-lg p-1">
@@ -255,7 +242,9 @@ export default function PlanSelectionModal({
         <div className="px-8 py-6 grid grid-cols-2 gap-4">
           {priceError ? (
             <div className="col-span-2 flex flex-col items-center justify-center py-10 gap-3 text-center">
-              <p className="text-[14px] text-[#6B7080]">Couldn't load pricing. Check your connection and try again.</p>
+              <p className="text-[14px] text-[#6B7080]">
+                Couldn't load pricing. Check your connection and try again.
+              </p>
               <button
                 onClick={loadPrices}
                 className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-[#E75D50] text-white hover:bg-[#D04840] transition-colors"
@@ -270,7 +259,6 @@ export default function PlanSelectionModal({
                 plan={plan}
                 cycle={cycle}
                 prices={prices}
-                onClose={onSkip}
                 userEmail={userEmail}
               />
             ))
@@ -283,37 +271,34 @@ export default function PlanSelectionModal({
           <div className="flex items-center justify-between rounded-xl border border-[#DCE2EF] px-5 py-3.5 bg-white">
             <div>
               <span className="text-[14px] font-semibold text-[#1C1F3A]">Enterprise</span>
-              <span className="text-[12px] text-[#9097B0] ml-2">— Unlimited athletes, SSO, API access, dedicated CSM</span>
+              <span className="text-[12px] text-[#9097B0] ml-2">
+                — Unlimited athletes, SSO, API access, dedicated CSM
+              </span>
             </div>
-            <Link href="/contact" onClick={onSkip}>
+            <Link href="/contact">
               <span className="text-[13px] font-semibold text-[#E75D50] hover:text-[#D04840] transition-colors cursor-pointer whitespace-nowrap">
                 Contact sales →
               </span>
             </Link>
           </div>
 
-          {/* Legal acknowledgment */}
+          {/* Legal */}
           <p className="text-[11px] text-[#9097B0] text-center leading-relaxed px-4">
             By starting a trial you agree to our{" "}
-            <Link href="/terms" onClick={onSkip}>
-              <span className="underline text-[#6B7080] hover:text-[#1C1F3A] cursor-pointer transition-colors">Terms of Service</span>
+            <Link href="/terms">
+              <span className="underline text-[#6B7080] hover:text-[#1C1F3A] cursor-pointer transition-colors">
+                Terms of Service
+              </span>
             </Link>{" "}
             and{" "}
-            <Link href="/security" onClick={onSkip}>
-              <span className="underline text-[#6B7080] hover:text-[#1C1F3A] cursor-pointer transition-colors">Privacy Policy</span>
+            <Link href="/security">
+              <span className="underline text-[#6B7080] hover:text-[#1C1F3A] cursor-pointer transition-colors">
+                Privacy Policy
+              </span>
             </Link>
-            . After the 3-day free trial your payment method will be charged at the rate shown above. You can cancel any time before the trial ends.
+            . After the 3-day free trial your payment method will be charged at the rate shown
+            above. You can cancel any time before the trial ends.
           </p>
-
-          {/* Skip */}
-          <div className="text-center">
-            <button
-              onClick={onSkip}
-              className="text-[12px] text-[#B0B8D0] hover:text-[#6B7080] transition-colors"
-            >
-              I'll do this later
-            </button>
-          </div>
         </div>
       </div>
     </div>

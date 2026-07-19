@@ -278,7 +278,14 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       {/* Bottom nav (settings, admin) + user footer */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
         <div style={{ padding: "8px 8px 4px" }}>
-          {BOTTOM_NAV.map((item) => {
+          {BOTTOM_NAV.filter((item) => {
+            // Admin link is only shown to the founder
+            if (item.id === "admin") {
+              const email = user?.primaryEmailAddress?.emailAddress ?? "";
+              return email.toLowerCase() === "anigemmill@theoutsidein.nz";
+            }
+            return true;
+          }).map((item) => {
             const isActive = activePage === item.id;
             return (
               <Link key={item.id} href={item.href}>

@@ -4,11 +4,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Plus, Activity, Bell, Users, Search, ArrowUpRight, Clock, FileText, Database, ShieldAlert, BarChart3, Medal, MoveRight, ChevronRight, Sparkles, MessageSquare } from "lucide-react";
 import { useGetDashboard, useListAthletes, useListIntelligence } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
-import PlanSelectionModal, { useShouldShowPlanModal } from "@/components/PlanSelectionModal";
 
 const ONBOARDING_KEY = "ai_onboarding_dismissed";
-const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
-
 const CATEGORY_LABELS: Record<string, string> = {
   results_rankings: "Results",
   media_interviews: "Media",
@@ -38,9 +35,6 @@ export default function Dashboard() {
     () => localStorage.getItem(ONBOARDING_KEY) === "1"
   );
 
-  const isFounder = user?.primaryEmailAddress?.emailAddress === FOUNDER_EMAIL;
-  const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
-  const [showPlanModal, skipPlanModal] = useShouldShowPlanModal(isFounder);
 
   const athletes = (athletesData ?? []) as any[];
   const feedItems = ((Array.isArray(rawFeed) ? rawFeed : (rawFeed as any)?.items ?? []) as any[])
@@ -63,10 +57,6 @@ export default function Dashboard() {
   };
 
   return (
-    <>
-      {showPlanModal && (
-        <PlanSelectionModal onSkip={skipPlanModal} userEmail={userEmail} />
-      )}
     <AppLayout activePage="dashboard">
       <div className="flex flex-col h-full bg-[#FCFAFA]">
         
@@ -344,6 +334,5 @@ export default function Dashboard() {
         </div>
       </div>
     </AppLayout>
-    </>
   );
 }
