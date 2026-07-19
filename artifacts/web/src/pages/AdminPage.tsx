@@ -138,7 +138,7 @@ function CustomersTab() {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
                       {c.imageUrl ? (
-                        <img src={c.imageUrl} alt={c.name || c.email} className="w-7 h-7 rounded-full object-cover" />
+                        <img src={c.imageUrl} alt={c.name || c.email} loading="lazy" className="w-7 h-7 rounded-full object-cover" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-[#EEF0F8] flex items-center justify-center text-[11px] font-bold text-[#6B7080]">
                           {c.name.charAt(0) || c.email.charAt(0)}

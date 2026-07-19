@@ -1,5 +1,6 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import {
@@ -77,12 +78,40 @@ app.use(
     },
   }),
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Security headers
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://clerk.athleteintelligence.ai", "https://*.clerk.accounts.dev"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        connectSrc: ["'self'", "https://api.clerk.com", "https://*.clerk.accounts.dev", "https://clerk.athleteintelligence.ai"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Required for Clerk OAuth
+  }),
+);
+
+// 1 MB body limit — prevents oversized payload attacks
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // Clerk middleware — must be before routes
 app.use(clerkMiddleware());
 
 app.use("/api", router);
+
+// ── Global error handler — must be last middleware ────────────────────────────
+// Catches any unhandled errors from routes and prevents stack trace leaks
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error({ err }, "Unhandled error");
+  res.status(500).json({ error: "Internal server error" });
+});
 
 export default app;

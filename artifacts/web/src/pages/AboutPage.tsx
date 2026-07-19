@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { Helmet } from "react-helmet-async";
 
 const VALUES = [
   { title: "Intelligence, not data", desc: "Raw data is noise. We build systems that transform public signals into structured, actionable intelligence. Every item is categorised, sourced, and scored before it reaches your team." },
@@ -11,7 +12,14 @@ const VALUES = [
 
 export default function AboutPage() {
   return (
-    <PublicLayout>
+    <>
+      <Helmet>
+        <title>About — Athlete Intelligence</title>
+        <meta name="description" content="Athlete Intelligence was built on the belief that professional sport decisions should be driven by timely, traceable intelligence — not gut feel or slow manual research." />
+        <meta property="og:title" content="About Athlete Intelligence" />
+        <meta property="og:description" content="Built on the belief that professional sport decisions should be driven by timely, traceable intelligence." />
+      </Helmet>
+      <PublicLayout>
       {/* Hero */}
       <section className="bg-[#0B0F1E] pt-24 pb-20 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-[#293055]/30 rounded-full blur-[100px] pointer-events-none" />
@@ -106,5 +114,6 @@ export default function AboutPage() {
         </div>
       </section>
     </PublicLayout>
+    </>
   );
 }

@@ -46,6 +46,7 @@ export default function Dashboard() {
   const feedItems = ((Array.isArray(rawFeed) ? rawFeed : (rawFeed as any)?.items ?? []) as any[])
     .slice(0, 8);
 
+  const isLoading = dashboard === undefined && athletesData === undefined;
   const isEmptyRoster = athletesData !== undefined && athletes.length === 0;
   const showOnboarding = isEmptyRoster && !onboardingDismissed;
 
@@ -154,50 +155,65 @@ export default function Dashboard() {
           )}
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
-                <div className="text-sm font-medium text-[#6B7080]">Total Monitored</div>
-                <Users className="w-4 h-4 text-[#8A90A8]" />
+          {isLoading ? (
+            <div className="grid grid-cols-4 gap-4 mb-8" aria-busy="true" aria-label="Loading statistics">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="h-4 w-28 bg-[#DCE2EF] rounded animate-pulse" />
+                    <div className="h-4 w-4 bg-[#DCE2EF] rounded animate-pulse" />
+                  </div>
+                  <div className="h-8 w-12 bg-[#DCE2EF] rounded animate-pulse mb-2" />
+                  <div className="h-3 w-36 bg-[#F0F2F7] rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="text-sm font-medium text-[#6B7080]">Total Monitored</div>
+                  <Users className="w-4 h-4 text-[#8A90A8]" />
+                </div>
+                <div className="text-2xl font-semibold text-[#1C1F3A]">{stats.totalMonitored}</div>
+                <div className="text-xs text-[#8A90A8] mt-2 flex items-center gap-1">
+                  <span className="text-emerald-500 flex items-center"><ArrowUpRight className="w-3 h-3" /> 3</span>
+                  <span>since last month</span>
+                </div>
               </div>
-              <div className="text-2xl font-semibold text-[#1C1F3A]">{stats.totalMonitored}</div>
-              <div className="text-xs text-[#8A90A8] mt-2 flex items-center gap-1">
-                <span className="text-emerald-500 flex items-center"><ArrowUpRight className="w-3 h-3" /> 3</span>
-                <span>since last month</span>
+              <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="text-sm font-medium text-[#6B7080]">New Items Today</div>
+                  <Activity className="w-4 h-4 text-[#E75D50]" />
+                </div>
+                <div className="text-2xl font-semibold text-[#1C1F3A]">{stats.newItemsToday}</div>
+                <div className="text-xs text-[#8A90A8] mt-2 flex items-center gap-1">
+                  <span>Across 12 different sources</span>
+                </div>
+              </div>
+              <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm relative overflow-hidden group cursor-pointer transition-colors hover:border-[#E75D50]">
+                <div className="absolute inset-0 bg-[#E75D50]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="flex items-start justify-between mb-3 relative z-10">
+                  <div className="text-sm font-medium text-[#6B7080] group-hover:text-[#1C1F3A] transition-colors">Unread Alerts</div>
+                  <Bell className="w-4 h-4 text-[#E75D50]" />
+                </div>
+                <div className="text-2xl font-semibold text-[#1C1F3A] relative z-10">{stats.unreadAlerts}</div>
+                <div className="text-xs text-[#E75D50] mt-2 flex items-center gap-1 relative z-10 font-medium">
+                  Review required <MoveRight className="w-3 h-3" />
+                </div>
+              </div>
+              <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="text-sm font-medium text-[#6B7080]">Agents Active</div>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                </div>
+                <div className="text-2xl font-semibold text-[#1C1F3A]">{stats.agentsActivePercent}%</div>
+                <div className="text-xs text-[#8A90A8] mt-2 flex items-center gap-1">
+                  <span>All core scrapers functional</span>
+                </div>
               </div>
             </div>
-            <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
-                <div className="text-sm font-medium text-[#6B7080]">New Items Today</div>
-                <Activity className="w-4 h-4 text-[#E75D50]" />
-              </div>
-              <div className="text-2xl font-semibold text-[#1C1F3A]">{stats.newItemsToday}</div>
-              <div className="text-xs text-[#8A90A8] mt-2 flex items-center gap-1">
-                <span>Across 12 different sources</span>
-              </div>
-            </div>
-            <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm relative overflow-hidden group cursor-pointer transition-colors hover:border-[#E75D50]">
-              <div className="absolute inset-0 bg-[#E75D50]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="flex items-start justify-between mb-3 relative z-10">
-                <div className="text-sm font-medium text-[#6B7080] group-hover:text-[#1C1F3A] transition-colors">Unread Alerts</div>
-                <Bell className="w-4 h-4 text-[#E75D50]" />
-              </div>
-              <div className="text-2xl font-semibold text-[#1C1F3A] relative z-10">{stats.unreadAlerts}</div>
-              <div className="text-xs text-[#E75D50] mt-2 flex items-center gap-1 relative z-10 font-medium">
-                Review required <MoveRight className="w-3 h-3" />
-              </div>
-            </div>
-            <div className="bg-white border border-[#DCE2EF] rounded-xl p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
-                <div className="text-sm font-medium text-[#6B7080]">Agents Active</div>
-                <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-              </div>
-              <div className="text-2xl font-semibold text-[#1C1F3A]">{stats.agentsActivePercent}%</div>
-              <div className="text-xs text-[#8A90A8] mt-2 flex items-center gap-1">
-                <span>All core scrapers functional</span>
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-3 gap-6">
             

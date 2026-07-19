@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { Helmet } from "react-helmet-async";
 
 const PILLARS = [
   {
@@ -34,7 +35,14 @@ const AI_PRINCIPLES = [
 
 export default function SecurityPage() {
   return (
-    <PublicLayout>
+    <>
+      <Helmet>
+        <title>Security & Trust — Athlete Intelligence</title>
+        <meta name="description" content="Athlete Intelligence is built on a foundation of enterprise-grade security: TLS 1.3, AES-256 encryption at rest, SOC 2-aligned controls, and strict data minimisation principles." />
+        <meta property="og:title" content="Security & Trust — Athlete Intelligence" />
+        <meta property="og:description" content="Enterprise-grade security: TLS 1.3, AES-256 at rest, SOC 2-aligned controls, and strict data minimisation." />
+      </Helmet>
+      <PublicLayout>
       <section className="bg-[#0B0F1E] pt-24 pb-16 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] bg-[#293055]/30 rounded-full blur-[100px] pointer-events-none" />
         <div className="relative max-w-4xl mx-auto px-6 text-center">
@@ -136,5 +144,6 @@ export default function SecurityPage() {
         </div>
       </section>
     </PublicLayout>
+    </>
   );
 }

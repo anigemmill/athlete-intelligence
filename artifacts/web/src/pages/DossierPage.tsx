@@ -311,6 +311,7 @@ export default function DossierPage() {
                       <img
                         src={athlete.avatarUrl}
                         alt={athlete.name}
+                        loading="lazy"
                         className="w-full h-full object-cover object-top"
                         onError={() => setPhotoError(true)}
                       />

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 
 type FormState = "idle" | "submitting" | "success";
@@ -32,7 +33,14 @@ export default function ContactPage() {
   const labelCls = "block text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-1.5";
 
   return (
-    <PublicLayout>
+    <>
+      <Helmet>
+        <title>Contact — Athlete Intelligence</title>
+        <meta name="description" content="Get in touch with the Athlete Intelligence team to request a demo or learn more about our AI-powered athlete monitoring platform." />
+        <meta property="og:title" content="Contact Athlete Intelligence" />
+        <meta property="og:description" content="Request a demo or get in touch with the Athlete Intelligence team." />
+      </Helmet>
+      <PublicLayout>
       {/* Hero */}
       <section className="bg-[#0B0F1E] pt-24 pb-16 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] bg-[#293055]/30 rounded-full blur-[100px] pointer-events-none" />
@@ -168,5 +176,6 @@ export default function ContactPage() {
         </div>
       </section>
     </PublicLayout>
+    </>
   );
 }

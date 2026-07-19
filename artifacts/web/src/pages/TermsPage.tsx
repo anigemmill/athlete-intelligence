@@ -1,6 +1,7 @@
 import React from "react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 
 const LAST_UPDATED = "19 July 2026";
 const COMPANY = "The Outside In Limited";
@@ -45,7 +46,14 @@ const TOC = [
 
 export default function TermsPage() {
   return (
-    <PublicLayout>
+    <>
+      <Helmet>
+        <title>Terms of Service — Athlete Intelligence</title>
+        <meta name="description" content="Terms of Service for Athlete Intelligence — the AI-powered athlete monitoring platform by The Outside In Limited." />
+        <meta property="og:title" content="Terms of Service — Athlete Intelligence" />
+        <meta property="og:description" content="Terms of Service for the Athlete Intelligence platform." />
+      </Helmet>
+      <PublicLayout>
       <div className="max-w-5xl mx-auto px-6 py-16 lg:py-24">
 
         {/* Header */}
@@ -341,5 +349,6 @@ export default function TermsPage() {
         </div>
       </div>
     </PublicLayout>
+    </>
   );
 }

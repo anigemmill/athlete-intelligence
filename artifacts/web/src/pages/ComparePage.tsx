@@ -309,7 +309,7 @@ export default function ComparePage() {
                       >
                         <div className="w-7 h-7 rounded-full overflow-hidden bg-[rgba(41,48,85,0.10)] flex items-center justify-center text-[10px] font-bold text-[#293055] shrink-0">
                           {a.avatarUrl ? (
-                            <img src={a.avatarUrl} alt={a.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                            <img src={a.avatarUrl} alt={a.name} loading="lazy" className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                           ) : (
                             (a.name ?? "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
                           )}
@@ -402,7 +402,7 @@ export default function ComparePage() {
                           style={{ background: `linear-gradient(135deg, ${ATHLETE_COLORS[i]}, ${ATHLETE_COLORS[i]}cc)` }}
                         >
                           {a.avatarUrl ? (
-                            <img src={a.avatarUrl} alt={a.name} className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                            <img src={a.avatarUrl} alt={a.name} loading="lazy" className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                           ) : (
                             (a.name ?? "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
                           )}

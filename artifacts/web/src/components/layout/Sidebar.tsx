@@ -189,7 +189,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       </div>
 
       {/* Main navigation */}
-      <div style={{ padding: "10px 8px 6px", flexShrink: 0 }}>
+      <nav aria-label="Main navigation" style={{ padding: "10px 8px 6px", flexShrink: 0 }}>
         {NAV.map((group) => (
           <div key={group.section ?? "root"}>
             {group.section && (
@@ -200,12 +200,12 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             {group.items.map((item) => {
               const isActive = activePage === item.id;
               return (
-                <Link key={item.id} href={item.href}>
-                  <div style={navItemStyle(isActive)} className="hover:!bg-[rgba(255,255,255,0.06)] hover:!text-[rgba(252,250,250,0.75)]" data-active={isActive}>
-                    <span style={{ opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
+                <Link key={item.id} href={item.href} aria-current={isActive ? "page" : undefined}>
+                  <div style={navItemStyle(isActive)} className="hover:!bg-[rgba(255,255,255,0.06)] hover:!text-[rgba(252,250,250,0.75)]">
+                    <span style={{ opacity: isActive ? 1 : 0.6 }} aria-hidden="true">{item.icon}</span>
                     <span style={{ flex: 1 }}>{item.label}</span>
                     {"badge" in item && item.badge ? (
-                      <div style={{ background: "#E75D50", color: "white", fontSize: 10, fontWeight: 600, borderRadius: 10, padding: "1px 6px", lineHeight: "14px", marginLeft: "auto" }}>{item.badge}</div>
+                      <div style={{ background: "#E75D50", color: "white", fontSize: 10, fontWeight: 600, borderRadius: 10, padding: "1px 6px", lineHeight: "14px", marginLeft: "auto" }} aria-label={`${item.badge} notifications`}>{item.badge}</div>
                     ) : null}
                   </div>
                 </Link>
@@ -213,7 +213,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             })}
           </div>
         ))}
-      </div>
+      </nav>
 
       {/* Athlete roster */}
       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -252,7 +252,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
               >
                 <div style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.07)" : "rgba(231,93,80,0.20)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.25)" : "rgba(252,250,250,0.90)" }}>
                   {athlete.avatarUrl ? (
-                    <img src={athlete.avatarUrl} alt={athlete.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                    <img src={athlete.avatarUrl} alt={athlete.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                   ) : (
                     athlete.name?.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
                   )}
@@ -302,7 +302,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             </div>
             <div style={{ fontSize: 10, color: "rgba(252,250,250,0.28)" }}>Pro Plan</div>
           </div>
-          <button onClick={() => signOut()} className="hover:bg-[rgba(255,255,255,0.08)] p-1.5 rounded transition-colors" title="Sign out">
+          <button onClick={() => signOut()} className="hover:bg-[rgba(255,255,255,0.08)] p-1.5 rounded transition-colors" aria-label="Sign out">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(252,250,250,0.25)" strokeWidth={2} className="hover:stroke-[rgba(252,250,250,0.7)] transition-colors">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
             </svg>

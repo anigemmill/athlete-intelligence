@@ -198,16 +198,23 @@ export default function PlanSelectionModal({
 
   useEffect(() => { loadPrices(); }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onSkip(); };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [onSkip]);
+
   return (
     /* Backdrop */
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-2xl bg-[#FCFAFA] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.35)] overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-[#FCFAFA] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.35)] overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="plan-modal-title">
 
         {/* Header */}
         <div className="px-8 pt-8 pb-6 border-b border-[#DCE2EF]">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-[22px] font-bold text-[#1C1F3A] tracking-tight">Choose your plan</h2>
+              <h2 id="plan-modal-title" className="text-[22px] font-bold text-[#1C1F3A] tracking-tight">Choose your plan</h2>
               <p className="text-[14px] text-[#6B7080] mt-1">
                 Start with a <span className="font-semibold text-[#293055]">3-day free trial</span> — no charge until it ends. Cancel any time.
               </p>

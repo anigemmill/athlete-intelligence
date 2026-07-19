@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { Helmet } from "react-helmet-async";
 import { CheckCircle2, Minus, Loader2 } from "lucide-react";
 
 type Cycle = "monthly" | "annual";
@@ -205,7 +206,14 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <PublicLayout>
+    <>
+      <Helmet>
+        <title>Pricing — Athlete Intelligence</title>
+        <meta name="description" content="Simple, transparent pricing for national federations, professional clubs, academies, and agencies. Start with a 3-day free trial — no card required until it ends." />
+        <meta property="og:title" content="Pricing — Athlete Intelligence" />
+        <meta property="og:description" content="Simple pricing for federations, clubs, academies, and agencies. Starter from $249/month. Start with a 3-day free trial." />
+      </Helmet>
+      <PublicLayout>
       {/* Hero */}
       <section className="bg-[#0B0F1E] pt-24 pb-16 text-center relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-[#293055]/30 rounded-full blur-[100px] pointer-events-none" />
@@ -398,5 +406,6 @@ export default function PricingPage() {
         </div>
       </section>
     </PublicLayout>
+    </>
   );
 }

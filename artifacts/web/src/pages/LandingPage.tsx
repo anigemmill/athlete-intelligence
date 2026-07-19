@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { Helmet } from "react-helmet-async";
 
 const FEATURES = [
   {
@@ -74,7 +75,24 @@ const FEED_ITEMS = [
 
 export default function LandingPage() {
   return (
-    <PublicLayout>
+    <>
+      <Helmet>
+        <title>Athlete Intelligence — Know more about every athlete than anyone else</title>
+        <meta name="description" content="Persistent AI agents monitor every athlete on your roster — surfacing results, rankings, media, sponsorship moves, and career changes as they happen. Built for national federations, professional clubs, academies, and agencies." />
+        <meta property="og:title" content="Athlete Intelligence — Know more about every athlete than anyone else" />
+        <meta property="og:description" content="Persistent AI agents monitor every athlete on your roster. Built for national federations, professional clubs, academies, and agencies." />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Athlete Intelligence",
+          "description": "AI-powered athlete monitoring platform for national federations, professional clubs, academies, and agencies.",
+          "operatingSystem": "Web",
+          "applicationCategory": "BusinessApplication",
+          "offers": { "@type": "Offer", "price": "299", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "299", "priceCurrency": "USD", "billingDuration": "P1M" } },
+          "url": "https://athleteintelligence.ai"
+        })}</script>
+      </Helmet>
+      <PublicLayout>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-[#0B0F1E] pt-24 pb-32">
         {/* Background gradients */}
@@ -306,5 +324,6 @@ export default function LandingPage() {
         </div>
       </section>
     </PublicLayout>
+    </>
   );
 }

@@ -33,7 +33,7 @@ export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps
       className="athlete-intelligence-root"
     >
       <Sidebar activePage={activePage} />
-      <div
+      <main
         style={{
           flex: 1,
           display: "flex",
@@ -44,7 +44,7 @@ export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps
         }}
       >
         {children}
-      </div>
+      </main>
     </div>
   );
 }

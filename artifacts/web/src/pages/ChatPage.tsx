@@ -518,7 +518,9 @@ export default function ChatPage() {
         <div className="flex-shrink-0 px-8 pb-6 pt-3 border-t border-[#DCE2EF] bg-[#FCFAFA]">
           <div className="max-w-2xl mx-auto">
             <div className="relative flex items-end bg-white border border-[#DCE2EF] rounded-2xl shadow-sm focus-within:border-[#293055] focus-within:ring-2 focus-within:ring-[#293055]/10 transition-all">
+              <label htmlFor="chat-input" className="sr-only">Message</label>
               <textarea
+                id="chat-input"
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -526,12 +528,16 @@ export default function ChatPage() {
                 placeholder="Ask about athletes, compare results, explore relationships…"
                 rows={1}
                 disabled={streaming}
+                maxLength={10000}
+                aria-label="Message input"
+                aria-describedby="chat-hint"
                 className="flex-1 resize-none px-4 py-3.5 bg-transparent text-[13px] text-[#1C1F3A] placeholder:text-[#A0A8C0] focus:outline-none max-h-32 disabled:opacity-60"
                 style={{ minHeight: 52 }}
               />
               {streaming ? (
                 <button
                   onClick={abort}
+                  aria-label="Stop generating"
                   className="m-2 px-3 h-8 rounded-xl text-[11px] font-medium text-[#6B7080] bg-[#F0F2F8] hover:bg-[#E4E8F4] transition-colors"
                 >
                   Stop
@@ -540,6 +546,7 @@ export default function ChatPage() {
                 <button
                   onClick={() => send(input)}
                   disabled={!input.trim()}
+                  aria-label="Send message"
                   className={`m-2 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
                     input.trim()
                       ? "bg-[#293055] hover:bg-[#1e2440] text-white shadow-sm"
@@ -550,9 +557,16 @@ export default function ChatPage() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-[#A0A8C0] text-center mt-2">
-              Answers are grounded in your live intelligence database. Verify critical decisions independently.
-            </p>
+            <div className="flex items-center justify-between mt-2 px-1">
+              <p id="chat-hint" className="text-[11px] text-[#A0A8C0]">
+                Answers are grounded in your live intelligence database. Verify critical decisions independently.
+              </p>
+              {input.length > 8000 && (
+                <p className={`text-[11px] flex-shrink-0 ml-3 ${input.length >= 10000 ? "text-[#E75D50]" : "text-[#A0A8C0]"}`}>
+                  {input.length.toLocaleString()}/10,000
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
