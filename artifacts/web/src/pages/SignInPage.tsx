@@ -270,7 +270,7 @@ export default function SignInPage() {
                   alternativeMethodsBlockButton: "border-[#DCE2EF] text-[#1C1F3A]",
                 },
               }}
-              afterSignInUrl={`${basePath}/dashboard`}
+              fallbackRedirectUrl={`${basePath}/dashboard`}
             />
           </div>
 
