@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
+import { logger } from "../lib/logger.js";
 import {
   athletesTable,
   alertConfigsTable,
@@ -98,7 +99,7 @@ router.post("/athletes/discover", async (req, res): Promise<void> => {
 
   await db.insert(alertConfigsTable).values({ athleteId: athlete.id }).onConflictDoNothing();
 
-  // Fire-and-forget full population
+  // Fire-and-forget full population (errors logged, not surfaced)
   autoPopulateAthlete({
     id: athlete.id,
     name: athlete.name,
@@ -106,7 +107,7 @@ router.post("/athletes/discover", async (req, res): Promise<void> => {
     event: profile.event,
     nationality: profile.nationality,
     age: profile.age,
-  });
+  }).catch((err) => logger.error({ err, athleteId: athlete.id }, "autoPopulateAthlete failed"));
 
   res.status(201).json({ athlete: toApiAthlete(athlete), created: true });
 });
@@ -150,7 +151,7 @@ router.post("/athletes/bulk", async (req, res): Promise<void> => {
         event: parsed.data.event ?? "",
         nationality: parsed.data.nationality ?? "",
         age: parsed.data.age ?? null,
-      });
+      }).catch((err) => logger.error({ err, athleteId: athlete.id }, "autoPopulateAthlete failed (bulk)"));
     } catch (err: unknown) {
       results.push({ success: false, name: raw?.name ?? "Unknown", error: String(err) });
     }
@@ -233,7 +234,7 @@ router.post("/athletes", async (req, res): Promise<void> => {
     event: athlete.event ?? "",
     nationality: athlete.nationality ?? "",
     age: athlete.age,
-  });
+  }).catch((err) => logger.error({ err, athleteId: athlete.id }, "autoPopulateAthlete failed (POST)"));
 });
 
 // GET /athletes/:id

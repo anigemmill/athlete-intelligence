@@ -57,7 +57,26 @@ app.use(
   }),
 );
 
-app.use(cors({ credentials: true, origin: true }));
+// Restrict CORS to known origins — never mirror arbitrary origins with credentials
+const ALLOWED_ORIGINS = [
+  /\.replit\.app$/,
+  /\.replit\.dev$/,
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+];
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      // Same-origin / server-to-server requests have no Origin header — allow
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.some((pattern) => pattern.test(origin))) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

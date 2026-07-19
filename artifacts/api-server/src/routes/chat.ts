@@ -10,6 +10,7 @@
  */
 
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 import { eq, desc, ilike, and, or, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
@@ -472,11 +473,30 @@ When using tools for specific athletes, use their [ID:N] from the roster above.`
 
 // ── POST /api/chat ─────────────────────────────────────────────────────────────
 
-router.post("/chat", async (req, res): Promise<void> => {
+// 60 messages per user per 15 minutes — prevents OpenAI credit abuse
+const chatLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => {
+    const key = (req as any).userId ?? req.ip ?? "anon";
+    // Normalize IPv6 and other special chars to avoid ERR_ERL_KEY_GEN_IPV6
+    return String(key).replace(/[^a-zA-Z0-9._-]/g, "_");
+  },
+  validate: false,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many messages. Please slow down." },
+});
+
+router.post("/chat", chatLimiter, async (req, res): Promise<void> => {
   const { message, history = [] } = req.body ?? {};
 
   if (!message || typeof message !== "string") {
     res.status(400).json({ error: "message is required" });
+    return;
+  }
+  if (message.length > 10_000) {
+    res.status(400).json({ error: "Message too long (max 10,000 characters)" });
     return;
   }
 

@@ -183,13 +183,20 @@ export default function PlanSelectionModal({
 }) {
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const [prices, setPrices] = useState<PriceMap | null>(null);
+  const [priceError, setPriceError] = useState(false);
 
-  useEffect(() => {
+  const loadPrices = () => {
+    setPriceError(false);
     fetch(`${basePath}/api/stripe/prices`)
       .then((r) => r.json())
-      .then((d) => setPrices(d.prices ?? null))
-      .catch(() => {});
-  }, []);
+      .then((d) => {
+        if (d.prices) setPrices(d.prices);
+        else setPriceError(true);
+      })
+      .catch(() => setPriceError(true));
+  };
+
+  useEffect(() => { loadPrices(); }, []);
 
   return (
     /* Backdrop */
@@ -239,16 +246,28 @@ export default function PlanSelectionModal({
 
         {/* Plan cards */}
         <div className="px-8 py-6 grid grid-cols-2 gap-4">
-          {PLANS.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              cycle={cycle}
-              prices={prices}
-              onClose={onSkip}
-              userEmail={userEmail}
-            />
-          ))}
+          {priceError ? (
+            <div className="col-span-2 flex flex-col items-center justify-center py-10 gap-3 text-center">
+              <p className="text-[14px] text-[#6B7080]">Couldn't load pricing. Check your connection and try again.</p>
+              <button
+                onClick={loadPrices}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-[#E75D50] text-white hover:bg-[#D04840] transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            PLANS.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                cycle={cycle}
+                prices={prices}
+                onClose={onSkip}
+                userEmail={userEmail}
+              />
+            ))
+          )}
         </div>
 
         {/* Footer */}

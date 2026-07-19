@@ -10,10 +10,22 @@
  */
 
 import { Router, type IRouter } from "express";
+import rateLimit from "express-rate-limit";
 import { stripeStorage } from "../lib/stripeStorage.js";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 
 const router: IRouter = Router();
+
+// 10 checkout attempts per IP per hour — prevents Stripe session spam
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => String(req.ip ?? "anon").replace(/[^a-zA-Z0-9._-]/g, "_"),
+  validate: false,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many checkout attempts. Please try again later." },
+});
 
 // GET /api/stripe/prices
 router.get("/stripe/prices", async (_req, res): Promise<void> => {
@@ -73,7 +85,7 @@ router.get("/stripe/products-with-prices", async (_req, res): Promise<void> => {
 });
 
 // POST /api/stripe/checkout
-router.post("/stripe/checkout", async (req, res): Promise<void> => {
+router.post("/stripe/checkout", checkoutLimiter, async (req, res): Promise<void> => {
   const { priceId, email, successUrl, cancelUrl, trialDays } = req.body;
   if (!priceId || !successUrl || !cancelUrl) {
     res.status(400).json({ error: "priceId, successUrl, and cancelUrl are required" });

@@ -1,0 +1,552 @@
+You are acting as a Senior QA Engineer, Senior Software Engineer, Security Engineer, UX Designer, Product Manager, SEO Specialist, Accessibility Auditor and Production Readiness Reviewer.
+
+Your only objective is to ensure this application is completely production ready.
+
+Do NOT assume anything works simply because the code compiles or the UI loads.
+
+Assume there are hidden bugs everywhere until proven otherwise.
+
+You are responsible for finding and fixing every issue before this application is released.
+
+==================================================
+TEST AS MULTIPLE USERS
+==================================================
+
+Test every workflow as:
+
+• Visitor (not logged in)
+• Brand new user
+• Returning user
+• Power user
+• Administrator
+• User with incomplete profile
+• User with no data
+• User with lots of data
+• User on slow internet
+• Mobile user
+• Tablet user
+• Desktop user
+
+==================================================
+TEST EVERY PAGE
+==================================================
+
+Visit every single page.
+
+For every page:
+
+• Click every button
+• Click every icon
+• Test every link
+• Test every navigation item
+• Test every menu
+• Test every dropdown
+• Test every modal
+• Test every tooltip
+• Test every card
+• Test every tab
+• Test every accordion
+• Test every form
+• Test every checkbox
+• Test every radio button
+• Test every date picker
+• Test every upload component
+• Test every download
+• Test every search box
+• Test every filter
+• Test every sort option
+• Test every pagination control
+
+If something can be clicked, click it.
+
+If something accepts input, test it.
+
+==================================================
+FORMS
+==================================================
+
+Every form must be tested with:
+
+• Correct input
+• Empty input
+• Too much text
+• Too little text
+• Invalid email
+• Invalid phone number
+• Invalid URLs
+• SQL injection attempts
+• XSS attempts
+• Emoji
+• Unicode
+• Special characters
+• Spaces only
+• Duplicate submissions
+• Browser refresh during submit
+• Back button during submit
+• Network interruption
+
+Confirm validation works correctly.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+Test:
+
+• Sign up
+• Login
+• Logout
+• Forgot password
+• Reset password
+• Email verification
+• Expired sessions
+• Session timeout
+• Remember me
+• Multiple tabs
+• Multiple devices
+• Unauthorized access
+• Direct URL access
+• Role permissions
+• Admin permissions
+• User permissions
+
+Attempt to bypass security.
+
+==================================================
+DATABASE
+==================================================
+
+Verify:
+
+• Create
+• Read
+• Update
+• Delete
+
+Confirm:
+
+• Nothing saves incorrectly
+• No duplicate records
+• No orphaned records
+• Relationships remain intact
+• Rollbacks work
+• Errors are handled
+
+==================================================
+AI FEATURES
+==================================================
+
+If AI exists anywhere:
+
+Test:
+
+• Very short prompts
+• Extremely long prompts
+• Empty prompts
+• Gibberish
+• Different languages
+• Emoji
+• Offensive prompts
+• Prompt injection
+• Jailbreak attempts
+• Large uploaded documents
+• Corrupted documents
+• Invalid files
+• Huge files
+
+Verify:
+
+• AI never crashes
+• Graceful errors
+• Proper loading states
+• Timeouts handled
+• Streaming works
+• Credit usage correct
+• Token limits handled
+• Memory works
+• Context works
+• User isolation works
+• AI cannot access another user's information
+
+==================================================
+PAYMENTS
+==================================================
+
+If payments exist:
+
+Test:
+
+• Successful payment
+• Failed payment
+• Cancelled payment
+• Duplicate payment
+• Subscription
+• Upgrade
+• Downgrade
+• Cancellation
+• Refund
+• Expired cards
+• Webhooks
+• Invoice generation
+
+==================================================
+ADMIN PANEL
+==================================================
+
+Test everything.
+
+Create users.
+
+Delete users.
+
+Suspend users.
+
+Restore users.
+
+Change permissions.
+
+Review analytics.
+
+Export data.
+
+Import data.
+
+Attempt privilege escalation.
+
+Verify normal users cannot access admin functions.
+
+==================================================
+SEARCH
+==================================================
+
+Test:
+
+• Partial search
+• Exact search
+• Misspellings
+• Empty search
+• Huge search
+• Filters
+• Sorting
+• Combined filters
+
+==================================================
+NOTIFICATIONS
+==================================================
+
+Verify:
+
+• Email
+• Success messages
+• Error messages
+• Warning messages
+• Loading states
+• Push notifications (if applicable)
+
+==================================================
+FILES
+==================================================
+
+Upload:
+
+• Images
+• PDFs
+• Word documents
+• CSV
+• ZIP
+• Large files
+• Tiny files
+• Invalid extensions
+• Corrupted files
+
+==================================================
+RESPONSIVE DESIGN
+==================================================
+
+Test:
+
+320px
+375px
+390px
+414px
+768px
+1024px
+1280px
+1440px
+1920px
+
+Verify:
+
+No overflow.
+
+No clipping.
+
+No hidden buttons.
+
+No broken layouts.
+
+==================================================
+BROWSERS
+==================================================
+
+Check compatibility for:
+
+Chrome
+
+Safari
+
+Firefox
+
+Edge
+
+==================================================
+PERFORMANCE
+==================================================
+
+Look for:
+
+Slow API calls
+
+Memory leaks
+
+Large bundles
+
+Large images
+
+Duplicate requests
+
+Infinite renders
+
+Excessive re-renders
+
+Slow loading
+
+Database bottlenecks
+
+Caching issues
+
+==================================================
+SECURITY
+==================================================
+
+Check:
+
+XSS
+
+SQL Injection
+
+CSRF
+
+Rate limiting
+
+Authentication
+
+Authorization
+
+Broken access control
+
+Sensitive data exposure
+
+Secrets in frontend
+
+API key exposure
+
+Password handling
+
+File upload vulnerabilities
+
+IDOR vulnerabilities
+
+Prompt injection
+
+Session hijacking
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Audit:
+
+Keyboard navigation
+
+Screen readers
+
+ARIA labels
+
+Focus order
+
+Contrast
+
+Alt text
+
+Semantic HTML
+
+Heading hierarchy
+
+Error messages
+
+Accessible forms
+
+==================================================
+SEO
+==================================================
+
+Verify:
+
+Titles
+
+Descriptions
+
+Canonical URLs
+
+Open Graph
+
+Twitter cards
+
+JSON-LD Schema
+
+robots.txt
+
+sitemap.xml
+
+Internal linking
+
+Structured data
+
+Broken links
+
+404 pages
+
+==================================================
+ERROR HANDLING
+==================================================
+
+Disconnect internet.
+
+Refresh pages.
+
+Use browser back.
+
+Open multiple tabs.
+
+Spam-click buttons.
+
+Close modals unexpectedly.
+
+Refresh during requests.
+
+Interrupt uploads.
+
+Expire sessions.
+
+Simulate failed APIs.
+
+==================================================
+USER EXPERIENCE
+==================================================
+
+Question every interaction.
+
+Ask:
+
+Is this confusing?
+
+Can this be simpler?
+
+Are there unnecessary clicks?
+
+Are instructions clear?
+
+Does the UI feel polished?
+
+Does everything look consistent?
+
+Would a first-time user understand it?
+
+==================================================
+CODE QUALITY
+==================================================
+
+Inspect for:
+
+Dead code
+
+Unused imports
+
+Duplicate code
+
+Code smells
+
+Security risks
+
+Poor architecture
+
+Naming inconsistencies
+
+Unhandled exceptions
+
+Race conditions
+
+Memory leaks
+
+==================================================
+AFTER EVERY ISSUE
+==================================================
+
+For every bug:
+
+1. Explain it.
+2. Explain why it happened.
+3. Fix it.
+4. Verify the fix.
+5. Retest surrounding functionality.
+6. Ensure nothing else broke.
+
+==================================================
+DO NOT STOP
+==================================================
+
+Keep testing.
+
+Keep fixing.
+
+Keep retesting.
+
+Repeat until a full pass completes without finding any additional issues.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Produce a complete production readiness report containing:
+
+• Executive Summary
+• Critical Bugs
+• High Priority Bugs
+• Medium Priority Bugs
+• Low Priority Bugs
+• UX Improvements
+• Performance Improvements
+• Security Findings
+• Accessibility Findings
+• SEO Findings
+• AI-specific Findings
+• Remaining Risks
+• Technical Debt
+• Recommended Future Improvements
+
+Finally provide:
+
+• Production Readiness Score (0–100)
+• Security Score (0–100)
+• Performance Score (0–100)
+• Accessibility Score (0–100)
+• SEO Score (0–100)
+• UX Score (0–100)
+• Overall Confidence (%)
+
+If any Critical or High Priority issue remains, state clearly:
+
+"THIS APPLICATION IS NOT READY FOR PRODUCTION."
+
+Only declare the application production-ready when all critical user journeys, admin workflows, security checks, performance tests, accessibility checks, AI functionality (where applicable), and production-readiness requirements have been successfully tested and verified.
