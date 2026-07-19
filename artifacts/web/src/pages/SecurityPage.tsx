@@ -110,9 +110,9 @@ export default function SecurityPage() {
           <h2 className="text-2xl font-bold text-white tracking-tight mb-8">Compliance & privacy</h2>
           <div className="grid md:grid-cols-3 gap-5">
             {[
-              { title: "GDPR", status: "Compliant", desc: "Data processing agreements available for EU customers. Right to erasure respected." },
-              { title: "Australian Privacy Act", status: "Compliant", desc: "APP-aligned practices for AU customers, including data localisation options." },
-              { title: "SOC 2 Type II", status: "In progress", desc: "Audit underway. Report expected Q4 2026. Controls in place now." },
+              { title: "GDPR / UK GDPR", status: "Compliant", desc: "Data processing agreements available for EU and UK customers. Right to erasure, data portability, and lawful basis documentation respected." },
+              { title: "NZ Privacy Act 2020 / CCPA", status: "Compliant", desc: "Information privacy principles followed for NZ and AU customers. CCPA rights (opt-out, deletion, disclosure) honoured for California-based users." },
+              { title: "SOC 2 Type II", status: "In progress", desc: "Audit underway. Report expected Q4 2026. Security, availability, and confidentiality controls are in place now." },
             ].map((c) => (
               <div key={c.title} className="p-6 rounded-2xl bg-[#131929] border border-white/[0.06]">
                 <div className="flex items-center gap-2 mb-3">
