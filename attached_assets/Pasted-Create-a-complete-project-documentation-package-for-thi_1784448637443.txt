@@ -1,0 +1,125 @@
+Create a complete project documentation package for this application.
+
+The goal is to ensure another developer or AI assistant could continue building this product without needing prior conversation history.
+
+Include:
+
+1. Executive Summary
+- Purpose of the application
+- Target users
+- Core value proposition
+- Business goals
+
+2. Product Requirements
+- Every feature currently implemented
+- Every planned feature
+- Features partially complete
+- Features intentionally deferred
+
+3. User Roles
+- Visitor
+- Standard User
+- Administrator
+- Any other roles
+- Permissions for each role
+
+4. User Flows
+Document every major workflow from beginning to end.
+
+Examples:
+- Sign up
+- Login
+- Password reset
+- Onboarding
+- Dashboard
+- Search
+- AI features
+- Billing
+- Admin workflows
+
+5. Database
+For every table include:
+- Purpose
+- Fields
+- Relationships
+- Constraints
+- Indexes
+
+6. API
+Document:
+- Every endpoint
+- Inputs
+- Outputs
+- Authentication
+- Error responses
+
+7. AI Architecture
+Explain:
+- How prompts work
+- Model selection
+- Context retrieval
+- Memory
+- Credit usage
+- Error handling
+- Streaming
+- File processing
+
+8. Authentication & Security
+Describe:
+- Login flow
+- Authorization
+- Roles
+- Permissions
+- Security protections
+- Environment variables required
+
+9. Admin System
+Explain every admin capability and how it works.
+
+10. Frontend
+Document:
+- Every page
+- Every component
+- Navigation
+- State management
+- Responsive behaviour
+
+11. Third-Party Integrations
+Document:
+- External APIs
+- Authentication
+- Payments
+- Email
+- Analytics
+- AI providers
+
+12. Deployment
+Explain:
+- Environment variables
+- Build process
+- Production deployment
+- Required services
+
+13. Known Issues
+List:
+- Bugs
+- Technical debt
+- Missing functionality
+- Areas needing improvement
+
+14. Future Roadmap
+Document planned features in priority order.
+
+15. Architecture Diagram
+Describe the overall architecture and how each part communicates.
+
+16. Folder Structure
+Explain what every folder and major file is responsible for.
+
+17. Development Notes
+Record important design decisions and why they were made.
+
+18. README
+Create a production-quality README that allows another developer to run the project locally.
+
+Do not summarise—be comprehensive. This documentation should be sufficient for another experienced engineer or AI assistant to understand, maintain, and continue developing the application.
