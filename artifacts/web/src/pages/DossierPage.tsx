@@ -464,15 +464,15 @@ export default function DossierPage() {
                       </div>
                     )}
                     {athlete.personalBest && (
-                      <div className="flex flex-col">
+                      <div className="flex flex-col min-w-0" title={athlete.personalBest}>
                         <span className="text-[11px] text-[#9097B0] font-medium">Personal Best</span>
-                        <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight">{athlete.personalBest}</span>
+                        <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight truncate max-w-[120px]">{athlete.personalBest}</span>
                       </div>
                     )}
                     {athlete.seasonBest && (
-                      <div className="flex flex-col">
+                      <div className="flex flex-col min-w-0" title={athlete.seasonBest}>
                         <span className="text-[11px] text-[#9097B0] font-medium">Season Best</span>
-                        <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight">{athlete.seasonBest}</span>
+                        <span className="text-[16px] font-bold text-[#1C1F3A] leading-tight truncate max-w-[120px]">{athlete.seasonBest}</span>
                       </div>
                     )}
                   </div>
@@ -698,16 +698,16 @@ export default function DossierPage() {
                         </div>
                       )}
                       {athlete.personalBest && (
-                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm overflow-hidden" title={athlete.personalBest}>
                           <div className="text-[11px] text-[#9097B0] font-medium mb-1">Personal Best</div>
-                          <div className="text-[22px] font-bold text-[#1C1F3A] leading-tight mb-0.5">{athlete.personalBest}</div>
-                          <div className="text-[10px] text-[#A0A8C0]">{athlete.event}</div>
+                          <div className={`font-bold text-[#1C1F3A] leading-tight mb-0.5 break-words ${athlete.personalBest.length <= 8 ? "text-[22px]" : athlete.personalBest.length <= 14 ? "text-[16px]" : "text-[12px] line-clamp-2"}`}>{athlete.personalBest}</div>
+                          <div className="text-[10px] text-[#A0A8C0] truncate">{athlete.event}</div>
                         </div>
                       )}
                       {athlete.seasonBest && (
-                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm">
+                        <div className="rounded-xl border border-[#DCE2EF] bg-white p-4 shadow-sm overflow-hidden" title={athlete.seasonBest}>
                           <div className="text-[11px] text-[#9097B0] font-medium mb-1">Season Best</div>
-                          <div className="text-[22px] font-bold text-[#1C1F3A] leading-tight mb-0.5">{athlete.seasonBest}</div>
+                          <div className={`font-bold text-[#1C1F3A] leading-tight mb-0.5 break-words ${athlete.seasonBest.length <= 8 ? "text-[22px]" : athlete.seasonBest.length <= 14 ? "text-[16px]" : "text-[12px] line-clamp-2"}`}>{athlete.seasonBest}</div>
                           <div className="text-[10px] text-[#A0A8C0]">2025 season</div>
                         </div>
                       )}

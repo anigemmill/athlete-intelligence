@@ -113,7 +113,7 @@ async function researchAthleteWithPerplexity(athlete: AthleteStub): Promise<stri
 3. HISTORICAL RESULTS (2016–2023): Major career results, championship medals, personal bests with dates.
 4. CAREER TIMELINE: Debut year, team changes, major sponsorship deals, injuries, major career milestones with exact dates.
 5. RANKINGS: Current world ranking, national ranking, and how these have changed over the past year.
-6. PERFORMANCE MARKS: Personal best and season best (with the date each was set).
+6. PERFORMANCE MARKS: Personal best and season best times/marks (with the date each was set). For DH MTB this is a race finishing time like "4:31.18", not a placement. Look for actual timed results.
 7. SOCIAL MEDIA: Their real Instagram handle, X/Twitter handle, TikTok handle. For each platform find the most recent follower count you can — from profile directories, sports media articles, influencer databases, or any web source. Give the number and the source/date it came from. Even a number from a 6-month-old article is better than nothing.
 8. KEY CONTACTS: Head coach (name and organisation), manager or agent (name and organisation), any known medical/physio staff.
 9. INTELLIGENCE: Recent interviews, media features, sponsorship announcements, controversy, career changes — anything newsworthy from the past 3 years.
@@ -174,8 +174,8 @@ Extract and structure the above into the following JSON object:
     "worldRank": <integer or null>,
     "worldRankDelta": <integer, negative = improved>,
     "nationalRank": <integer or null>,
-    "personalBest": <string or null, e.g. "1:43.22" or "148kg snatch">,
-    "seasonBest": <string or null>,
+    "personalBest": <string or null — CRITICAL: this must be an actual measured performance mark ONLY, never a race placement or event name. Format examples by sport: DH MTB = "4:31.18" (race time), Sprint = "9.87s", 800m = "1:43.22", Long jump = "8.95m", Weightlifting = "148kg snatch", Cycling power = "6.8 W/kg". If the athlete's sport uses times, give the time. If unknown, return null.>,
+    "seasonBest": <string or null — same format as personalBest. The athlete's best mark in the current season only, same short format. Null if unknown.>,
     "instagramHandle": <string or null — real username without @, null if not found in research>,
     "instagramFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>,
     "twitterHandle": <string or null — real username without @, null if not found in research>,
