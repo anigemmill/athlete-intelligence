@@ -362,6 +362,43 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
   const [socialResult, setSocialResult] = useState<{ updated: number; notFound: number; total: number; results: { name: string; instagram?: string; twitter?: string; tiktok?: string }[] } | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
+  // Per-athlete repopulate
+  const [athletes, setAthletes] = useState<{ id: number; name: string; sport: string; intelligence_count: number; last_crawled_at: string | null }[]>([]);
+  const [repopulating, setRepopulating] = useState<Record<number, boolean>>({});
+  const [repopulateNote, setRepopulateNote] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    authFetch("/api/athletes").then(r => r.json()).then(d => setAthletes(d ?? [])).catch(() => {});
+  }, []);
+
+  const repopulate = async (id: number) => {
+    setRepopulating(p => ({ ...p, [id]: true }));
+    setRepopulateNote(p => ({ ...p, [id]: "" }));
+    try {
+      const r = await authFetch(`/api/admin/repopulate/${id}`, { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "Failed");
+      setRepopulateNote(p => ({ ...p, [id]: "Running in background…" }));
+      // Poll until last_crawled_at is set (up to ~90s)
+      const start = Date.now();
+      const poll = setInterval(async () => {
+        if (Date.now() - start > 90000) { clearInterval(poll); setRepopulateNote(p => ({ ...p, [id]: "Timed out — may still be running" })); return; }
+        const ar = await authFetch(`/api/athletes/${id}`);
+        if (!ar.ok) return;
+        const a = await ar.json();
+        if (a.lastCrawledAt) {
+          clearInterval(poll);
+          setAthletes(prev => prev.map(x => x.id === id ? { ...x, intelligence_count: a.intelligenceCount ?? x.intelligence_count, last_crawled_at: a.lastCrawledAt } : x));
+          setRepopulateNote(p => ({ ...p, [id]: `Done — ${a.intelligenceCount ?? "?"} items` }));
+          setRepopulating(prev => ({ ...prev, [id]: false }));
+        }
+      }, 4000);
+    } catch (e: any) {
+      setRepopulateNote(p => ({ ...p, [id]: e.message }));
+      setRepopulating(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
   const runBackfill = async () => {
     setBackfilling(true);
     setBackfillResult(null);
@@ -477,6 +514,63 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
                     <td className="px-4 py-2 text-[#6B7080]">{r.instagram ? `@${r.instagram}` : "—"}</td>
                     <td className="px-4 py-2 text-[#6B7080]">{r.twitter ? `@${r.twitter}` : "—"}</td>
                     <td className="px-4 py-2 text-[#6B7080]">{r.tiktok ? `@${r.tiktok}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Per-athlete intelligence repopulate */}
+      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
+        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Repopulate athlete intelligence</h3>
+        <p className="text-[13px] text-[#8A90A8] mb-4">
+          Wipes and re-runs the Perplexity + AI intelligence pipeline for a specific athlete. Use when an athlete's feed is empty or contains "not found" placeholders. Takes ~30–60 s per athlete.
+        </p>
+        {athletes.length === 0 ? (
+          <p className="text-[13px] text-[#A0A8C0]">Loading athletes…</p>
+        ) : (
+          <div className="rounded-lg border border-[#DCE2EF] overflow-hidden">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#FAFBFF] border-b border-[#DCE2EF]">
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Athlete</th>
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Sport</th>
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Items</th>
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Last crawled</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {athletes.map((a) => (
+                  <tr key={a.id} className="border-b border-[#F0F2F8] last:border-0">
+                    <td className="px-4 py-2 font-medium text-[#1C1F3A]">{a.name}</td>
+                    <td className="px-4 py-2 text-[#6B7080]">{a.sport ?? "—"}</td>
+                    <td className="px-4 py-2 text-[#6B7080]">
+                      <span className={a.intelligence_count === 0 ? "text-red-500 font-semibold" : ""}>
+                        {a.intelligence_count}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-[#6B7080]">
+                      {a.last_crawled_at ? new Date(a.last_crawled_at).toLocaleDateString() : <span className="text-amber-500">Never</span>}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {repopulateNote[a.id] ? (
+                        <span className={`text-[11px] ${repopulateNote[a.id].startsWith("Done") ? "text-emerald-600" : "text-[#A0A8C0]"}`}>
+                          {repopulateNote[a.id]}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => repopulate(a.id)}
+                          disabled={repopulating[a.id]}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#F0F2F8] text-[#344F9F] text-[11px] font-medium hover:bg-[#DCE2EF] transition-colors disabled:opacity-50 ml-auto"
+                        >
+                          {repopulating[a.id] ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                          {repopulating[a.id] ? "Running…" : "Repopulate"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

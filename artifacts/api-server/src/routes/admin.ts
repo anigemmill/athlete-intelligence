@@ -12,7 +12,11 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { desc, eq, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { contactEnquiriesTable, athletesTable } from "@workspace/db";
+import {
+  contactEnquiriesTable, athletesTable,
+  intelligenceItemsTable, timelineEventsTable, contactsTable, competitionsTable,
+} from "@workspace/db";
+import { autoPopulateAthlete } from "../lib/auto-populate.js";
 import { clerkClient, getAuth } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
@@ -52,6 +56,42 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction): Pr
     res.status(403).json({ error: "Forbidden" });
   }
 }
+
+// ── POST /api/admin/repopulate/:id — trigger intelligence refresh for one athlete ──
+
+router.post("/admin/repopulate/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [athlete] = await db
+    .select({ id: athletesTable.id, name: athletesTable.name, sport: athletesTable.sport, nationality: athletesTable.nationality })
+    .from(athletesTable)
+    .where(eq(athletesTable.id, id));
+
+  if (!athlete) { res.status(404).json({ error: "Athlete not found" }); return; }
+
+  // Clear existing intelligence data
+  await Promise.all([
+    db.delete(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, id)),
+    db.delete(timelineEventsTable).where(eq(timelineEventsTable.athleteId, id)),
+    db.delete(contactsTable).where(eq(contactsTable.athleteId, id)),
+    db.delete(competitionsTable).where(eq(competitionsTable.athleteId, id)),
+  ]);
+  await db.update(athletesTable)
+    .set({ intelligenceCount: 0, hasNewIntelligence: false, lastCrawledAt: null })
+    .where(eq(athletesTable.id, id));
+
+  // Fire re-populate in background
+  autoPopulateAthlete({
+    id: athlete.id,
+    name: athlete.name,
+    sport: athlete.sport ?? undefined,
+    event: undefined,
+    nationality: athlete.nationality ?? undefined,
+  }).catch((err) => logger.error({ err, athleteId: id }, "admin repopulate: failed"));
+
+  res.status(202).json({ message: `Re-population started for ${athlete.name}` });
+});
 
 // ── GET /api/admin/customers ──────────────────────────────────────────────────
 
