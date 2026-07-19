@@ -17,6 +17,8 @@ import { clerkClient } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
 import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
+import { openrouter } from "@workspace/integrations-openrouter-ai";
+import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router: IRouter = Router();
 
@@ -178,6 +180,106 @@ router.post("/admin/backfill-photos", requireAdmin, async (_req, res): Promise<v
   } catch (err: any) {
     logger.error({ err }, "backfill-photos: failed");
     res.status(500).json({ error: "Backfill failed" });
+  }
+});
+
+// ── POST /api/admin/backfill-social ──────────────────────────────────────────
+// For every athlete, uses Perplexity (live web search) to find their social
+// media handles and follower counts, then extracts structured JSON via OpenAI.
+// Updates instagram/twitter/tiktok handle + follower fields in the DB.
+
+router.post("/admin/backfill-social", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    const athletes = await db
+      .select({ id: athletesTable.id, name: athletesTable.name, sport: athletesTable.sport, nationality: athletesTable.nationality })
+      .from(athletesTable);
+
+    let updated = 0;
+    let notFound = 0;
+    const results: { name: string; instagram?: string; twitter?: string; tiktok?: string }[] = [];
+
+    for (const athlete of athletes) {
+      try {
+        // Phase 1: Perplexity web search for social accounts
+        const research = await openrouter.chat.completions.create({
+          model: "perplexity/sonar",
+          max_tokens: 1024,
+          messages: [
+            {
+              role: "system",
+              content: "You are a social media researcher. Search the web and return the athlete's social media handles and follower counts. Be concise and specific.",
+            },
+            {
+              role: "user",
+              content: `Find the social media accounts for ${athlete.name} (${athlete.sport ?? "athlete"}, ${athlete.nationality ?? ""}). 
+Search for:
+- Their Instagram handle and current follower count
+- Their Twitter/X handle and current follower count  
+- Their TikTok handle and current follower count
+Search sports profiles, team pages, influencer directories, news articles, and any web source. Give the most recent numbers with sources.`,
+            },
+          ],
+        });
+
+        const researchText = research.choices[0]?.message?.content ?? "";
+        if (!researchText) { notFound++; continue; }
+
+        // Phase 2: OpenAI extracts structured JSON from the research
+        const extraction = await openai.chat.completions.create({
+          model: "gpt-5.6-luna",
+          max_completion_tokens: 512,
+          messages: [
+            {
+              role: "system",
+              content: `Extract social media data from the provided research text. Return ONLY valid JSON, no markdown.
+Rules:
+- handles: real username without @ symbol, null if not found
+- followers: integer (round to nearest whole number), null if no specific number mentioned — NEVER guess or invent a number
+- If the research says "around 250k" use 250000, "1.2M" use 1200000`,
+            },
+            {
+              role: "user",
+              content: `Research about ${athlete.name}:\n${researchText}\n\nExtract into JSON:\n{"instagramHandle":null,"instagramFollowers":null,"twitterHandle":null,"twitterFollowers":null,"tiktokHandle":null,"tiktokFollowers":null}`,
+            },
+          ],
+          response_format: { type: "json_object" },
+          reasoning_effort: "none" as any,
+        });
+
+        const raw = extraction.choices[0]?.message?.content;
+        if (!raw) { notFound++; continue; }
+
+        const s = JSON.parse(raw);
+        const patch: Record<string, any> = {};
+
+        if (typeof s.instagramHandle === "string") patch.instagramHandle = s.instagramHandle;
+        if (typeof s.instagramFollowers === "number") patch.instagramFollowers = s.instagramFollowers;
+        if (typeof s.twitterHandle === "string") patch.twitterHandle = s.twitterHandle;
+        if (typeof s.twitterFollowers === "number") patch.twitterFollowers = s.twitterFollowers;
+        if (typeof s.tiktokHandle === "string") patch.tiktokHandle = s.tiktokHandle;
+        if (typeof s.tiktokFollowers === "number") patch.tiktokFollowers = s.tiktokFollowers;
+
+        if (Object.keys(patch).length > 0) {
+          await db.update(athletesTable).set(patch).where(eq(athletesTable.id, athlete.id));
+          updated++;
+          results.push({ name: athlete.name, instagram: s.instagramHandle, twitter: s.twitterHandle, tiktok: s.tiktokHandle });
+          logger.info({ athleteId: athlete.id, name: athlete.name, patch }, "backfill-social: updated");
+        } else {
+          notFound++;
+        }
+      } catch (err) {
+        logger.warn({ err, athleteId: athlete.id, name: athlete.name }, "backfill-social: failed for athlete");
+        notFound++;
+      }
+
+      // Polite delay between athletes
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    res.json({ ok: true, total: athletes.length, updated, notFound, results });
+  } catch (err: any) {
+    logger.error({ err }, "backfill-social: failed");
+    res.status(500).json({ error: "Social backfill failed" });
   }
 });
 

@@ -355,6 +355,10 @@ function CrawlTab() {
   const [backfillResult, setBackfillResult] = useState<{ found: number; skipped: number; total: number } | null>(null);
   const [backfillError, setBackfillError] = useState<string | null>(null);
 
+  const [socialFilling, setSocialFilling] = useState(false);
+  const [socialResult, setSocialResult] = useState<{ updated: number; notFound: number; total: number; results: { name: string; instagram?: string; twitter?: string; tiktok?: string }[] } | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
+
   const runBackfill = async () => {
     setBackfilling(true);
     setBackfillResult(null);
@@ -368,6 +372,22 @@ function CrawlTab() {
       setBackfillError(e.message);
     } finally {
       setBackfilling(false);
+    }
+  };
+
+  const runSocialBackfill = async () => {
+    setSocialFilling(true);
+    setSocialResult(null);
+    setSocialError(null);
+    try {
+      const r = await fetch("/api/admin/backfill-social", { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "Social backfill failed");
+      setSocialResult(d);
+    } catch (e: any) {
+      setSocialError(e.message);
+    } finally {
+      setSocialFilling(false);
     }
   };
 
@@ -406,6 +426,60 @@ function CrawlTab() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* Social stats backfill */}
+      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
+        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Backfill social media stats</h3>
+        <p className="text-[13px] text-[#8A90A8] mb-4">
+          Uses Perplexity live web search to find each athlete's Instagram, Twitter/X and TikTok handles and follower counts from sports media, influencer directories, and team pages. Overwrites existing values with the latest found data.
+        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={runSocialBackfill}
+            disabled={socialFilling}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#344F9F] text-white text-[13px] font-medium hover:bg-[#2B4490] transition-colors disabled:opacity-60"
+          >
+            {socialFilling ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+            {socialFilling ? "Searching social media…" : "Backfill Social Stats"}
+          </button>
+          {socialResult && (
+            <span className="text-[13px] text-emerald-600 font-medium flex items-center gap-1.5">
+              <CheckCircle2 size={14} />
+              {socialResult.updated} of {socialResult.total} athletes updated
+              {socialResult.notFound > 0 && <span className="text-[#A0A8C0] font-normal">({socialResult.notFound} not found)</span>}
+            </span>
+          )}
+          {socialError && (
+            <span className="text-[13px] text-red-500 flex items-center gap-1.5">
+              <XCircle size={14} /> {socialError}
+            </span>
+          )}
+        </div>
+        {socialResult && socialResult.results.length > 0 && (
+          <div className="mt-4 rounded-lg border border-[#DCE2EF] overflow-hidden">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#FAFBFF] border-b border-[#DCE2EF]">
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Athlete</th>
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Instagram</th>
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Twitter/X</th>
+                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">TikTok</th>
+                </tr>
+              </thead>
+              <tbody>
+                {socialResult.results.map((r, i) => (
+                  <tr key={i} className="border-b border-[#F0F2F8] last:border-0">
+                    <td className="px-4 py-2 font-medium text-[#1C1F3A]">{r.name}</td>
+                    <td className="px-4 py-2 text-[#6B7080]">{r.instagram ? `@${r.instagram}` : "—"}</td>
+                    <td className="px-4 py-2 text-[#6B7080]">{r.twitter ? `@${r.twitter}` : "—"}</td>
+                    <td className="px-4 py-2 text-[#6B7080]">{r.tiktok ? `@${r.tiktok}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
