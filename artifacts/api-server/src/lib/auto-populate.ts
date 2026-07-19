@@ -13,6 +13,7 @@
  */
 
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
 import {
@@ -89,24 +90,69 @@ async function fetchWikipediaPhoto(athleteName: string): Promise<string | null> 
   }
 }
 
-// ── AI prompt ────────────────────────────────────────────────────────────────
+// ── Phase 1: Perplexity Sonar Pro — live web research ────────────────────────
+// Searches the web for real, current information about the athlete.
+// Returns a detailed research summary with cited sources.
+
+async function researchAthleteWithPerplexity(athlete: AthleteStub): Promise<string> {
+  try {
+    const response = await openrouter.chat.completions.create({
+      model: "perplexity/sonar-pro",
+      max_tokens: 8192,
+      messages: [
+        {
+          role: "system",
+          content: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is July 2026. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
+        },
+        {
+          role: "user",
+          content: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) comprehensively. Cover ALL of the following:
+
+1. CURRENT STATUS (as of mid-2026): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
+2. RECENT RESULTS (2024, 2025, 2026 seasons): List every race/competition result you can find with exact date, event name, location, and finishing position or time/score.
+3. HISTORICAL RESULTS (2016–2023): Major career results, championship medals, personal bests with dates.
+4. CAREER TIMELINE: Debut year, team changes, major sponsorship deals, injuries, major career milestones with exact dates.
+5. RANKINGS: Current world ranking, national ranking, and how these have changed over the past year.
+6. PERFORMANCE MARKS: Personal best and season best (with the date each was set).
+7. SOCIAL MEDIA: Their real Instagram handle, X/Twitter handle, TikTok handle, and approximate follower counts for each.
+8. KEY CONTACTS: Head coach (name and organisation), manager or agent (name and organisation), any known medical/physio staff.
+9. INTELLIGENCE: Recent interviews, media features, sponsorship announcements, controversy, career changes — anything newsworthy from the past 3 years.
+
+Cite your sources where possible. Be as specific and accurate as possible.`,
+        },
+      ],
+    });
+    const research = response.choices[0]?.message?.content ?? "";
+    logger.info({ athleteId: athlete.id, name: athlete.name, length: research.length }, "auto-populate: Perplexity research complete");
+    return research;
+  } catch (err) {
+    logger.warn({ err, athleteId: athlete.id }, "auto-populate: Perplexity research failed, falling back to training knowledge");
+    return ""; // Graceful fallback — extraction step will use its own knowledge
+  }
+}
+
+// ── Phase 2: Structured data extraction ──────────────────────────────────────
+// gpt-5.6-luna reads the real Perplexity research and extracts structured JSON.
+// When research is available, it uses that as the source of truth.
+// When research is empty (fallback), it uses its own training knowledge.
 
 const SYSTEM_PROMPT = `You are a sports intelligence data engine for Athlete Intelligence, a B2B SaaS platform used by national sport organisations, professional clubs, and talent agencies.
 
-Given an athlete's basic profile, generate a realistic and plausible intelligence dataset as if sourced from public web crawling. Return ONLY valid JSON — no markdown, no explanation.
+You will be given verified web research about an athlete. Extract and structure this into accurate JSON. Return ONLY valid JSON — no markdown, no explanation.
 
 Rules:
-- All data must be realistic and plausible for the sport and athlete level
-- Source domains must be real, sport-appropriate news/media sites (e.g. cyclingnews.com, athletics.co.nz, worldathletics.org, bbc.co.uk/sport, espn.com, etc.)
-- Dates must be ISO-8601 strings. publishedAt/date fields must reflect when events actually occurred — generate dates spanning the athlete's FULL career (typically the last 10 years up to July 2026)
-- Confidence scores: integer 65–97
+- ACCURACY FIRST: Use the provided research as your primary source of truth. Do not contradict it.
+- If the research states a specific team, result, date, or fact — use it exactly as stated.
+- If the research does not cover something, use your own knowledge to fill gaps — but mark lower confidence (65–75) for inferred data.
+- Source domains must be real, sport-appropriate news/media sites.
+- Dates must be ISO-8601 strings reflecting when events actually occurred.
+- Confidence scores: 85–97 for data from research, 65–80 for inferred data.
 - Categories: intelligence_items use one of: results_rankings | media_interviews | sponsorships | career_changes
 - Timeline categories: competition | media | sponsorship | career | personal
 - Contact categories: management | coaching | medical | media | sponsorship
-- Competition tiers: A | B | C. Status: upcoming | completed
-- Social stats should be plausible for the athlete's sport and profile level`;
+- Competition tiers: A | B | C. Status: upcoming | completed`;
 
-const USER_PROMPT = (a: AthleteStub) => `
+const USER_PROMPT = (a: AthleteStub, research: string) => `
 Athlete profile:
 - Name: ${a.name}
 - Sport: ${a.sport}
@@ -114,7 +160,14 @@ Athlete profile:
 - Nationality: ${a.nationality}
 - Age: ${a.age ?? "unknown"}
 
-Generate the following JSON object:
+${research
+  ? `VERIFIED WEB RESEARCH (use this as your primary source of truth — do not contradict it):
+\`\`\`
+${research}
+\`\`\``
+  : `Note: No live research available. Use your training knowledge, keeping confidence scores at 65–80.`}
+
+Extract and structure the above into the following JSON object:
 
 {
   "athlete_stats": {
@@ -246,20 +299,24 @@ export async function discoverAthleteProfile(name: string): Promise<{
 
 export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
-    // Run AI data generation and Wikipedia photo lookup in parallel
-    const [response, avatarUrl] = await Promise.all([
-      openai.chat.completions.create({
-
-        model: "gpt-5.6-luna",
-        max_completion_tokens: 8192,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: USER_PROMPT(athlete) },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    // Phase 1: Perplexity web research + Wikipedia photo run in parallel
+    // Perplexity searches the live web; Wikipedia fetches the real profile photo.
+    const [research, avatarUrl] = await Promise.all([
+      researchAthleteWithPerplexity(athlete),
       fetchWikipediaPhoto(athlete.name),
     ]);
+
+    // Phase 2: Structured JSON extraction — gpt-5.6-luna reads the real
+    // Perplexity research as its source of truth and outputs the DB schema.
+    const response = await openai.chat.completions.create({
+      model: "gpt-5.6-luna",
+      max_completion_tokens: 8192,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: USER_PROMPT(athlete, research) },
+      ],
+      response_format: { type: "json_object" },
+    });
 
     const raw = response.choices[0]?.message?.content;
     if (!raw) throw new Error("Empty OpenAI response");
