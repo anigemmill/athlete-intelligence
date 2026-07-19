@@ -585,7 +585,7 @@ export default function AdminPage() {
   if (email.toLowerCase() !== FOUNDER_EMAIL) return null;
 
   return (
-    <AppLayout activePage="admin">
+    <AppLayout activePage="admin" enforceSubscription={false}>
       <div className="flex flex-col h-full bg-[#FCFAFA]">
         <header className="flex-shrink-0 px-8 pt-8 pb-6 border-b border-[#DCE2EF]">
           <div className="flex items-center gap-2 mb-1">

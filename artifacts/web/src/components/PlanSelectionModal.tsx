@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { useClerk } from "@clerk/react";
 
 type Cycle = "monthly" | "annual";
 type PriceMap = Record<string, { monthly: string | null; annual: string | null }>;
@@ -175,6 +176,7 @@ export default function PlanSelectionModal({ userEmail }: { userEmail: string | 
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const [prices, setPrices] = useState<PriceMap | null>(null);
   const [priceError, setPriceError] = useState(false);
+  const { signOut } = useClerk();
 
   const loadPrices = () => {
     setPriceError(false);
@@ -299,6 +301,16 @@ export default function PlanSelectionModal({ userEmail }: { userEmail: string | 
             . After the 3-day free trial your payment method will be charged at the rate shown
             above. You can cancel any time before the trial ends.
           </p>
+
+          {/* Escape hatch — sign out if wrong account */}
+          <div className="pt-1 pb-2 text-center">
+            <button
+              onClick={() => signOut({ redirectUrl: `${basePath}/sign-in` })}
+              className="text-[11px] text-[#B0B8D0] hover:text-[#6B7080] transition-colors underline underline-offset-2"
+            >
+              Wrong account? Sign out
+            </button>
+          </div>
         </div>
       </div>
     </div>

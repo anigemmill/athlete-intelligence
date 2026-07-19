@@ -93,15 +93,17 @@ export type ActivePage =
 interface AppLayoutProps {
   children: React.ReactNode;
   activePage?: ActivePage;
+  /** Set to false on pages where a subscription should never be enforced (e.g. admin). */
+  enforceSubscription?: boolean;
 }
 
-export function AppLayout({ children, activePage = "dashboard" }: AppLayoutProps) {
+export function AppLayout({ children, activePage = "dashboard", enforceSubscription = true }: AppLayoutProps) {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
-  const email = isLoaded ? (user?.primaryEmailAddress?.emailAddress ?? null) : undefined;
+  const email = isLoaded ? (user?.primaryEmailAddress?.emailAddress?.trim() ?? null) : undefined;
   const subStatus = useSubscriptionStatus(email, getToken);
 
-  const showPaywall = subStatus === "none";
+  const showPaywall = enforceSubscription && subStatus === "none";
   const userEmail = email ?? null;
 
   return (
