@@ -9,32 +9,32 @@ const TIERS = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "For single federations and academies just getting started.",
+    tagline: "For a single federation, academy, or agency monitoring a focused roster.",
     monthly: 299,
     annual: 249,
     athletes: 50,
     users: 5,
     highlight: false,
-    cta: "Start free trial",
+    cta: "Request a trial",
     ctaHref: "/contact",
   },
   {
     id: "pro",
     name: "Pro",
-    tagline: "For professional organisations with larger rosters and teams.",
+    tagline: "For professional organisations with broader rosters and analyst teams.",
     monthly: 799,
     annual: 666,
     athletes: 200,
     users: 15,
     highlight: true,
     badge: "Most popular",
-    cta: "Start free trial",
+    cta: "Request a trial",
     ctaHref: "/contact",
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    tagline: "For major organisations, broadcasters, and multi-sport bodies.",
+    tagline: "For major organisations, multi-sport bodies, and national institutes.",
     monthly: null,
     annual: null,
     athletes: -1,
@@ -85,28 +85,28 @@ const FEATURES: FeatureRow[] = [
 
 const FAQ = [
   {
-    q: "How does the free trial work?",
-    a: "We offer a 14-day free trial on Starter and Pro plans with full access to all features. No credit card required to start. At the end of the trial, you can choose to subscribe or your account pauses.",
+    q: "How does the trial work?",
+    a: "We run a guided pilot rather than a self-serve trial — we set up your account with athletes from your actual roster so the first thing you see is real intelligence, not sample data. Reach out via the contact form to get started.",
   },
   {
     q: "Can I change plans later?",
-    a: "Yes. You can upgrade or downgrade at any time. Upgrades are immediate and pro-rated. Downgrades take effect at the end of your current billing period.",
+    a: "Yes. You can upgrade at any time — changes are immediate and pro-rated to your billing cycle. Downgrades take effect at the end of your current period. No lock-in.",
   },
   {
     q: "What counts as an 'athlete'?",
-    a: "An athlete is any individual you have added to your monitoring roster — regardless of whether they are currently active in competition. Archived athletes do not count against your limit.",
+    a: "An athlete is any individual added to your monitoring roster. Athletes you've archived no longer count against your limit, so you can rotate your roster as your focus changes.",
   },
   {
-    q: "Is there a setup fee?",
-    a: "No setup fees on Starter or Pro. Enterprise contracts may include onboarding and migration support, which is scoped during the sales process.",
+    q: "Is there a setup fee or onboarding cost?",
+    a: "No setup fees on Starter or Pro. Enterprise contracts can include structured onboarding and bulk roster import — this is scoped during the sales conversation at no extra cost.",
   },
   {
-    q: "Do you offer academic or non-profit pricing?",
-    a: "Yes — universities, national academies, and registered non-profits can apply for discounted pricing. Contact us to discuss your situation.",
+    q: "Do you offer discounted pricing for academies or non-profits?",
+    a: "Yes. National academies, university programmes, and registered non-profit sporting bodies can apply for adjusted pricing. Get in touch and we'll discuss what makes sense.",
   },
   {
-    q: "How is data secured?",
-    a: "Data is encrypted in transit (TLS 1.3) and at rest (AES-256). We are SOC 2 Type II compliant (in progress). See our Security & Trust page for full details.",
+    q: "How is my data handled and secured?",
+    a: "All data is encrypted in transit (TLS 1.3) and at rest (AES-256). We only ingest publicly available information about athletes — no private data, no data broker purchases. See our Security & Trust page for the full picture.",
   },
 ];
 
@@ -128,7 +128,7 @@ export default function PricingPage() {
         <div className="relative max-w-6xl mx-auto px-6">
           <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Pricing</div>
           <h1 className="text-5xl font-bold text-white tracking-tight mb-4">Simple, transparent pricing</h1>
-          <p className="text-white/40 text-lg mb-10 max-w-xl mx-auto">No hidden fees. Cancel any time. All plans include a 14-day free trial.</p>
+          <p className="text-white/40 text-lg mb-10 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. Scale up or down as your roster changes.</p>
 
           {/* Billing toggle */}
           <div className="inline-flex items-center gap-1 bg-[#131929] border border-white/[0.07] rounded-xl p-1">
@@ -263,8 +263,8 @@ export default function PricingPage() {
       <section className="bg-[#0D1220] py-20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="rounded-2xl bg-gradient-to-br from-[#131929] to-[#0E1525] border border-white/[0.07] p-10 text-center">
-            <h2 className="text-2xl font-bold text-white mb-3">Need a custom arrangement?</h2>
-            <p className="text-white/40 mb-7 max-w-lg mx-auto text-[14px]">Enterprise plans include unlimited athletes, dedicated CS, SLA, SSO, API access, and custom onboarding. Let's talk.</p>
+            <h2 className="text-2xl font-bold text-white mb-3">Running a major programme?</h2>
+            <p className="text-white/40 mb-7 max-w-lg mx-auto text-[14px]">Enterprise plans are scoped to your organisation — unlimited athletes, dedicated customer success, SLA, SSO, API access, and structured onboarding. Let's have a conversation.</p>
             <Link href="/contact">
               <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E75D50] hover:bg-[#D04840] text-white font-semibold text-[14px] cursor-pointer transition-all shadow-[0_4px_16px_rgba(231,93,80,0.35)]">
                 Contact sales →

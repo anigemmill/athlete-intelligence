@@ -10,7 +10,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Persistent AI Agents",
-    desc: "One agent per athlete, running continuously. No manual searches, no missed signals — the intelligence comes to you.",
+    desc: "One dedicated agent per athlete, running around the clock. It monitors results, media, rankings, and commercial activity so your team doesn't have to.",
   },
   {
     icon: (
@@ -18,8 +18,8 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    title: "Real-Time Intelligence",
-    desc: "Results, rankings, media coverage, sponsorship deals, and career changes — surfaced within hours, not weeks.",
+    title: "Intelligence Within Hours",
+    desc: "A ranking move, a new sponsor announcement, a coaching change — your feed is updated within hours of the event, not days. Timing is everything in professional sport.",
   },
   {
     icon: (
@@ -27,8 +27,8 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
       </svg>
     ),
-    title: "Source-Attributed",
-    desc: "Every intelligence item carries its source, timestamp, and confidence score. Know exactly where it came from.",
+    title: "Every Claim, Sourced",
+    desc: "Every intelligence item displays its source domain, URL, publication date, and a confidence score. No black-box outputs — every insight is traceable.",
   },
   {
     icon: (
@@ -36,8 +36,8 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
       </svg>
     ),
-    title: "Global Coverage",
-    desc: "Any athlete, any sport, any country. Over 200 sports, 200+ national federations, and all major global competitions.",
+    title: "58 Sports. Every Country.",
+    desc: "Track athletes across 58 sports and all major disciplines — from athletics and swimming to cycling, rugby, weightlifting, and beyond. Coverage spans every nationality and federation.",
   },
   {
     icon: (
@@ -45,8 +45,8 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
       </svg>
     ),
-    title: "Team Collaboration",
-    desc: "Roles, shared watchlists, and collections. Every analyst on your team works from the same intelligence layer.",
+    title: "Built for Teams",
+    desc: "Role-based access for analysts, performance directors, and senior leadership. Everyone works from the same verified intelligence layer — no duplicate research, no information silos.",
   },
   {
     icon: (
@@ -54,15 +54,15 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
       </svg>
     ),
-    title: "AI Chat",
-    desc: "Ask anything. Compare two athletes, summarise a career, find sponsorship trends. Natural language, instant answers.",
+    title: "Ask Anything",
+    desc: "Your full roster as a conversation. Ask the AI to compare two athletes, summarise a career arc, find sponsorship patterns, or identify who's peaking before a major championship.",
   },
 ];
 
 const STEPS = [
-  { n: "01", title: "Add athletes", desc: "Search our database or upload your existing roster via spreadsheet. One click to start monitoring." },
-  { n: "02", title: "Agents go to work", desc: "Persistent AI agents continuously scan results feeds, media, social platforms, and federation databases." },
-  { n: "03", title: "Intelligence arrives", desc: "Structured, source-attributed updates flow into your feed, alerts, and reports — in real time." },
+  { n: "01", title: "Add your athletes", desc: "Type a name — our AI identifies the athlete, populates the full dossier, and starts monitoring. You're live in under a minute." },
+  { n: "02", title: "Agents go to work", desc: "Dedicated AI agents continuously scan competition results, media outlets, federation announcements, and social platforms — 24 hours a day." },
+  { n: "03", title: "Intelligence comes to you", desc: "Structured, source-attributed updates flow into your feed, dossiers, and alerts. No searching. No aggregating. Just decisions." },
 ];
 
 const FEED_ITEMS = [
@@ -100,7 +100,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg text-white/45 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Persistent AI agents that continuously surface structured, source-attributed intelligence about athletes — for national federations, professional clubs, academies, and talent agencies.
+            Persistent AI agents monitor every athlete on your roster — surfacing results, rankings, media coverage, sponsorship moves, and career changes as they happen. Built for national federations, professional clubs, academies, and talent agencies.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-20">
@@ -147,9 +147,9 @@ export default function LandingPage() {
       {/* ── Trusted by ───────────────────────────────────────────────────── */}
       <section className="bg-[#0D1220] border-y border-white/[0.05] py-10">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-[12px] text-white/25 uppercase tracking-widest mb-6">Designed for professional sports organisations</p>
+          <p className="text-[12px] text-white/25 uppercase tracking-widest mb-6">Purpose-built for the people who make decisions about athletes</p>
           <div className="flex flex-wrap items-center justify-center gap-8">
-            {["National Federations", "Professional Clubs", "National Academies", "Talent Agencies", "Broadcast & Media"].map((org) => (
+            {["National Sport Organisations", "High Performance Centres", "Professional Clubs", "Talent Academies", "Athlete Agencies"].map((org) => (
               <span key={org} className="text-[13px] font-medium text-white/20">{org}</span>
             ))}
           </div>
@@ -162,7 +162,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Platform</div>
             <h2 className="text-4xl font-bold text-white tracking-tight mb-4">Intelligence infrastructure<br />for professional sport</h2>
-            <p className="text-white/40 text-lg max-w-xl mx-auto">Everything your organisation needs to stay ahead — without the manual research overhead.</p>
+            <p className="text-white/40 text-lg max-w-xl mx-auto">Your analysts are good at analysis — not at manually checking fifty sources across a hundred athletes every week. We solve that.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -185,7 +185,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">How it works</div>
             <h2 className="text-4xl font-bold text-white tracking-tight mb-4">Up and running in minutes</h2>
-            <p className="text-white/40 text-lg max-w-xl mx-auto">No integration required. Upload your roster and the agents start working immediately.</p>
+            <p className="text-white/40 text-lg max-w-xl mx-auto">No integrations. No data migration. No IT project. Add your first athlete and the agents start working immediately.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -213,10 +213,10 @@ export default function LandingPage() {
                   Intelligence Centre
                 </div>
                 <h2 className="text-3xl font-bold text-white tracking-tight mb-5 leading-tight">
-                  The platform finds opportunities.<br />You act on them.
+                  Stop searching.<br />Start deciding.
                 </h2>
                 <p className="text-[14px] text-white/45 leading-relaxed mb-8">
-                  Instead of searching, the platform proactively surfaces emerging athletes, sponsorship opportunities, fastest-improving performers, and unusual media attention — before your competitors see it.
+                  The platform proactively surfaces what matters: emerging athletes, ranking movements, sponsorship opportunities, unusual media spikes, and career changes — structured and scored, ready for your team to act on before your competitors notice.
                 </p>
                 <Link href="/contact">
                   <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#344F9F] hover:bg-[#2d4491] text-white text-[13px] font-medium cursor-pointer transition-colors">
@@ -289,7 +289,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-4xl font-bold text-white tracking-tight mb-5">Ready to see it in action?</h2>
-            <p className="text-white/40 text-lg mb-10">We offer a personalised demo using athletes from your current roster.</p>
+            <p className="text-white/40 text-lg mb-10">We run personalised demos built around athletes you actually work with — so you see real intelligence, not a rehearsed walkthrough.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/contact">
                 <span className="px-8 py-4 rounded-xl bg-[#E75D50] hover:bg-[#D04840] text-white font-semibold text-[15px] cursor-pointer transition-all shadow-[0_4px_20px_rgba(231,93,80,0.4)]">

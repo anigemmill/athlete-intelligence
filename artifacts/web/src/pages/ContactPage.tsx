@@ -27,8 +27,8 @@ export default function ContactPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] bg-[#293055]/30 rounded-full blur-[100px] pointer-events-none" />
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Contact</div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-4">Get in touch</h1>
-          <p className="text-white/40 text-lg max-w-xl mx-auto">Whether you want a demo, have a question, or need an enterprise quote — we respond within one business day.</p>
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-4">Let's talk</h1>
+          <p className="text-white/40 text-lg max-w-xl mx-auto">Whether you want a demo with your own athletes, have questions about fit, or need an enterprise conversation — we respond within one business day.</p>
         </div>
       </section>
 
@@ -41,9 +41,9 @@ export default function ContactPage() {
               <div className="p-5 rounded-2xl bg-[#131929] border border-white/[0.07]">
                 <div className={labelCls}>Enquiry type</div>
                 {[
-                  { id: "demo", label: "Request a demo", desc: "See the platform with your athletes" },
-                  { id: "sales", label: "Enterprise sales", desc: "Custom pricing and contracts" },
-                  { id: "general", label: "General enquiry", desc: "Questions, partnerships, press" },
+                  { id: "demo", label: "Request a demo", desc: "See the platform using athletes from your roster" },
+                  { id: "sales", label: "Enterprise enquiry", desc: "Custom pricing, contracts, and onboarding" },
+                  { id: "general", label: "General enquiry", desc: "Questions, partnerships, press, or anything else" },
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -63,15 +63,15 @@ export default function ContactPage() {
               <div className="p-5 rounded-2xl bg-[#131929] border border-white/[0.07] space-y-4">
                 <div>
                   <div className={labelCls}>Response time</div>
-                  <div className="text-[13px] text-white/50">Within 1 business day</div>
+                  <div className="text-[13px] text-white/50">Within 1 business day, often same day</div>
                 </div>
                 <div>
-                  <div className={labelCls}>Demo duration</div>
-                  <div className="text-[13px] text-white/50">30–45 minutes, personalised to your sport and athletes</div>
+                  <div className={labelCls}>Demo format</div>
+                  <div className="text-[13px] text-white/50">30–45 min, built around athletes from your actual roster — not a canned walkthrough</div>
                 </div>
                 <div>
                   <div className={labelCls}>Based in</div>
-                  <div className="text-[13px] text-white/50">New Zealand — serving NZ, AU, UK, US, CA</div>
+                  <div className="text-[13px] text-white/50">New Zealand — working with organisations across NZ, AU, UK, US, and CA</div>
                 </div>
               </div>
             </div>

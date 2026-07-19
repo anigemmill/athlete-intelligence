@@ -26,10 +26,10 @@ const PILLARS = [
 ];
 
 const AI_PRINCIPLES = [
-  { title: "Source attribution always", desc: "Every intelligence item displays its source, URL, and timestamp. We never present AI-generated claims as facts without a primary source." },
-  { title: "Public data only", desc: "Our agents only crawl publicly available information — results databases, federation sites, news, social media, and official announcements. We do not access private communications or purchase data brokers." },
-  { title: "Confidence scoring", desc: "Every insight carries a confidence score. Low-confidence items are flagged prominently. We'd rather show you less and be right than show you more and be wrong." },
-  { title: "No profiling without consent", desc: "We do not build inferred psychological profiles or health assessments on athletes. Intelligence is limited to professional and public-domain information." },
+  { title: "Source attribution on everything", desc: "Every intelligence item shows its source domain, URL, and publication date. We never surface an AI-generated claim without a traceable primary source behind it. If we can't source it, we don't show it." },
+  { title: "Public information only", desc: "Our agents crawl only publicly available data — competition results, federation announcements, accredited sports media, and official social accounts. We do not access private communications, purchase data broker lists, or ingest leaked information." },
+  { title: "Honest confidence scoring", desc: "Every insight carries a confidence score from 65–97%. Low-confidence items are clearly marked. We'd rather surface fewer items with high reliability than more items you can't trust. Transparency about uncertainty is a feature, not a weakness." },
+  { title: "No inferred personal profiling", desc: "We do not build psychological profiles, health assessments, or lifestyle inferences about athletes. Our intelligence is limited to professional and public-domain information — performance, career, commercial, and media activity." },
 ];
 
 export default function SecurityPage() {
@@ -39,8 +39,8 @@ export default function SecurityPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] bg-[#293055]/30 rounded-full blur-[100px] pointer-events-none" />
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Security & Trust</div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-4">Security, privacy, and AI principles</h1>
-          <p className="text-white/40 text-lg max-w-2xl mx-auto">Enterprise buyers care about security. So do we. Here's exactly how we handle your data and our AI systems.</p>
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-4">Security, privacy, and responsible AI</h1>
+          <p className="text-white/40 text-lg max-w-2xl mx-auto">We handle intelligence data for professional sports organisations — trust is the product. Here is exactly how we protect your data and how our AI systems work.</p>
           <div className="mt-8 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[12px] text-emerald-400 font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             All systems operational
@@ -125,8 +125,8 @@ export default function SecurityPage() {
           </div>
 
           <div className="mt-8 p-6 rounded-2xl bg-[#131929] border border-white/[0.06]">
-            <h3 className="text-[14px] font-semibold text-white/80 mb-2">Have a security question?</h3>
-            <p className="text-[13px] text-white/40 mb-4">For security disclosures, DPA requests, or compliance questions, contact our team directly.</p>
+            <h3 className="text-[14px] font-semibold text-white/80 mb-2">Questions about security or compliance?</h3>
+            <p className="text-[13px] text-white/40 mb-4">For vulnerability disclosures, data processing agreement requests, GDPR queries, or any compliance question — reach out directly. We respond within one business day.</p>
             <Link href="/contact">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#E75D50]/10 border border-[#E75D50]/25 text-[13px] text-[#E75D50] font-medium cursor-pointer hover:bg-[#E75D50]/15 transition-colors">
                 Contact security team →
