@@ -9,6 +9,7 @@ import { Route, Switch, Router as WouterRouter, Redirect, useLocation } from 'wo
 import { ClerkProvider, SignUp, useAuth, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { registerTokenGetter } from '@/lib/getAuthToken';
 
 const FOUNDER_EMAIL = 'anigemmill@theoutsidein.nz';
 
@@ -70,7 +71,11 @@ function ClerkAuthSync() {
   const { getToken } = useAuth();
   useEffect(() => {
     setAuthTokenGetter(getToken);
-    return () => setAuthTokenGetter(null);
+    registerTokenGetter(getToken);
+    return () => {
+      setAuthTokenGetter(null);
+      registerTokenGetter(null);
+    };
   }, [getToken]);
   return null;
 }

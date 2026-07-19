@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useUser, useAuth } from "@clerk/react";
 import { useLocation } from "wouter";
-import { useAuthFetch } from "@/lib/useAuthFetch";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   Shield, Users, CreditCard, Zap, Activity, Server,
@@ -64,6 +63,9 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// Shared type for the auth-aware fetch function passed from AdminPage
+type AuthFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
 // ── Customers tab ─────────────────────────────────────────────────────────────
 
 type Customer = {
@@ -73,11 +75,10 @@ type Customer = {
   lastActiveAt: string | null; imageUrl: string;
 };
 
-function CustomersTab() {
+function CustomersTab({ authFetch }: { authFetch: AuthFetch }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const authFetch = useAuthFetch();
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -209,11 +210,10 @@ const ENQUIRY_STATUS_COLORS: Record<string, string> = {
   replied: "bg-emerald-50 text-emerald-600",
 };
 
-function EnquiriesTab() {
+function EnquiriesTab({ authFetch }: { authFetch: AuthFetch }) {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const authFetch = useAuthFetch();
 
   const load = async () => {
     setLoading(true);
@@ -353,7 +353,7 @@ function AiUsageTab() {
   );
 }
 
-function CrawlTab() {
+function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ found: number; skipped: number; total: number } | null>(null);
   const [backfillError, setBackfillError] = useState<string | null>(null);
@@ -361,7 +361,6 @@ function CrawlTab() {
   const [socialFilling, setSocialFilling] = useState(false);
   const [socialResult, setSocialResult] = useState<{ updated: number; notFound: number; total: number; results: { name: string; instagram?: string; twitter?: string; tiktok?: string }[] } | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
-  const authFetch = useAuthFetch();
 
   const runBackfill = async () => {
     setBackfilling(true);
@@ -571,8 +570,22 @@ function FlagsTab() {
 
 export default function AdminPage() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>("customers");
+
+  // Build an auth-aware fetch once, stable across renders
+  const authFetch: AuthFetch = useCallback(
+    async (input, init = {}) => {
+      const token = await getToken();
+      const headers = new Headers((init as RequestInit).headers);
+      if (token && !headers.has("authorization")) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      return fetch(input, { ...(init as RequestInit), headers });
+    },
+    [getToken],
+  );
 
   // Role gate — redirect non-founders immediately
   useEffect(() => {
@@ -621,15 +634,15 @@ export default function AdminPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-8">
-          {activeTab === "customers" && <CustomersTab />}
-          {activeTab === "enquiries" && <EnquiriesTab />}
+          {activeTab === "customers" && <CustomersTab authFetch={authFetch} />}
+          {activeTab === "enquiries" && <EnquiriesTab authFetch={authFetch} />}
           {activeTab === "licences" && (
             <div className="text-[13px] text-[#8A90A8] rounded-xl border border-[#DCE2EF] bg-white p-6">
               Licence management — plan overrides and custom contracts. Coming soon.
             </div>
           )}
           {activeTab === "ai-usage" && <AiUsageTab />}
-          {activeTab === "crawl" && <CrawlTab />}
+          {activeTab === "crawl" && <CrawlTab authFetch={authFetch} />}
           {activeTab === "health" && <HealthTab />}
           {activeTab === "flags" && <FlagsTab />}
         </div>
