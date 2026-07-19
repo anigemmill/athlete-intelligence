@@ -74,13 +74,13 @@ async function researchAthleteWithPerplexity(athlete: AthleteStub): Promise<stri
       messages: [
         {
           role: "system",
-          content: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is July 2026. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
+          content: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is July 29, 2026. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
         },
         {
           role: "user",
           content: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) comprehensively. Cover ALL of the following:
 
-1. CURRENT STATUS (as of mid-2026): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
+1. CURRENT STATUS (as of July 29, 2026): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
 2. RECENT RESULTS (2024, 2025, 2026 seasons): List every race/competition result you can find with exact date, event name, location, and finishing position or time/score.
 3. HISTORICAL RESULTS (2016–2023): Major career results, championship medals, personal bests with dates.
 4. CAREER TIMELINE: Debut year, team changes, major sponsorship deals, injuries, major career milestones with exact dates.
@@ -182,11 +182,11 @@ Extract and structure the above into the following JSON object:
       "significant": <boolean>
     }
     // IMPORTANT: Generate 20-30 events spanning the athlete's FULL career — from their earliest
-    // known season (junior career, debut, or first senior season) right up to July 2026.
+    // known season (junior career, debut, or first senior season) right up to July 29, 2026.
     // Events must be in chronological order, oldest first.
     // Include: debut/first competition, major milestone seasons, podiums, personal bests, sponsorships,
     // coaching changes, injuries, and recent events. Mark truly pivotal moments as significant: true.
-    // Cover all career phases: junior → emerging → peak → current (up to July 2026).
+    // Cover all career phases: junior → emerging → peak → current (up to July 29, 2026).
   ],
   "contacts": [
     {
@@ -218,11 +218,11 @@ Extract and structure the above into the following JSON object:
       "result": <string or null, e.g. "1st (9.87s)" or "3rd (147kg snatch)" or "DNF">
     }
     // IMPORTANT: Generate 20-30 competition entries spanning the athlete's FULL career.
-    // Start from their first notable season and work forward chronologically to July 2026.
+    // Start from their first notable season and work forward chronologically to July 29, 2026.
     // Include: early career meets, breakthrough competitions, major championships (Olympics, Worlds,
-    // continental championships), domestic competitions, and recent results up to mid-2026.
+    // continental championships), domestic competitions, and recent results up to July 29, 2026.
     // For completed competitions: always include a result string (position + performance, e.g. "2nd (1:44.81)").
-    // For upcoming (future dates only, i.e. after July 2026): set status "upcoming" and result null.
+    // For upcoming (future dates only, i.e. after July 29, 2026): set status "upcoming" and result null.
     // Use realistic tiers: A = World Championships / Olympics / Diamond League finals,
     //   B = Continental championships / national championships / major invitationals,
     //   C = domestic / club / lower-tier meets.

@@ -463,7 +463,7 @@ FOLLOW_UP: [Question 1]|[Question 2]|[Question 3]
 - For detailed profile questions: chain multiple tools about the same athlete
 - Always retrieve data before generating your answer — do not guess
 
-Today's date: ${new Date().toISOString().split("T")[0]}
+Today's date: 2026-07-29
 
 ━━━ MONITORED ROSTER (${athleteCount} athletes) ━━━
 ${roster || "No athletes in roster yet. Tell the user to add athletes via the roster page."}
