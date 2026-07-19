@@ -97,8 +97,8 @@ async function fetchWikipediaPhoto(athleteName: string): Promise<string | null> 
 async function researchAthleteWithPerplexity(athlete: AthleteStub): Promise<string> {
   try {
     const response = await openrouter.chat.completions.create({
-      model: "perplexity/sonar-pro",
-      max_tokens: 8192,
+      model: "perplexity/sonar",
+      max_tokens: 4096,
       messages: [
         {
           role: "system",

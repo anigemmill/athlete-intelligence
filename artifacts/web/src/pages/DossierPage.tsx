@@ -158,8 +158,10 @@ export default function DossierPage() {
 
   // Refresh / re-populate state
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshLabel, setRefreshLabel] = useState("Refreshing…");
   const repopulateRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const preRefreshCrawledAt = useRef<string | null>(null);
+  const refreshStartRef = useRef<number>(0);
 
   // Social stats edit state
   const [editingSocial, setEditingSocial] = useState(false);
@@ -201,15 +203,22 @@ export default function DossierPage() {
   const refreshData = async () => {
     if (isRefreshing) return;
     preRefreshCrawledAt.current = athlete?.lastCrawledAt ?? null;
+    refreshStartRef.current = Date.now();
     setIsRefreshing(true);
+    setRefreshLabel("Starting…");
     try {
       await fetch(`/api/athletes/${athleteId}/repopulate`, { method: "POST" });
-      // Poll until lastCrawledAt changes (signals auto-populate finished) — max 90s
+      // Poll until lastCrawledAt changes — max 3 minutes
       let polls = 0;
       repopulateRef.current = setInterval(async () => {
         polls++;
+        const elapsed = Math.floor((Date.now() - refreshStartRef.current) / 1000);
+        if (elapsed < 8) setRefreshLabel("Starting…");
+        else if (elapsed < 50) setRefreshLabel("Searching the web…");
+        else if (elapsed < 100) setRefreshLabel("Building profile…");
+        else setRefreshLabel("Almost done…");
         await Promise.all([refetchAthlete(), refetchIntel(), refetchContacts(), refetchTimeline(), refetchCompetitions()]);
-        if (polls >= 30) {
+        if (polls >= 60) { // 3 min max
           setIsRefreshing(false);
           if (repopulateRef.current) { clearInterval(repopulateRef.current); repopulateRef.current = null; }
         }
@@ -513,7 +522,7 @@ export default function DossierPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     )}
-                    {isRefreshing ? "Refreshing…" : "Refresh Data"}
+                    {isRefreshing ? refreshLabel : "Refresh Data"}
                   </button>
                   <button className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-white border border-[#DCE2EF] text-[#293055] text-[13px] font-medium shadow-sm hover:bg-[#FCFAFA] transition-colors">
                     <Download size={13} className="text-[#7A8090]" />
