@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Eo77XxJr7tSj8Sglb1KIK"
+uri = "file://founder-guide.md"
+type = "text"
+title = "Athlete Intelligence — Founder Process Guide"
