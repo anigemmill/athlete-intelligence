@@ -114,7 +114,7 @@ async function researchAthleteWithPerplexity(athlete: AthleteStub): Promise<stri
 4. CAREER TIMELINE: Debut year, team changes, major sponsorship deals, injuries, major career milestones with exact dates.
 5. RANKINGS: Current world ranking, national ranking, and how these have changed over the past year.
 6. PERFORMANCE MARKS: Personal best and season best (with the date each was set).
-7. SOCIAL MEDIA: Their real Instagram handle, X/Twitter handle, TikTok handle, and approximate follower counts for each.
+7. SOCIAL MEDIA: Their real Instagram handle, X/Twitter handle, TikTok handle. For each platform find the most recent follower count you can — from profile directories, sports media articles, influencer databases, or any web source. Give the number and the source/date it came from. Even a number from a 6-month-old article is better than nothing.
 8. KEY CONTACTS: Head coach (name and organisation), manager or agent (name and organisation), any known medical/physio staff.
 9. INTELLIGENCE: Recent interviews, media features, sponsorship announcements, controversy, career changes — anything newsworthy from the past 3 years.
 
@@ -176,9 +176,11 @@ Extract and structure the above into the following JSON object:
     "nationalRank": <integer or null>,
     "personalBest": <string or null, e.g. "1:43.22" or "148kg snatch">,
     "seasonBest": <string or null>,
-    "instagramHandle": <string or null — the athlete's real Instagram username without @, or null if unknown>,
-    "twitterHandle": <string or null — the athlete's real X/Twitter username without @, or null if unknown>,
-    "tiktokHandle": <string or null — the athlete's real TikTok username without @, or null if unknown>
+    "instagramHandle": <string or null — real username without @, null if not found in research>,
+    "instagramFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>,
+    "twitterHandle": <string or null — real username without @, null if not found in research>,
+    "tiktokHandle": <string or null — real username without @, null if not found in research>,
+    "tiktokFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>
   },
   "intelligence_items": [
     {
@@ -347,13 +349,14 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
           nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
           personalBest: typeof s.personalBest === "string" ? s.personalBest : null,
           seasonBest: typeof s.seasonBest === "string" ? s.seasonBest : null,
-          // Handles: the AI can identify these from public records
+          // Handles and follower counts sourced from Perplexity web research
           instagramHandle: typeof s.instagramHandle === "string" ? s.instagramHandle : null,
+          instagramFollowers: typeof s.instagramFollowers === "number" ? s.instagramFollowers : undefined,
           twitterHandle: aiTwitterHandle,
           tiktokHandle: typeof s.tiktokHandle === "string" ? s.tiktokHandle : null,
-          // Twitter followers: pulled from X API v2 (real value, not AI-guessed)
-          // Instagram/TikTok counts must be entered manually — no public API available
-          twitterFollowers: realTwitterFollowers ?? undefined,
+          tiktokFollowers: typeof s.tiktokFollowers === "number" ? s.tiktokFollowers : undefined,
+          // Twitter followers: X API v2 real-time count overrides Perplexity if available
+          twitterFollowers: realTwitterFollowers ?? (typeof s.twitterFollowers === "number" ? s.twitterFollowers : undefined),
           // avatarUrl: pulled from Wikipedia API — not AI-generated
           avatarUrl: avatarUrl ?? null,
           hasNewIntelligence: true,
