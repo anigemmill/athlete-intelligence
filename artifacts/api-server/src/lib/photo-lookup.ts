@@ -120,8 +120,16 @@ export async function fetchWikipediaPhoto(
     );
     const hits: any[] = searchData?.query?.search ?? [];
 
+    // Only accept a Wikipedia search result whose title contains the athlete's
+    // first and last name — avoids grabbing a thumbnail from an unrelated article
+    // (e.g. "Brook Macdonald" search returning an article about "Elijah Just").
+    const nameParts = athleteName.toLowerCase().split(/\s+/).filter(Boolean);
     for (const hit of hits) {
       if (!hit.title) continue;
+      const titleLower = hit.title.toLowerCase();
+      // Require at least 2 name tokens (first + last) to appear in the title
+      const matchCount = nameParts.filter((part) => titleLower.includes(part)).length;
+      if (matchCount < Math.min(2, nameParts.length)) continue;
       const img = await thumbnailFromTitle(hit.title);
       if (img) return img;
     }
