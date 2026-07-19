@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useUser, useClerk } from "@clerk/react";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 import {
   User, CreditCard, Users, Bell, Zap, Key,
   CheckCircle2, Crown, Plus, Copy
@@ -112,23 +113,24 @@ function BillingTab() {
   const [sub, setSub]                 = useState<any>(undefined); // undefined = loading, null = no subscription
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError]     = useState("");
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
-    fetch("/api/stripe/subscription", { credentials: "same-origin" })
+    authFetch("/api/stripe/subscription")
       .then((r) => r.json())
       .then((d) => setSub(d.subscription ?? null))
       .catch(() => setSub(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openPortal = async () => {
     setPortalLoading(true);
     setPortalError("");
     try {
-      const res = await fetch("/api/stripe/portal", {
+      const res = await authFetch("/api/stripe/portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ returnUrl: window.location.href }),
-        credentials: "same-origin",
       });
       if (!res.ok) throw new Error("Portal request failed");
       const data = await res.json();

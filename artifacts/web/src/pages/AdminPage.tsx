@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/react";
 import { useLocation } from "wouter";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   Shield, Users, CreditCard, Zap, Activity, Server,
@@ -76,11 +77,12 @@ function CustomersTab() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const authFetch = useAuthFetch();
 
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      const r = await fetch("/api/admin/customers");
+      const r = await authFetch("/api/admin/customers");
       if (!r.ok) throw new Error(await r.text());
       const d = await r.json();
       setCustomers(d.customers ?? []);
@@ -211,11 +213,12 @@ function EnquiriesTab() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const authFetch = useAuthFetch();
 
   const load = async () => {
     setLoading(true);
     try {
-      const r = await fetch("/api/admin/enquiries");
+      const r = await authFetch("/api/admin/enquiries");
       const d = await r.json();
       setEnquiries(d.enquiries ?? []);
     } catch {}
@@ -226,7 +229,7 @@ function EnquiriesTab() {
 
   const updateStatus = async (id: number, status: string) => {
     setEnquiries((prev) => prev.map((e) => e.id === id ? { ...e, status } : e));
-    await fetch(`/api/admin/enquiries/${id}`, {
+    await authFetch(`/api/admin/enquiries/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -358,13 +361,14 @@ function CrawlTab() {
   const [socialFilling, setSocialFilling] = useState(false);
   const [socialResult, setSocialResult] = useState<{ updated: number; notFound: number; total: number; results: { name: string; instagram?: string; twitter?: string; tiktok?: string }[] } | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
+  const authFetch = useAuthFetch();
 
   const runBackfill = async () => {
     setBackfilling(true);
     setBackfillResult(null);
     setBackfillError(null);
     try {
-      const r = await fetch("/api/admin/backfill-photos", { method: "POST" });
+      const r = await authFetch("/api/admin/backfill-photos", { method: "POST" });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error ?? "Backfill failed");
       setBackfillResult(d);
@@ -380,7 +384,7 @@ function CrawlTab() {
     setSocialResult(null);
     setSocialError(null);
     try {
-      const r = await fetch("/api/admin/backfill-social", { method: "POST" });
+      const r = await authFetch("/api/admin/backfill-social", { method: "POST" });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error ?? "Social backfill failed");
       setSocialResult(d);

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link } from "wouter";
 import { Send, Sparkles, User, Database, TrendingUp, Users, GitBranch, BarChart2, FileText } from "lucide-react";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 
 type Message = {
   role: "user" | "assistant";
@@ -216,6 +217,7 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -240,7 +242,7 @@ export default function ChatPage() {
     abortRef.current = abort;
 
     try {
-      const resp = await fetch("/api/chat", {
+      const resp = await authFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text.trim(), history }),

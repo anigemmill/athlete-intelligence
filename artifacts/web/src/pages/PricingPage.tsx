@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Helmet } from "react-helmet-async";
 import { CheckCircle2, Minus, Loader2 } from "lucide-react";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 
 type Cycle = "monthly" | "annual";
 
@@ -138,6 +139,7 @@ function CheckoutButton({
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const authFetch = useAuthFetch();
 
   const priceId = prices?.[tierId]?.[cycle === "monthly" ? "monthly" : "annual"] ?? null;
 
@@ -147,7 +149,7 @@ function CheckoutButton({
     setError(null);
     try {
       const origin = window.location.origin;
-      const resp = await fetch("/api/stripe/checkout", {
+      const resp = await authFetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

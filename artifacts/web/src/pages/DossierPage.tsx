@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link, useParams, useLocation } from "wouter";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 import {
   MapPin,
   Bell,
@@ -93,6 +94,8 @@ export default function DossierPage() {
   const { data: competitionsData, refetch: refetchCompetitions } = useListAthleteCompetitions(athleteId, {
     query: { enabled: !!athleteId },
   });
+
+  const authFetch = useAuthFetch();
 
   const athlete = (athleteData as any)?.athlete ?? (athleteData as any);
   const intel: any[] = (intelData as any)?.items ?? (intelData as any) ?? [];
@@ -207,7 +210,7 @@ export default function DossierPage() {
     setIsRefreshing(true);
     setRefreshLabel("Starting…");
     try {
-      await fetch(`/api/athletes/${athleteId}/repopulate`, { method: "POST" });
+      await authFetch(`/api/athletes/${athleteId}/repopulate`, { method: "POST" });
       // Poll until lastCrawledAt changes — max 3 minutes
       let polls = 0;
       repopulateRef.current = setInterval(async () => {
@@ -245,7 +248,7 @@ export default function DossierPage() {
   const saveSocial = async () => {
     setSavingSocial(true);
     try {
-      await fetch(`/api/athletes/${athleteId}`, {
+      await authFetch(`/api/athletes/${athleteId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -266,7 +269,7 @@ export default function DossierPage() {
 
   const savePhotoUrl = async () => {
     try {
-      await fetch(`/api/athletes/${athleteId}`, {
+      await authFetch(`/api/athletes/${athleteId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ avatarUrl: photoUrl.trim() || null }),
@@ -283,7 +286,7 @@ export default function DossierPage() {
     setTogglingAgent(true);
     const next = athlete.agentStatus === "active" ? "paused" : "active";
     try {
-      await fetch(`/api/athletes/${athleteId}`, {
+      await authFetch(`/api/athletes/${athleteId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agentStatus: next }),
@@ -297,7 +300,7 @@ export default function DossierPage() {
   // Load cached summary when athlete loads
   useEffect(() => {
     if (!athleteId || summaryLoaded) return;
-    fetch(`/api/athletes/${athleteId}/summary`)
+    authFetch(`/api/athletes/${athleteId}/summary`)
       .then((r) => r.json())
       .then((d) => {
         if (d.summary) { setSummaryText(d.summary); setSummaryGeneratedAt(d.generatedAt); }
@@ -312,7 +315,7 @@ export default function DossierPage() {
     setSummaryStreaming(true);
     setSummaryText("");
     try {
-      const resp = await fetch(`/api/athletes/${athleteId}/summary`, { method: "POST" });
+      const resp = await authFetch(`/api/athletes/${athleteId}/summary`, { method: "POST" });
       if (!resp.ok || !resp.body) throw new Error("Stream failed");
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -342,7 +345,7 @@ export default function DossierPage() {
   const removeAthlete = async () => {
     setRemoving(true);
     try {
-      await fetch(`/api/athletes/${athleteId}`, { method: "DELETE" });
+      await authFetch(`/api/athletes/${athleteId}`, { method: "DELETE" });
       navigate("/dashboard");
     } catch {
       setRemoving(false);

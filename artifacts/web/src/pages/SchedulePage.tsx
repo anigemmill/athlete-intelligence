@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MapPin, Calendar, ChevronRight, Timer } from "lucide-react";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 
 // ── Tier config ───────────────────────────────────────────────────────────────
 
@@ -178,16 +179,18 @@ export default function SchedulePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [athleteFilter, setAthleteFilter] = useState("All");
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
     setIsLoading(true);
-    fetch("/api/competitions")
+    authFetch("/api/competitions")
       .then((r) => r.json())
       .then((data: ApiComp[]) => {
         setCompetitions(Array.isArray(data) ? data.map(normalise) : []);
       })
       .catch(() => setCompetitions([]))
       .finally(() => setIsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const nextComp = competitions[0] ?? null;

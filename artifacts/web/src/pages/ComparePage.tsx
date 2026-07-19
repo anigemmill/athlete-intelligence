@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Link, useSearch } from "wouter";
 import { X, Plus, TrendingUp, TrendingDown, Users, BarChart2, ChevronRight, Trophy, Calendar, MapPin, Sparkles } from "lucide-react";
 import { useListAthletes, useListAthleteCompetitions, useListAthleteIntelligence } from "@workspace/api-client-react";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 
 // ── Colour palette for compared athletes ─────────────────────────────────────
 const ATHLETE_COLORS = ["#E75D50", "#344F9F", "#7C6FA0", "#059669"];
@@ -147,11 +148,13 @@ export default function ComparePage() {
     setPickerSearch("");
   };
 
+  const authFetch = useAuthFetch();
+
   const discoverAthlete = async (name: string) => {
     setDiscovering(true);
     setDiscoverError("");
     try {
-      const res = await fetch("/api/athletes/discover", {
+      const res = await authFetch("/api/athletes/discover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Link, useLocation } from "wouter";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 import {
   ChevronRight,
   Search,
@@ -18,6 +19,7 @@ import {
 import * as XLSX from "xlsx";
 import { useListAthletes, useCreateAthlete } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+
 
 type Step = 1 | 2 | 3;
 type Mode = "single" | "import";
@@ -312,6 +314,8 @@ export default function NewAgentPage() {
 
   // ── Bulk import ──────────────────────────────────────────────────────────
 
+  const authFetch = useAuthFetch();
+
   const handleBulkImport = async () => {
     setImportStatus("loading");
     const athletes = importRows.map((row) => ({
@@ -323,7 +327,7 @@ export default function NewAgentPage() {
     })).filter((a) => a.name);
 
     try {
-      const resp = await fetch("/api/athletes/bulk", {
+      const resp = await authFetch("/api/athletes/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ athletes }),

@@ -8,6 +8,7 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter, Redirect, useLocation } from 'wouter';
 import { ClerkProvider, SignUp, useAuth, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
 
 const FOUNDER_EMAIL = 'anigemmill@theoutsidein.nz';
 
@@ -61,6 +62,17 @@ function PageLoader() {
       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
+}
+
+// Registers the Clerk token getter so every customFetch call (react-query hooks)
+// automatically sends Authorization: Bearer <token>
+function ClerkAuthSync() {
+  const { getToken } = useAuth();
+  useEffect(() => {
+    setAuthTokenGetter(getToken);
+    return () => setAuthTokenGetter(null);
+  }, [getToken]);
+  return null;
 }
 
 // Invalidates React Query cache when the signed-in user changes
@@ -171,6 +183,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <ClerkAuthSync />
         <ClerkQueryClientCacheInvalidator />
         <Router />
       </QueryClientProvider>
