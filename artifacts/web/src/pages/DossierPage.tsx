@@ -169,6 +169,8 @@ export default function DossierPage() {
   // Social stats edit state
   const [editingSocial, setEditingSocial] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
+  const [refreshingSocial, setRefreshingSocial] = useState(false);
+  const [socialRefreshNote, setSocialRefreshNote] = useState<string | null>(null);
   const [socialDraft, setSocialDraft] = useState({
     instagramHandle: "", instagramFollowers: "",
     twitterHandle: "", twitterFollowers: "",
@@ -244,6 +246,27 @@ export default function DossierPage() {
   useEffect(() => {
     return () => { if (repopulateRef.current) clearInterval(repopulateRef.current); };
   }, []);
+
+  const refreshSocial = async () => {
+    if (refreshingSocial) return;
+    setRefreshingSocial(true);
+    setSocialRefreshNote(null);
+    try {
+      const r = await authFetch(`/api/athletes/${athleteId}/refresh-social`, { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "Refresh failed");
+      if (d.updated) {
+        setSocialRefreshNote("Updated from live web search.");
+        await refetchAthlete();
+      } else {
+        setSocialRefreshNote("No new social data found for this athlete.");
+      }
+    } catch (e: any) {
+      setSocialRefreshNote(`Error: ${e.message}`);
+    } finally {
+      setRefreshingSocial(false);
+    }
+  };
 
   const saveSocial = async () => {
     setSavingSocial(true);
@@ -775,14 +798,25 @@ export default function DossierPage() {
                         <h3 className="text-[13px] font-semibold text-[#1C1F3A]">Social Media</h3>
                       </div>
                       {!editingSocial ? (
-                        <button
-                          onClick={() => setEditingSocial(true)}
-                          aria-label="Edit social media stats"
-                          className="text-[11px] text-[#8A90A8] hover:text-[#E75D50] transition-colors flex items-center gap-1"
-                        >
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          Edit
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={refreshSocial}
+                            disabled={refreshingSocial}
+                            aria-label="Refresh social media from web"
+                            className="text-[11px] text-[#8A90A8] hover:text-[#344F9F] transition-colors flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={refreshingSocial ? "animate-spin" : ""}><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            {refreshingSocial ? "Searching…" : "Refresh from web"}
+                          </button>
+                          <button
+                            onClick={() => setEditingSocial(true)}
+                            aria-label="Edit social media stats"
+                            className="text-[11px] text-[#8A90A8] hover:text-[#E75D50] transition-colors flex items-center gap-1"
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit
+                          </button>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <button onClick={() => { setEditingSocial(false); }} className="text-[11px] text-[#8A90A8] hover:text-[#1C1F3A] transition-colors">Cancel</button>
@@ -796,6 +830,9 @@ export default function DossierPage() {
                         </div>
                       )}
                     </div>
+                    {socialRefreshNote && (
+                      <p className="text-[11px] mb-3 px-2 py-1.5 rounded-md bg-[#F0F2F8] text-[#6B7080]">{socialRefreshNote}</p>
+                    )}
 
                     {editingSocial ? (
                       /* ── Edit mode ── */

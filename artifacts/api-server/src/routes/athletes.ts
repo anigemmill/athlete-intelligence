@@ -12,6 +12,8 @@ import {
   type Athlete,
 } from "@workspace/db";
 import { autoPopulateAthlete, discoverAthleteProfile } from "../lib/auto-populate.js";
+import { openrouter } from "@workspace/integrations-openrouter-ai";
+import { openai } from "@workspace/integrations-openai-ai-server";
 import {
   GetAthleteParams,
   UpdateAthleteParams,
@@ -333,6 +335,92 @@ router.post("/athletes/:id/repopulate", async (req, res): Promise<void> => {
   }).catch((err) => logger.error({ err, athleteId: athlete.id }, "repopulate: background populate failed"));
 
   res.status(202).json({ message: "Re-population started" });
+});
+
+// POST /athletes/:id/refresh-social — live Perplexity lookup for one athlete's social accounts
+router.post("/athletes/:id/refresh-social", async (req, res): Promise<void> => {
+  const params = GetAthleteParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const [athlete] = await db
+    .select({ id: athletesTable.id, name: athletesTable.name, sport: athletesTable.sport, nationality: athletesTable.nationality })
+    .from(athletesTable)
+    .where(eq(athletesTable.id, params.data.id));
+  if (!athlete) { res.status(404).json({ error: "Athlete not found" }); return; }
+
+  try {
+    // Phase 1: Perplexity sonar-pro — live web search
+    const research = await openrouter.chat.completions.create({
+      model: "perplexity/sonar-pro",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "system",
+          content: "You are a sports social media researcher with live web access. Return exact, verified figures — never estimate unless the source explicitly says so.",
+        },
+        {
+          role: "user",
+          content: `Search the web RIGHT NOW for the official social media accounts of ${athlete.name} (${athlete.sport ?? "athlete"}${athlete.nationality ? `, ${athlete.nationality}` : ""}).
+
+Look up their profiles directly on Instagram, X/Twitter, and TikTok. Report:
+1. Instagram: exact handle (no @) and current follower count shown on the profile page
+2. X/Twitter: exact handle and current follower count
+3. TikTok: exact handle and current follower count
+
+Use the athlete's official or verified account. If multiple accounts exist, choose the one with the most followers that is clearly the athlete (not a fan page). State the source URL for each figure.`,
+        },
+      ],
+    });
+
+    const researchText = research.choices[0]?.message?.content ?? "";
+    if (!researchText) {
+      res.status(422).json({ error: "No social data found for this athlete" });
+      return;
+    }
+
+    // Phase 2: OpenAI extracts structured JSON
+    const extraction = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "system",
+          content: `Extract social media data from the research text. Return ONLY valid JSON, no markdown.
+Rules:
+- handles: real username without @ symbol, null if not found
+- followers: integer (round to nearest whole number), null if no specific verified number — NEVER invent a number
+- Convert shorthand: "250k" → 250000, "1.2M" → 1200000`,
+        },
+        {
+          role: "user",
+          content: `Research about ${athlete.name}:\n${researchText}\n\nExtract into JSON:\n{"instagramHandle":null,"instagramFollowers":null,"twitterHandle":null,"twitterFollowers":null,"tiktokHandle":null,"tiktokFollowers":null}`,
+        },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const raw = extraction.choices[0]?.message?.content;
+    if (!raw) { res.status(422).json({ error: "Could not extract social data" }); return; }
+
+    const s = JSON.parse(raw);
+    const patch: Record<string, any> = {};
+    if (typeof s.instagramHandle === "string") patch.instagramHandle = s.instagramHandle;
+    if (typeof s.instagramFollowers === "number") patch.instagramFollowers = s.instagramFollowers;
+    if (typeof s.twitterHandle === "string") patch.twitterHandle = s.twitterHandle;
+    if (typeof s.twitterFollowers === "number") patch.twitterFollowers = s.twitterFollowers;
+    if (typeof s.tiktokHandle === "string") patch.tiktokHandle = s.tiktokHandle;
+    if (typeof s.tiktokFollowers === "number") patch.tiktokFollowers = s.tiktokFollowers;
+
+    if (Object.keys(patch).length > 0) {
+      await db.update(athletesTable).set(patch).where(eq(athletesTable.id, athlete.id));
+      logger.info({ athleteId: athlete.id, name: athlete.name, patch }, "refresh-social: updated");
+    }
+
+    res.json({ ok: true, updated: Object.keys(patch).length > 0, data: s, researchSummary: researchText.slice(0, 500) });
+  } catch (err: any) {
+    logger.error({ err, athleteId: athlete.id }, "refresh-social: failed");
+    res.status(500).json({ error: "Social refresh failed" });
+  }
 });
 
 // DELETE /athletes/:id

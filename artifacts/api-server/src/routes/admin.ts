@@ -13,7 +13,7 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { desc, eq, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { contactEnquiriesTable, athletesTable } from "@workspace/db";
-import { clerkClient } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
 import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
@@ -28,13 +28,15 @@ const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
 
 async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
+    // Use getAuth() — works correctly with both session cookies and Bearer tokens
+    const auth = getAuth(req);
+    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    if (!userId) {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
 
-    const user = await clerkClient.users.getUser(auth.userId);
+    const user = await clerkClient.users.getUser(userId);
     const primaryEmail = user.emailAddresses.find(
       (e) => e.id === user.primaryEmailAddressId,
     )?.emailAddress;
@@ -200,23 +202,25 @@ router.post("/admin/backfill-social", requireAdmin, async (_req, res): Promise<v
 
     for (const athlete of athletes) {
       try {
-        // Phase 1: Perplexity web search for social accounts
+        // Phase 1: Perplexity sonar-pro for live web search
         const research = await openrouter.chat.completions.create({
-          model: "perplexity/sonar",
+          model: "perplexity/sonar-pro",
           max_tokens: 1024,
           messages: [
             {
               role: "system",
-              content: "You are a social media researcher. Search the web and return the athlete's social media handles and follower counts. Be concise and specific.",
+              content: "You are a sports social media researcher with live web access. Return exact, verified figures — never estimate unless the source says so explicitly.",
             },
             {
               role: "user",
-              content: `Find the social media accounts for ${athlete.name} (${athlete.sport ?? "athlete"}, ${athlete.nationality ?? ""}). 
-Search for:
-- Their Instagram handle and current follower count
-- Their Twitter/X handle and current follower count  
-- Their TikTok handle and current follower count
-Search sports profiles, team pages, influencer directories, news articles, and any web source. Give the most recent numbers with sources.`,
+              content: `Search the web RIGHT NOW for the official social media accounts of ${athlete.name} (${athlete.sport ?? "athlete"}${athlete.nationality ? `, ${athlete.nationality}` : ""}).
+
+Look up their profiles directly on Instagram, X/Twitter, and TikTok. Report:
+1. Instagram: exact handle (no @) and current follower count shown on the profile page
+2. X/Twitter: exact handle and current follower/following count
+3. TikTok: exact handle and current follower count
+
+Use the athlete's official verified account where possible. If multiple accounts exist, choose the one with the most followers that is clearly the athlete (not a fan account). State the source URL for each figure.`,
             },
           ],
         });
