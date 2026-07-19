@@ -89,7 +89,7 @@ const FEATURES: FeatureRow[] = [
 const FAQ = [
   {
     q: "How does the free trial work?",
-    a: "You get 14 days free — no charge until the trial ends. We'll set up your account with athletes from your actual roster so the first thing you see is real intelligence, not sample data. Cancel any time before the trial ends and you won't be charged.",
+    a: "You get 3 days free — no charge until the trial ends. We'll set up your account with athletes from your actual roster so the first thing you see is real intelligence, not sample data. Cancel any time before the trial ends and you won't be charged.",
   },
   {
     q: "Can I change plans later?",
@@ -151,7 +151,7 @@ function CheckoutButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           priceId,
-          trialDays: 14,
+          trialDays: 3,
           successUrl: `${origin}/billing/success`,
           cancelUrl: `${origin}/pricing`,
         }),
@@ -212,7 +212,7 @@ export default function PricingPage() {
         <div className="relative max-w-6xl mx-auto px-6">
           <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Pricing</div>
           <h1 className="text-5xl font-bold text-white tracking-tight mb-4">Simple, transparent pricing</h1>
-          <p className="text-white/40 text-lg mb-3 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. 14-day free trial on all plans.</p>
+          <p className="text-white/40 text-lg mb-3 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. 3-day free trial on all plans.</p>
           <p className="text-white/25 text-[13px] mb-10">No credit card required to start your trial.</p>
 
           {/* Billing toggle */}
@@ -280,7 +280,7 @@ export default function PricingPage() {
                   <div>{tier.users === -1 ? "Unlimited users" : `${tier.users} team seats`}</div>
                   <div>All sports & disciplines</div>
                   {!tier.enterprise && (
-                    <div className="text-emerald-400/70 text-[12px]">14-day free trial included</div>
+                    <div className="text-emerald-400/70 text-[12px]">3-day free trial included</div>
                   )}
                 </div>
 
