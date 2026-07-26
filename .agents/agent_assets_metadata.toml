@@ -6,3 +6,9 @@ id = "Eo77XxJr7tSj8Sglb1KIK"
 uri = "file://founder-guide.md"
 type = "text"
 title = "Athlete Intelligence — Founder Process Guide"
+
+[[outputs]]
+id = "EC8WEK6P83cqS5eGTXu7K"
+uri = "file://DOCUMENTATION.md"
+type = "text"
+title = "Athlete Intelligence — Documentation"
