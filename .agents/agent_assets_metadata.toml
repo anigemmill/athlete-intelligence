@@ -12,3 +12,9 @@ id = "EC8WEK6P83cqS5eGTXu7K"
 uri = "file://DOCUMENTATION.md"
 type = "text"
 title = "Athlete Intelligence — Documentation"
+
+[[outputs]]
+id = "gPYYXkzPVLL3yc9pXveMn"
+uri = "file://DOCUMENTATION.pdf"
+type = "pdf"
+title = "Athlete Intelligence — Documentation (PDF)"
