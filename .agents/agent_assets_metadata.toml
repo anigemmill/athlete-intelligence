@@ -42,3 +42,15 @@ id = "VZU-0W_-dGDgjx2wzqM5U"
 uri = "file://TECHNICAL_DESIGN.md"
 type = "text"
 title = "Technical Design — Accuracy-First Architecture (Markdown)"
+
+[[outputs]]
+id = "Xrx3NwMwOVEN5jYRNunyp"
+uri = "file://IMPLEMENTATION_ROADMAP.pdf"
+type = "pdf"
+title = "Implementation Roadmap (PDF)"
+
+[[outputs]]
+id = "F-ZfSPztDgBWV9O3jfdzV"
+uri = "file://IMPLEMENTATION_ROADMAP.md"
+type = "text"
+title = "Implementation Roadmap (Markdown)"
