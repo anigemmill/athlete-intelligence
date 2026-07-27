@@ -18,3 +18,15 @@ id = "gPYYXkzPVLL3yc9pXveMn"
 uri = "file://DOCUMENTATION.pdf"
 type = "pdf"
 title = "Athlete Intelligence — Documentation (PDF)"
+
+[[outputs]]
+id = "Ku025zDjXtavkCU2pibYC"
+uri = "file://AUDIT_REPORT.pdf"
+type = "pdf"
+title = "Architecture Audit Report (PDF)"
+
+[[outputs]]
+id = "VVkZoaVVsvLPuTaQo1HbF"
+uri = "file://AUDIT_REPORT.md"
+type = "text"
+title = "Architecture Audit Report (Markdown)"
