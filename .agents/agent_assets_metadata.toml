@@ -30,3 +30,15 @@ id = "VVkZoaVVsvLPuTaQo1HbF"
 uri = "file://AUDIT_REPORT.md"
 type = "text"
 title = "Architecture Audit Report (Markdown)"
+
+[[outputs]]
+id = "MmIswYAgQrNZSR9psCi3m"
+uri = "file://TECHNICAL_DESIGN.pdf"
+type = "pdf"
+title = "Technical Design — Accuracy-First Architecture (PDF)"
+
+[[outputs]]
+id = "VZU-0W_-dGDgjx2wzqM5U"
+uri = "file://TECHNICAL_DESIGN.md"
+type = "text"
+title = "Technical Design — Accuracy-First Architecture (Markdown)"

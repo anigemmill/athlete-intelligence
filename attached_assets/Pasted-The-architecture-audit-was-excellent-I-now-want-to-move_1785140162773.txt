@@ -1,0 +1,121 @@
+The architecture audit was excellent. I now want to move beyond bug fixes and redesign Athlete Intelligence so it becomes the most accurate athlete intelligence platform possible.
+
+My long-term vision is:
+
+Build profiles for athletes from high school through international level.
+Create one permanent identity for every athlete.
+Continuously update that athlete throughout their career.
+Never overwrite history.
+Build a complete career timeline.
+Store evidence for every fact.
+Generate AI summaries only from verified evidence.
+
+Before writing code, I want you to redesign the intelligence engine.
+
+Please produce a technical design for:
+
+1. Identity Engine
+
+How should athletes be uniquely identified?
+
+How do we stop wrong people being merged?
+
+How do we handle athletes with identical names?
+
+2. Source Engine
+
+Design a source hierarchy.
+
+Official governing bodies
+
+Official athlete websites
+
+Official team pages
+
+Race result databases
+
+School sports
+
+University sports
+
+Sponsors
+
+News
+
+Social media
+
+Videos
+
+Images
+
+Interviews
+
+Other public sources
+
+Which sources should always override others?
+
+3. Evidence Engine
+
+Every fact should include:
+
+source
+
+date found
+
+retrieval time
+
+confidence
+
+last verified
+
+evidence text
+
+multiple supporting sources
+
+Explain the best schema.
+
+4. Timeline Engine
+
+Every athlete should have an event timeline rather than a profile that gets overwritten.
+
+Design the database.
+
+5. Continuous Monitoring
+
+Explain how Athlete Intelligence should monitor athletes forever.
+
+New results
+
+Rankings
+
+Sponsors
+
+Teams
+
+Social growth
+
+News
+
+Awards
+
+Education
+
+Publicly available milestones
+
+Explain how updates are detected and appended.
+
+6. Social Media Engine
+
+Explain the most reliable and compliant way to collect publicly available social data.
+
+How should estimates be separated from verified values?
+
+How should historical follower growth be stored?
+
+7. AI Layer
+
+The AI should never invent facts.
+
+Explain how summaries, chat responses and reports should only use verified evidence stored in the database.
+
+Finally, compare this proposed architecture to the current implementation and identify what additional work would be required to reach this long-term vision.
