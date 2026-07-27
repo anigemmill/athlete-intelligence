@@ -111,7 +111,7 @@ Cite your sources where possible. Be as specific and accurate as possible.`,
 }
 
 // ── Phase 2: Structured data extraction ──────────────────────────────────────
-// gpt-5.6-luna reads the real Perplexity research and extracts structured JSON.
+// gpt-4o reads the real Perplexity research and extracts structured JSON.
 // When research is available, it uses that as the source of truth.
 // When research is empty (fallback), it uses its own training knowledge.
 
@@ -256,7 +256,7 @@ export async function discoverAthleteProfile(name: string): Promise<{
   age: number | null;
 }> {
   const response = await openai.chat.completions.create({
-    model: "gpt-5.6-luna",
+    model: "gpt-4o",
     max_completion_tokens: 256,
     messages: [
       {
@@ -293,10 +293,10 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       fetchWikipediaPhoto(athlete.name, athlete.sport),
     ]);
 
-    // Phase 2: Structured JSON extraction — gpt-5.6-luna reads the real
+    // Phase 2: Structured JSON extraction — gpt-4o reads the real
     // Perplexity research and citation URLs as its source of truth.
     const response = await openai.chat.completions.create({
-      model: "gpt-5.6-luna",
+      model: "gpt-4o",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },

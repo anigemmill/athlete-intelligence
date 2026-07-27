@@ -70,9 +70,8 @@ async function fetchPhotoViaPerplexity(
 
     // Ask OpenAI to extract just the URL from whatever Perplexity returned
     const extraction = await openai.chat.completions.create({
-      model: "gpt-5.6-luna",
+      model: "gpt-4o-mini",
       max_completion_tokens: 128,
-      reasoning_effort: "none" as any,
       response_format: { type: "json_object" },
       messages: [
         {

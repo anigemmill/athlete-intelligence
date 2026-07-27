@@ -113,7 +113,7 @@ Write the four-section briefing now:
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.6-luna",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       stream: true,
       max_completion_tokens: 3000,
