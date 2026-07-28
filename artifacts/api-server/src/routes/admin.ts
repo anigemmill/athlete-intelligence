@@ -20,8 +20,7 @@ import { clerkClient, getAuth } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
 import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
-import { openrouter } from "@workspace/integrations-openrouter-ai";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { lookupSocialData } from "../lib/social-extract.js";
 
 const router: IRouter = Router();
 
@@ -235,69 +234,26 @@ router.post("/admin/backfill-social", requireAdmin, async (_req, res): Promise<v
       await Promise.allSettled(
         chunk.map(async (athlete) => {
           try {
-            // Phase 1: Perplexity sonar-pro — live web search
-            const research = await openrouter.chat.completions.create({
-              model: "perplexity/sonar-pro",
-              max_tokens: 1024,
-              messages: [
-                {
-                  role: "system",
-                  content: "You are a sports social media researcher with live web access. Return exact, verified figures — never estimate unless the source says so explicitly.",
-                },
-                {
-                  role: "user",
-                  content: `Search the web RIGHT NOW for the official social media accounts of ${athlete.name} (${athlete.sport ?? "athlete"}${athlete.nationality ? `, ${athlete.nationality}` : ""}).
-
-Look up their profiles directly on Instagram, X/Twitter, and TikTok. Report:
-1. Instagram: exact handle (no @) and current follower count shown on the profile page
-2. X/Twitter: exact handle and current follower count
-3. TikTok: exact handle and current follower count
-
-Use the athlete's official or verified account. If multiple accounts exist, choose the one with the most followers that is clearly the athlete (not a fan page). State the source URL for each figure.`,
-                },
-              ],
+            const social = await lookupSocialData({
+              name:        athlete.name,
+              sport:       athlete.sport,
+              nationality: athlete.nationality,
             });
 
-            const researchText = research.choices[0]?.message?.content ?? "";
-            if (!researchText) { notFound++; return; }
+            if (!social) { notFound++; return; }
 
-            // Phase 2: OpenAI extracts structured JSON
-            const extraction = await openai.chat.completions.create({
-              model: "gpt-4o-mini",
-              max_tokens: 512,
-              messages: [
-                {
-                  role: "system",
-                  content: `Extract social media data from the provided research text. Return ONLY valid JSON, no markdown.
-Rules:
-- handles: real username without @ symbol, null if not found
-- followers: integer (round to nearest whole number), null if no specific verified number — NEVER invent a number
-- Convert shorthand: "250k" → 250000, "1.2M" → 1200000`,
-                },
-                {
-                  role: "user",
-                  content: `Research about ${athlete.name}:\n${researchText}\n\nExtract into JSON:\n{"instagramHandle":null,"instagramFollowers":null,"twitterHandle":null,"twitterFollowers":null,"tiktokHandle":null,"tiktokFollowers":null}`,
-                },
-              ],
-              response_format: { type: "json_object" },
-            });
-
-            const raw = extraction.choices[0]?.message?.content;
-            if (!raw) { notFound++; return; }
-
-            const s = JSON.parse(raw);
-            const patch: Record<string, any> = {};
-            if (typeof s.instagramHandle === "string") patch.instagramHandle = s.instagramHandle;
-            if (typeof s.instagramFollowers === "number") patch.instagramFollowers = s.instagramFollowers;
-            if (typeof s.twitterHandle === "string") patch.twitterHandle = s.twitterHandle;
-            if (typeof s.twitterFollowers === "number") patch.twitterFollowers = s.twitterFollowers;
-            if (typeof s.tiktokHandle === "string") patch.tiktokHandle = s.tiktokHandle;
-            if (typeof s.tiktokFollowers === "number") patch.tiktokFollowers = s.tiktokFollowers;
+            const patch: Record<string, unknown> = {};
+            if (social.instagramHandle    !== null) patch.instagramHandle    = social.instagramHandle;
+            if (social.instagramFollowers !== null) patch.instagramFollowers = social.instagramFollowers;
+            if (social.twitterHandle      !== null) patch.twitterHandle      = social.twitterHandle;
+            if (social.twitterFollowers   !== null) patch.twitterFollowers   = social.twitterFollowers;
+            if (social.tiktokHandle       !== null) patch.tiktokHandle       = social.tiktokHandle;
+            if (social.tiktokFollowers    !== null) patch.tiktokFollowers    = social.tiktokFollowers;
 
             if (Object.keys(patch).length > 0) {
               await db.update(athletesTable).set(patch).where(eq(athletesTable.id, athlete.id));
               updated++;
-              results.push({ name: athlete.name, instagram: s.instagramHandle, twitter: s.twitterHandle, tiktok: s.tiktokHandle });
+              results.push({ name: athlete.name, instagram: social.instagramHandle ?? undefined, twitter: social.twitterHandle ?? undefined, tiktok: social.tiktokHandle ?? undefined });
               logger.info({ athleteId: athlete.id, name: athlete.name, patch }, "backfill-social: updated");
             } else {
               notFound++;
