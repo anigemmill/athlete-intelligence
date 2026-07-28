@@ -267,28 +267,60 @@ Extract and structure the above into the following JSON object:
 };
 
 /**
+ * Minimum confidence score (0–100) required to accept a discovery result.
+ * Below this threshold the athlete cannot be uniquely identified from their
+ * name alone and the creation request is rejected with HTTP 422.
+ */
+export const DISCOVERY_CONFIDENCE_THRESHOLD = 70;
+
+/**
  * Given only an athlete's name, call OpenAI to identify their sport, event,
- * nationality, and approximate age. Used by the "discover from web" flow on
- * the Compare page so users don't have to pre-add athletes.
+ * nationality, approximate age, and — critically — how confidently this name
+ * maps to a single identifiable individual.
+ *
+ * Confidence scale:
+ *   90–100  Unambiguous: one uniquely identifiable well-known athlete
+ *   70–89   Confident: not a common name, GPT has meaningful knowledge of this person
+ *   50–69   Uncertain: multiple athletes share this name, or athlete is obscure
+ *   < 50    No identification possible: very common name or completely unknown
+ *
+ * Returns null for sport/nationality when they cannot be determined, so the
+ * caller can detect and reject an incomplete identity rather than silently
+ * defaulting to "Athletics" / "".
  */
 export async function discoverAthleteProfile(name: string): Promise<{
-  sport: string;
-  event: string;
-  nationality: string;
+  sport: string | null;
+  event: string | null;
+  nationality: string | null;
   age: number | null;
+  confidence: number;
+  ambiguous: boolean;
+  reason: string;
 }> {
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
-    max_completion_tokens: 256,
+    max_completion_tokens: 512,
     messages: [
       {
         role: "system",
-        content:
-          "You are a sports data assistant. Given an athlete's name, return a JSON object with their primary sport, specific event or position, nationality (country name), and approximate age. Return ONLY valid JSON, no markdown.",
+        content: `You are a sports data assistant. Given an athlete's name, identify the specific individual and return a JSON object.
+
+Return ONLY valid JSON, no markdown. Fields:
+- sport: their primary sport as a string, or null if you cannot determine it
+- event: their specific event or position, or null if unknown
+- nationality: their country name, or null if you cannot determine it
+- age: approximate age as an integer, or null if unknown
+- confidence: integer 0-100 — how confident you are that this name maps to ONE specific identifiable athlete:
+    90-100: unambiguous, one uniquely identifiable well-known athlete
+    70-89:  confident, not a very common name and you have real knowledge of this person
+    50-69:  uncertain, multiple athletes share this name or this person is not well-known
+    0-49:   cannot identify, very common name or no sports association found
+- ambiguous: boolean — true if multiple athletes share this name across different sports or countries
+- reason: one sentence explaining your confidence assessment`,
       },
       {
         role: "user",
-        content: `Athlete name: "${name}"\n\nReturn: { "sport": string, "event": string, "nationality": string, "age": integer or null }`,
+        content: `Athlete name: "${name}"\n\nReturn: { "sport": string|null, "event": string|null, "nationality": string|null, "age": integer|null, "confidence": integer, "ambiguous": boolean, "reason": string }`,
       },
     ],
     response_format: { type: "json_object" },
@@ -299,10 +331,13 @@ export async function discoverAthleteProfile(name: string): Promise<{
 
   const data = JSON.parse(raw);
   return {
-    sport: typeof data.sport === "string" ? data.sport : "Athletics",
-    event: typeof data.event === "string" ? data.event : "",
-    nationality: typeof data.nationality === "string" ? data.nationality : "",
-    age: typeof data.age === "number" ? data.age : null,
+    sport:       typeof data.sport       === "string"  ? data.sport       : null,
+    event:       typeof data.event       === "string"  ? data.event       : null,
+    nationality: typeof data.nationality === "string"  ? data.nationality : null,
+    age:         typeof data.age         === "number"  ? data.age         : null,
+    confidence:  typeof data.confidence  === "number"  ? Math.min(100, Math.max(0, Math.round(data.confidence))) : 0,
+    ambiguous:   typeof data.ambiguous   === "boolean" ? data.ambiguous   : true,
+    reason:      typeof data.reason      === "string"  ? data.reason      : "Could not assess confidence.",
   };
 }
 

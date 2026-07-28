@@ -11,7 +11,7 @@ import {
   competitionsTable,
   type Athlete,
 } from "@workspace/db";
-import { autoPopulateAthlete, discoverAthleteProfile } from "../lib/auto-populate.js";
+import { autoPopulateAthlete, discoverAthleteProfile, DISCOVERY_CONFIDENCE_THRESHOLD } from "../lib/auto-populate.js";
 import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
@@ -82,21 +82,46 @@ router.post("/athletes/discover", async (req, res): Promise<void> => {
     return;
   }
 
-  // Ask AI to identify the athlete's profile
-  let profile: { sport: string; event: string; nationality: string; age: number | null };
-  try {
-    profile = await discoverAthleteProfile(name);
-  } catch {
-    profile = { sport: "Athletics", event: "", nationality: "", age: null };
+  // Ask AI to identify the athlete's profile.
+  // Throws on OpenAI failure (surfaced as 500 by the unhandled rejection handler).
+  const profile = await discoverAthleteProfile(name);
+
+  // Reject if the name cannot be uniquely and confidently mapped to a single
+  // individual, or if sport / nationality are missing (required by the research
+  // pipeline to produce a meaningful Perplexity query).
+  if (
+    profile.confidence < DISCOVERY_CONFIDENCE_THRESHOLD ||
+    !profile.sport ||
+    !profile.nationality
+  ) {
+    logger.warn(
+      { name, confidence: profile.confidence, ambiguous: profile.ambiguous, reason: profile.reason },
+      "discover: rejected — athlete not identifiable",
+    );
+    res.status(422).json({
+      error: "athlete_not_identifiable",
+      message: `Cannot uniquely identify "${name}" as a specific athlete. Please provide their sport and nationality directly, or use a more specific name.`,
+      confidence: profile.confidence,
+      threshold: DISCOVERY_CONFIDENCE_THRESHOLD,
+      ambiguous: profile.ambiguous,
+      reason: profile.reason,
+    });
+    return;
   }
+
+  // At this point profile.sport and profile.nationality are guaranteed non-null
+  // by the 422 gate above; the non-null assertions (!!) make this explicit to TypeScript.
+  const sport = profile.sport!;
+  const nationality = profile.nationality!;
+  const event = profile.event ?? "";
 
   const [athlete] = await db
     .insert(athletesTable)
     .values({
       name,
-      sport: profile.sport,
-      event: profile.event,
-      nationality: profile.nationality,
+      sport,
+      event,
+      nationality,
       age: profile.age,
       squad: "",
       agentStatus: "active",
@@ -109,9 +134,9 @@ router.post("/athletes/discover", async (req, res): Promise<void> => {
   autoPopulateAthlete({
     id: athlete.id,
     name: athlete.name,
-    sport: profile.sport,
-    event: profile.event,
-    nationality: profile.nationality,
+    sport,
+    event,
+    nationality,
     age: profile.age,
   }).catch((err) => logger.error({ err, athleteId: athlete.id }, "autoPopulateAthlete failed"));
 
