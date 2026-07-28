@@ -274,6 +274,19 @@ Extract and structure the above into the following JSON object:
 export const DISCOVERY_CONFIDENCE_THRESHOLD = 70;
 
 /**
+ * Returns true if `value` is a string in YYYY-MM-DD format that represents a
+ * calendar-valid date (e.g. "2019-13-45" is rejected even though it matches
+ * the pattern).  Used to filter out unparseable or fabricated dates from GPT
+ * responses before they reach the database.
+ */
+function isValidDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(value);
+  return !isNaN(d.getTime());
+}
+
+/**
  * Given only an athlete's name, call OpenAI to identify their sport, event,
  * nationality, approximate age, and — critically — how confidently this name
  * maps to a single identifiable individual.
@@ -436,19 +449,29 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 
     // ── 3. Timeline events ───────────────────────────────────────────────────
     if (Array.isArray(data.timeline_events) && data.timeline_events.length > 0) {
-      const rows = data.timeline_events.map((ev: any) => ({
-        athleteId: athlete.id,
-        date: String(ev.date ?? new Date().toISOString().split("T")[0]),
-        category: ev.category ?? "competition",
-        title: String(ev.title ?? ""),
-        description: ev.description ? String(ev.description) : null,
-        location: ev.location ? String(ev.location) : null,
-        sourceDomain: String(ev.sourceDomain ?? "unknown"),
-        sourceUrl: ev.sourceUrl ? String(ev.sourceUrl) : null,
-        confidence: typeof ev.confidence === "number" ? ev.confidence : 85,
-        significant: Boolean(ev.significant),
-      }));
-      await db.insert(timelineEventsTable).values(rows);
+      const validEvents = data.timeline_events.filter((ev: any) => {
+        if (isValidDate(ev.date)) return true;
+        logger.warn(
+          { athleteId: athlete.id, title: ev.title, date: ev.date },
+          "auto-populate: skipping timeline event — unparseable or missing date",
+        );
+        return false;
+      });
+      if (validEvents.length > 0) {
+        const rows = validEvents.map((ev: any) => ({
+          athleteId: athlete.id,
+          date: ev.date as string, // validated above — no fallback required
+          category: ev.category ?? "competition",
+          title: String(ev.title ?? ""),
+          description: ev.description ? String(ev.description) : null,
+          location: ev.location ? String(ev.location) : null,
+          sourceDomain: String(ev.sourceDomain ?? "unknown"),
+          sourceUrl: ev.sourceUrl ? String(ev.sourceUrl) : null,
+          confidence: typeof ev.confidence === "number" ? ev.confidence : 85,
+          significant: Boolean(ev.significant),
+        }));
+        await db.insert(timelineEventsTable).values(rows);
+      }
     }
 
     // ── 4. Contacts ──────────────────────────────────────────────────────────
