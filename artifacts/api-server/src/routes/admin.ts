@@ -14,9 +14,8 @@ import { desc, eq, isNull } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   contactEnquiriesTable, athletesTable,
-  intelligenceItemsTable, timelineEventsTable, contactsTable, competitionsTable,
 } from "@workspace/db";
-import { autoPopulateAthlete } from "../lib/auto-populate.js";
+import { repopulateAthlete } from "../lib/auto-populate.js";
 import { clerkClient, getAuth } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
@@ -64,31 +63,16 @@ router.post("/admin/repopulate/:id", requireAdmin, async (req, res): Promise<voi
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const [athlete] = await db
-    .select({ id: athletesTable.id, name: athletesTable.name, sport: athletesTable.sport, nationality: athletesTable.nationality })
+    .select({ id: athletesTable.id, name: athletesTable.name })
     .from(athletesTable)
     .where(eq(athletesTable.id, id));
 
   if (!athlete) { res.status(404).json({ error: "Athlete not found" }); return; }
 
-  // Clear existing intelligence data
-  await Promise.all([
-    db.delete(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, id)),
-    db.delete(timelineEventsTable).where(eq(timelineEventsTable.athleteId, id)),
-    db.delete(contactsTable).where(eq(contactsTable.athleteId, id)),
-    db.delete(competitionsTable).where(eq(competitionsTable.athleteId, id)),
-  ]);
-  await db.update(athletesTable)
-    .set({ intelligenceCount: 0, hasNewIntelligence: false, lastCrawledAt: null })
-    .where(eq(athletesTable.id, id));
-
-  // Fire re-populate in background
-  autoPopulateAthlete({
-    id: athlete.id,
-    name: athlete.name,
-    sport: athlete.sport ?? undefined,
-    event: undefined,
-    nationality: athlete.nationality ?? undefined,
-  }).catch((err) => logger.error({ err, athleteId: id }, "admin repopulate: failed"));
+  // Wipe + reset + re-populate — all logic lives in the shared service
+  repopulateAthlete(athlete.id).catch((err) =>
+    logger.error({ err, athleteId: id }, "repopulate: service call failed"),
+  );
 
   res.status(202).json({ message: `Re-population started for ${athlete.name}` });
 });

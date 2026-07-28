@@ -1,0 +1,67 @@
+Approved. M1.5 is complete.
+
+The implementation satisfies the intended behaviour:
+
+Invalid or missing timeline dates are no longer silently replaced with today's date.
+Invalid dates no longer cause the entire timeline insert to fail.
+Invalid events are skipped with an explicit warning.
+Valid events continue to be inserted normally.
+No regressions have been introduced to M1.1–M1.4.
+
+Please proceed to M1.6 only.
+
+Continue following the established implementation process:
+
+Explain the current behaviour before making changes.
+Explain the desired behaviour.
+Keep changes strictly within the scope of M1.6.
+Run all acceptance tests.
+Include a regression check for all previous milestones.
+Stop and wait for approval before beginning M1.7.
+One recommendation before starting M1.6
+
+I noticed this:
+
+The competitions block has the identical bug.
+
+Rather than treating that as an ad hoc improvement, I'd first check your roadmap.
+
+If fixing competition dates is already the objective of M1.6, then it's perfect—leave it there.
+If M1.6 is about something completely different, I would not automatically fold the competition fix into it. Keep the milestone focused and either:
+create a tiny follow-up milestone (e.g. M1.5.1) for the same bug pattern, or
+intentionally schedule it for the appropriate later milestone.
+
+The consistency you've maintained so far—one behavioural change per milestone—is paying off. I wouldn't dilute that now.
+
+One improvement I'd consider later
+
+Right now you're validating dates in one helper:
+
+isValidDate(...)
+
+That's good.
+
+Long term, though, I think every AI-generated field should go through the same pattern:
+
+AI Output
+      ↓
+Schema Validation
+      ↓
+Field Validation
+      ↓
+Normalisation
+      ↓
+Database
+
+So eventually you might have validators like:
+
+isValidDate()
+isValidCountry()
+isValidSocialHandle()
+isValidCompetitionLevel()
+isValidResult()
+isValidTimelineEvent()
+
+At that point, the database layer only ever receives validated data.
+
+That's a larger architectural improvement for a future phase, not something I'd ask Replit to implement now.

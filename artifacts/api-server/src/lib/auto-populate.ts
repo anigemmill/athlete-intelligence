@@ -536,3 +536,60 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     }
   }
 }
+
+/**
+ * Wipes all existing intelligence data for an athlete, resets their crawl
+ * marker, and fires a fresh auto-populate run in the background.
+ *
+ * This is the single authoritative implementation of the repopulate workflow.
+ * Both POST /athletes/:id/repopulate and POST /admin/repopulate/:id delegate
+ * here, ensuring identical behaviour regardless of which surface triggered
+ * the crawl.
+ *
+ * The function always fetches the full athlete row itself so that every field
+ * (including event and age) is available to the research pipeline — callers
+ * should not need to pass athlete data.
+ *
+ * If the athlete no longer exists by the time this runs (race condition after
+ * a 404 check passes), the function logs and returns cleanly; the 202 was
+ * already sent to the caller.
+ */
+export async function repopulateAthlete(athleteId: number): Promise<void> {
+  // Fetch the full athlete row so the research pipeline has every field
+  // (event, age, etc.). This also guards against race-condition deletions.
+  const [athlete] = await db
+    .select()
+    .from(athletesTable)
+    .where(eq(athletesTable.id, athleteId));
+
+  if (!athlete) {
+    logger.error({ athleteId }, "repopulate: athlete not found; skipping");
+    return;
+  }
+
+  // Wipe all existing intelligence data in parallel
+  await Promise.all([
+    db.delete(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, athleteId)),
+    db.delete(timelineEventsTable).where(eq(timelineEventsTable.athleteId, athleteId)),
+    db.delete(contactsTable).where(eq(contactsTable.athleteId, athleteId)),
+    db.delete(competitionsTable).where(eq(competitionsTable.athleteId, athleteId)),
+  ]);
+
+  // Reset crawl marker so the dossier page shows "populating" state
+  await db
+    .update(athletesTable)
+    .set({ intelligenceCount: 0, hasNewIntelligence: false, lastCrawledAt: null })
+    .where(eq(athletesTable.id, athleteId));
+
+  // Fire the research pipeline in the background — do not await
+  autoPopulateAthlete({
+    id:          athlete.id,
+    name:        athlete.name,
+    sport:       athlete.sport       ?? "",
+    event:       athlete.event       ?? "",
+    nationality: athlete.nationality ?? "",
+    age:         athlete.age,
+  }).catch((err) =>
+    logger.error({ err, athleteId }, "repopulate: background populate failed"),
+  );
+}

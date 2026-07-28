@@ -11,7 +11,7 @@ import {
   competitionsTable,
   type Athlete,
 } from "@workspace/db";
-import { autoPopulateAthlete, discoverAthleteProfile, DISCOVERY_CONFIDENCE_THRESHOLD } from "../lib/auto-populate.js";
+import { autoPopulateAthlete, discoverAthleteProfile, repopulateAthlete, DISCOVERY_CONFIDENCE_THRESHOLD } from "../lib/auto-populate.js";
 import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
@@ -333,31 +333,16 @@ router.post("/athletes/:id/repopulate", async (req, res): Promise<void> => {
   const params = GetAthleteParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const [athlete] = await db.select().from(athletesTable).where(eq(athletesTable.id, params.data.id));
+  const [athlete] = await db
+    .select({ id: athletesTable.id })
+    .from(athletesTable)
+    .where(eq(athletesTable.id, params.data.id));
   if (!athlete) { res.status(404).json({ error: "Athlete not found" }); return; }
 
-  // Clear all existing intelligence data in parallel
-  await Promise.all([
-    db.delete(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, athlete.id)),
-    db.delete(timelineEventsTable).where(eq(timelineEventsTable.athleteId, athlete.id)),
-    db.delete(contactsTable).where(eq(contactsTable.athleteId, athlete.id)),
-    db.delete(competitionsTable).where(eq(competitionsTable.athleteId, athlete.id)),
-  ]);
-
-  // Reset crawl marker so the dossier page shows "populating" state
-  await db.update(athletesTable)
-    .set({ intelligenceCount: 0, hasNewIntelligence: false, lastCrawledAt: null })
-    .where(eq(athletesTable.id, athlete.id));
-
-  // Re-populate in background — do not await
-  autoPopulateAthlete({
-    id: athlete.id,
-    name: athlete.name,
-    sport: athlete.sport,
-    event: athlete.event,
-    nationality: athlete.nationality,
-    age: athlete.age,
-  }).catch((err) => logger.error({ err, athleteId: athlete.id }, "repopulate: background populate failed"));
+  // Wipe + reset + re-populate — all logic lives in the shared service
+  repopulateAthlete(athlete.id).catch((err) =>
+    logger.error({ err, athleteId: athlete.id }, "repopulate: service call failed"),
+  );
 
   res.status(202).json({ message: "Re-population started" });
 });
