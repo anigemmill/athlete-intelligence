@@ -35,6 +35,19 @@ interface AthleteStub {
   age?: number | null;
 }
 
+/**
+ * Thrown when the Perplexity research stage fails.
+ * Caught separately in autoPopulateAthlete so we can distinguish
+ * "no verified data available — nothing written" from other pipeline errors.
+ */
+class PerplexityResearchError extends Error {
+  constructor(cause: unknown) {
+    super("Perplexity research failed — no verified data available");
+    this.name = "PerplexityResearchError";
+    this.cause = cause;
+  }
+}
+
 // ── Twitter/X real follower lookup ──────────────────────────────────────────
 // Uses the X API v2 with a Bearer token to fetch real follower counts for any
 // public account. Requires TWITTER_BEARER_TOKEN environment secret.
@@ -107,15 +120,18 @@ Cite your sources where possible. Be as specific and accurate as possible.`,
     );
     return { research, citations };
   } catch (err) {
-    logger.warn({ err, athleteId: athlete.id }, "auto-populate: Perplexity research failed, falling back to training knowledge");
-    return { research: "", citations: [] };
+    logger.warn(
+      { err, athleteId: athlete.id, name: athlete.name },
+      "auto-populate: Perplexity research failed — aborting pipeline to prevent fabricated data",
+    );
+    throw new PerplexityResearchError(err);
   }
 }
 
 // ── Phase 2: Structured data extraction ──────────────────────────────────────
-// gpt-4o reads the real Perplexity research and extracts structured JSON.
-// When research is available, it uses that as the source of truth.
-// When research is empty (fallback), it uses its own training knowledge.
+// gpt-4o reads the Perplexity research and citation URLs and extracts structured JSON.
+// This stage is only reached when Perplexity succeeded; if research is empty the
+// pipeline aborts before this point (see PerplexityResearchError above).
 
 const SYSTEM_PROMPT = `You are a sports intelligence data engine for Athlete Intelligence, a B2B SaaS platform used by national sport organisations, professional clubs, and talent agencies.
 
@@ -155,7 +171,7 @@ ${citations.map((c, i) => `${i + 1}. ${c}`).join("\n")}
 \`\`\`
 ${research}
 \`\`\``
-  : `Note: No live research available. Use your training knowledge, keeping confidence scores at 65–80. Set all sourceUrl fields to null.`}
+  : `ABORT: No verified research is available. Return an empty JSON object: {}. Do not generate, infer, or fabricate any athlete data.`}
 
 Extract and structure the above into the following JSON object:
 
@@ -444,7 +460,21 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       "auto-populate: completed successfully",
     );
   } catch (err) {
-    // Non-fatal — athlete was created, population failed silently
-    logger.error({ err, athleteId: athlete.id, name: athlete.name }, "auto-populate: failed");
+    if (err instanceof PerplexityResearchError) {
+      // Perplexity failed before any DB writes occurred.
+      // Athlete row exists (created by POST /athletes) but has no intelligence data.
+      // lastCrawledAt remains null — signals "never successfully populated, safe to retry".
+      logger.error(
+        { cause: err.cause, athleteId: athlete.id, name: athlete.name },
+        "auto-populate: aborted — Perplexity research failed; no intelligence data written to database",
+      );
+    } else {
+      // GPT extraction or database write failed after research succeeded.
+      // Partial data may have been written; admin retry will overwrite with fresh data.
+      logger.error(
+        { err, athleteId: athlete.id, name: athlete.name },
+        "auto-populate: failed during extraction or database write",
+      );
+    }
   }
 }
