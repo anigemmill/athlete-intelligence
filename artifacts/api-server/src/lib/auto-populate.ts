@@ -69,6 +69,8 @@ async function fetchTwitterFollowers(handle: string): Promise<number | null> {
 async function researchAthleteWithPerplexity(
   athlete: AthleteStub,
 ): Promise<{ research: string; citations: string[] }> {
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const currentYear = new Date().getFullYear();
   try {
     const response = await openrouter.chat.completions.create({
       model: "perplexity/sonar",
@@ -76,14 +78,14 @@ async function researchAthleteWithPerplexity(
       messages: [
         {
           role: "system",
-          content: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is July 29, 2026. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
+          content: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is ${today}. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
         },
         {
           role: "user",
           content: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) comprehensively. Cover ALL of the following:
 
-1. CURRENT STATUS (as of July 29, 2026): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
-2. RECENT RESULTS (2024, 2025, 2026 seasons): List every race/competition result you can find with exact date, event name, location, and finishing position or time/score.
+1. CURRENT STATUS (as of ${today}): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
+2. RECENT RESULTS (${currentYear - 2}, ${currentYear - 1}, ${currentYear} seasons): List every race/competition result you can find with exact date, event name, location, and finishing position or time/score.
 3. HISTORICAL RESULTS (2016–2023): Major career results, championship medals, personal bests with dates.
 4. CAREER TIMELINE: Debut year, team changes, major sponsorship deals, injuries, major career milestones with exact dates.
 5. RANKINGS: Current world ranking, national ranking, and how these have changed over the past year.
@@ -132,7 +134,10 @@ Rules:
 - Contact categories: management | coaching | medical | media | sponsorship
 - Competition tiers: A | B | C. Status: upcoming | completed`;
 
-const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]) => `
+const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const currentYear = new Date().getFullYear();
+  return `
 Athlete profile:
 - Name: ${a.name}
 - Sport: ${a.sport}
@@ -177,9 +182,9 @@ Extract and structure the above into the following JSON object:
       "confidence": <integer 65-97>,
       "publishedAt": <ISO-8601 date string>
     }
-    // 10-12 items total, mix of categories, spread across the last 10 years (2016–2026).
-    // Distribute dates realistically: 2-3 items from 2016-2019 (early career),
-    // 3-4 items from 2020-2022 (mid career), 3-5 items from 2023-2026 (recent).
+    // 10-12 items total, mix of categories, spread across the last 10 years (${currentYear - 10}–${currentYear}).
+    // Distribute dates realistically: 2-3 items from ${currentYear - 10}–${currentYear - 7} (early career),
+    // 3-4 items from ${currentYear - 6}–${currentYear - 4} (mid career), 3-5 items from ${currentYear - 3}–${currentYear} (recent).
     // Include a genuine mix: results, media coverage, sponsorships, career moves.
   ],
   "timeline_events": [
@@ -195,11 +200,11 @@ Extract and structure the above into the following JSON object:
       "significant": <boolean>
     }
     // IMPORTANT: Generate 20-30 events spanning the athlete's FULL career — from their earliest
-    // known season (junior career, debut, or first senior season) right up to July 29, 2026.
+    // known season (junior career, debut, or first senior season) right up to ${today}.
     // Events must be in chronological order, oldest first.
     // Include: debut/first competition, major milestone seasons, podiums, personal bests, sponsorships,
     // coaching changes, injuries, and recent events. Mark truly pivotal moments as significant: true.
-    // Cover all career phases: junior → emerging → peak → current (up to July 29, 2026).
+    // Cover all career phases: junior → emerging → peak → current (up to ${today}).
   ],
   "contacts": [
     {
@@ -231,11 +236,11 @@ Extract and structure the above into the following JSON object:
       "result": <string or null, e.g. "1st (9.87s)" or "3rd (147kg snatch)" or "DNF">
     }
     // IMPORTANT: Generate 20-30 competition entries spanning the athlete's FULL career.
-    // Start from their first notable season and work forward chronologically to July 29, 2026.
+    // Start from their first notable season and work forward chronologically to ${today}.
     // Include: early career meets, breakthrough competitions, major championships (Olympics, Worlds,
-    // continental championships), domestic competitions, and recent results up to July 29, 2026.
+    // continental championships), domestic competitions, and recent results up to ${today}.
     // For completed competitions: always include a result string (position + performance, e.g. "2nd (1:44.81)").
-    // For upcoming (future dates only, i.e. after July 29, 2026): set status "upcoming" and result null.
+    // For upcoming (future dates only, i.e. after ${today}): set status "upcoming" and result null.
     // Use realistic tiers: A = World Championships / Olympics / Diamond League finals,
     //   B = Continental championships / national championships / major invitationals,
     //   C = domestic / club / lower-tier meets.
@@ -243,6 +248,7 @@ Extract and structure the above into the following JSON object:
   ]
 }
 `;
+};
 
 /**
  * Given only an athlete's name, call OpenAI to identify their sport, event,
