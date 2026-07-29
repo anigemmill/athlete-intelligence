@@ -18,7 +18,7 @@ export function PublicNav() {
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-[#E75D50] to-[#C84840] flex items-center justify-center shadow-[0_2px_10px_rgba(231,93,80,0.4)]">
+            <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-[#2F80ED] to-[#1A65CC] flex items-center justify-center shadow-[0_2px_10px_rgba(47,128,237,0.4)]">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
@@ -44,7 +44,7 @@ export function PublicNav() {
             <span className="hidden md:block text-[13px] text-white/50 hover:text-white/80 cursor-pointer transition-colors">Sign in</span>
           </Link>
           <Link href="/contact">
-            <span className="px-4 py-2 rounded-lg bg-[#E75D50] hover:bg-[#D04840] text-white text-[13px] font-medium cursor-pointer transition-colors shadow-[0_2px_12px_rgba(231,93,80,0.35)]">
+            <span className="px-4 py-2 rounded-lg bg-[#2F80ED] hover:bg-[#1E72DE] text-white text-[13px] font-medium cursor-pointer transition-colors shadow-[0_2px_12px_rgba(47,128,237,0.35)]">
               Request demo
             </span>
           </Link>
@@ -62,7 +62,7 @@ export function PublicFooter() {
           {/* Brand */}
           <div className="col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-[#E75D50] to-[#C84840] flex items-center justify-center">
+              <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-[#2F80ED] to-[#1A65CC] flex items-center justify-center">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>

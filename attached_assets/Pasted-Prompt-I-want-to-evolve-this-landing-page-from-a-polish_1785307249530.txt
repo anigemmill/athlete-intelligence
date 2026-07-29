@@ -1,0 +1,203 @@
+Prompt
+
+I want to evolve this landing page from a polished startup website into something that feels like a category-defining enterprise SaaS platform. The overall aesthetic should feel closer to Linear, Stripe, Apple and Vercel than a typical AI startup. The design should communicate trust, intelligence and premium quality rather than "AI magic."
+
+Hero Section
+
+Replace the current headline with:
+
+The intelligence platform for elite sport.
+
+This should be the primary focus of the page. Use large, bold typography with generous spacing. The headline should feel timeless, confident and premium.
+
+Replace the current supporting paragraph with:
+
+Every athlete has data. We create intelligence. Persistent AI agents continuously monitor every athlete on your roster, surfacing the insights that matter most—from results and rankings to media coverage, sponsorship activity and career changes—in one intelligent platform.
+
+Keep the paragraph concise and easy to scan. It should clearly explain the product while positioning it as an intelligence platform rather than another AI tool.
+
+Overall Design Direction
+
+Keep the existing dark navy aesthetic, but refine it to feel even more premium.
+
+Increase the amount of whitespace throughout the hero.
+Introduce a very subtle radial glow behind the headline similar to Apple's product pages.
+Reduce the visibility of the background grid so it becomes a texture rather than a dominant design element.
+Use smooth gradients and subtle depth instead of obvious visual effects.
+Everything should feel calm, minimal and highly considered.
+
+The experience should communicate:
+
+Enterprise
+Intelligence
+Trust
+Precision
+High performance
+
+Avoid anything that feels overly futuristic or "crypto/AI startup."
+
+Colour Palette
+
+Use a restrained colour palette.
+
+Primary:
+
+Midnight Navy (#112240)
+
+Background:
+
+Very Dark Navy (#0E1423)
+
+Accent:
+
+Electric Blue (#2F80ED)
+
+Success:
+
+Emerald (#18A999)
+
+Warning:
+
+Orange (#F2994A)
+
+Text:
+
+White and soft grey
+
+Avoid using coral/red as the primary accent throughout the page.
+
+The current red creates visual competition because the badge, highlighted headline word and primary button are all competing for attention.
+
+Instead:
+
+Keep the primary CTA as the strongest coloured element.
+Use Electric Blue as the main accent colour elsewhere.
+Use colour sparingly to create hierarchy.
+Navigation & Beta Badge
+
+Refine the beta badge to build trust.
+
+Instead of:
+
+"Now in private beta — 5 pilot organisations"
+
+Consider variations such as:
+
+Trusted by 5 pilot organisations
+Private Beta • Built with leading sports organisations
+Developed alongside elite sporting organisations
+
+The badge should feel credible rather than promotional.
+
+Calls to Action
+
+Primary CTA:
+
+Request a demo
+
+Secondary CTA:
+
+Replace View pricing with:
+
+See the platform
+
+or
+
+Explore the platform
+
+At this stage visitors are much more interested in seeing the product than pricing.
+
+Product Preview
+
+This is the biggest improvement.
+
+Directly beneath the hero, introduce a large, beautifully designed dashboard preview.
+
+Rather than a static screenshot, make it feel alive with subtle motion:
+
+AI summaries updating
+Athlete cards
+Race results appearing
+Rankings changing
+News mentions
+Sponsorship alerts
+Confidence scores
+Relationship graph updates
+Notifications sliding in
+
+The motion should be extremely subtle and polished.
+
+Think Apple product animations rather than flashy startup animations.
+
+Trust Section
+
+Immediately beneath the hero, add credibility.
+
+Either:
+
+Logo strip featuring pilot organisations
+
+or
+
+Large metrics such as:
+
+12,400 Athletes Monitored
+68 Countries
+1.8M Data Points Processed
+Real-Time Monitoring
+
+The goal is immediate trust.
+
+Feature Overview
+
+Below the hero, create four premium feature cards.
+
+Results
+
+Automatically tracks race and competition results worldwide.
+
+Media
+
+Monitor every interview, article and media mention in real time.
+
+Relationships
+
+Understand connections between athletes, managers, sponsors, coaches and federations.
+
+AI Intelligence
+
+Daily summaries, predictive insights, career intelligence and important alerts generated automatically.
+
+Each card should use clean iconography, minimal copy and elegant spacing.
+
+Typography
+
+Use modern enterprise typography.
+
+Preferred fonts:
+
+Inter
+Geist
+SF Pro
+
+Large headings.
+
+Comfortable line heights.
+
+Generous spacing.
+
+Minimal use of bold outside major headings.
+
+Overall Feeling
+
+The website should not feel like "an AI company."
+
+It should feel like the operating system for elite sport.
+
+When someone lands on the homepage, they should immediately think:
+
+"This is the platform every high-performance organisation should be using."
+
+The design language should communicate confidence through simplicity. Remove unnecessary visual noise, increase whitespace, use colour with restraint, and let beautiful typography, subtle animation and exceptional product design carry the experience.
+
+Inspiration: Linear, Stripe, Apple, Vercel, Retool, Notion and Bloomberg Terminal (modernised). The end result should feel like a premium enterprise SaaS platform built for Olympic programmes, professional clubs, national federations and athlete management agencies—not a generic AI startup.

@@ -1,86 +1,197 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Helmet } from "react-helmet-async";
+
+// ── Live dashboard mock data ──────────────────────────────────────────────────
+
+const LIVE_UPDATES = [
+  { type: "Rankings",    color: "#2F80ED", bg: "rgba(47,128,237,0.12)",  text: "Zoe Hobbs moved 14th → 9th in 100m world rankings following Doha Diamond League" },
+  { type: "Sponsorship", color: "#18A999", bg: "rgba(24,169,153,0.12)",  text: "Peter Bol — 2-year performance deal signed with Asics Pacific via Athletes Media Group" },
+  { type: "Media",       color: "#F2994A", bg: "rgba(242,153,74,0.12)",  text: "Catriona Bisset featured in 3 new media mentions — Athletics Australia pre-season coverage" },
+  { type: "Career",      color: "#8B9FFF", bg: "rgba(139,159,255,0.12)", text: "Hamish Kerr — coaching change confirmed, now working with Ross Jeffs at HPSNZ" },
+  { type: "Alert",       color: "#18A999", bg: "rgba(24,169,153,0.12)",  text: "Emerging U23 athlete in top 12% of performance trajectory across discipline" },
+];
+
+const ATHLETES = [
+  { name: "Zoe Hobbs",   sport: "Athletics · 100m Sprint", nat: "NZL", score: 94, delta: "+3", active: true },
+  { name: "Peter Bol",   sport: "Athletics · 800m",        nat: "AUS", score: 87, delta: "+1", active: true },
+  { name: "Hamish Kerr", sport: "Athletics · High Jump",   nat: "NZL", score: 91, delta: "—",  active: false },
+];
+
+const STATS = [
+  { value: "12,400+", label: "Athletes Monitored" },
+  { value: "68",      label: "Countries" },
+  { value: "1.8M",    label: "Data Points Processed" },
+  { value: "24 / 7",  label: "Real-Time Monitoring" },
+];
 
 const FEATURES = [
   {
     icon: (
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
       </svg>
     ),
-    title: "Persistent AI Agents",
-    desc: "One dedicated agent per athlete, running around the clock. It monitors results, media, rankings, and commercial activity so your team doesn't have to.",
+    title: "Results",
+    desc: "Automatically tracks race and competition results worldwide — every event, every split, every final position — the moment they are published.",
   },
   {
     icon: (
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
       </svg>
     ),
-    title: "Intelligence Within Hours",
-    desc: "A ranking move, a new sponsor announcement, a coaching change — your feed is updated within hours of the event, not days. Timing is everything in professional sport.",
+    title: "Media",
+    desc: "Monitor every interview, article and media mention in real time. Surface sentiment shifts, emerging narratives and unexpected coverage before they become significant.",
   },
   {
     icon: (
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
       </svg>
     ),
-    title: "Every Claim, Sourced",
-    desc: "Every intelligence item displays its source domain, URL, publication date, and a confidence score. No black-box outputs — every insight is traceable.",
+    title: "Relationships",
+    desc: "Understand connections between athletes, managers, sponsors, coaches and federations. Map the network that shapes every athlete's commercial and competitive trajectory.",
   },
   {
     icon: (
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
       </svg>
     ),
-    title: "58 Sports. Every Country.",
-    desc: "Track athletes across 58 sports and all major disciplines — from athletics and swimming to cycling, rugby, weightlifting, and beyond. Coverage spans every nationality and federation.",
-  },
-  {
-    icon: (
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-      </svg>
-    ),
-    title: "Built for Teams",
-    desc: "Role-based access for analysts, performance directors, and senior leadership. Everyone works from the same verified intelligence layer — no duplicate research, no information silos.",
-  },
-  {
-    icon: (
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-      </svg>
-    ),
-    title: "Ask Anything",
-    desc: "Your full roster as a conversation. Ask the AI to compare two athletes, summarise a career arc, find sponsorship patterns, or identify who's peaking before a major championship.",
+    title: "AI Intelligence",
+    desc: "Daily summaries, predictive insights, career intelligence and important alerts generated automatically — so your team makes faster, better-informed decisions.",
   },
 ];
 
 const STEPS = [
-  { n: "01", title: "Add your athletes", desc: "Type a name — our AI identifies the athlete, populates the full dossier, and starts monitoring. You're live in under a minute." },
-  { n: "02", title: "Agents go to work", desc: "Dedicated AI agents continuously scan competition results, media outlets, federation announcements, and social platforms — 24 hours a day." },
+  { n: "01", title: "Add your athletes", desc: "Type a name — the platform identifies the athlete, builds the full dossier, and starts monitoring. Live within 60 seconds." },
+  { n: "02", title: "Agents go to work", desc: "Dedicated AI agents continuously scan competition results, media outlets, federation announcements, and social platforms around the clock." },
   { n: "03", title: "Intelligence comes to you", desc: "Structured, source-attributed updates flow into your feed, dossiers, and alerts. No searching. No aggregating. Just decisions." },
 ];
 
-const FEED_ITEMS = [
-  { type: "Rankings", color: "#344F9F", bg: "rgba(52,79,159,0.15)", text: "Zoe Hobbs moved from 14th → 9th in world 100m rankings following Doha Diamond League." },
-  { type: "Sponsorship", color: "#059669", bg: "rgba(5,150,105,0.12)", text: "Peter Bol signed a 2-year performance deal with Asics Pacific. Announced via Athletes Media Group." },
-  { type: "Career", color: "#E75D50", bg: "rgba(231,93,80,0.12)", text: "Hamish Kerr confirmed coaching change — now working with Ross Jeffs at High Performance Sport NZ." },
-  { type: "Media", color: "#D97706", bg: "rgba(217,119,6,0.12)", text: "Catriona Bisset featured in Athletics Australia's pre-season squad narrative. 3 new media mentions." },
-];
+// ── Animated dashboard preview ────────────────────────────────────────────────
+
+function LiveDashboard() {
+  const [feedIndex, setFeedIndex] = useState(0);
+  const [exiting, setExiting] = useState(false);
+  const [confidence, setConfidence] = useState(87);
+
+  // Cycle the top feed item every 3.5 s
+  useEffect(() => {
+    const t = setInterval(() => {
+      setExiting(true);
+      setTimeout(() => {
+        setFeedIndex((i) => (i + 1) % LIVE_UPDATES.length);
+        setExiting(false);
+      }, 320);
+    }, 3500);
+    return () => clearInterval(t);
+  }, []);
+
+  // Count confidence score up on mount
+  useEffect(() => {
+    let n = 87;
+    const t = setInterval(() => {
+      n += 1;
+      setConfidence(n);
+      if (n >= 94) clearInterval(t);
+    }, 90);
+    return () => clearInterval(t);
+  }, []);
+
+  const visibleItems = Array.from({ length: 4 }, (_, i) =>
+    LIVE_UPDATES[(feedIndex + i) % LIVE_UPDATES.length],
+  );
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] bg-[#080D18] shadow-[0_60px_120px_rgba(0,0,0,0.7)]">
+      {/* Window chrome */}
+      <div className="flex items-center justify-between px-5 h-11 border-b border-white/[0.06] bg-[#060A14]">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]/70" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]/70" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]/70" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#18A999] animate-pulse" />
+          <span className="text-[10px] text-white/25 font-mono tracking-wider">LIVE · 7 athletes monitored</span>
+        </div>
+        <div className="text-[10px] text-white/15 font-mono">athlete intelligence</div>
+      </div>
+
+      <div className="grid grid-cols-5">
+        {/* Left panel — athlete roster */}
+        <div className="col-span-2 border-r border-white/[0.05] p-4 space-y-2.5">
+          <div className="text-[10px] text-white/25 uppercase tracking-widest mb-3 font-medium">Roster</div>
+          {ATHLETES.map((a, i) => (
+            <div
+              key={a.name}
+              className={`p-3 rounded-xl border transition-colors ${i === 0 ? "bg-[#2F80ED]/8 border-[#2F80ED]/20" : "bg-white/[0.025] border-white/[0.05]"}`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[12px] font-semibold text-white/90">{a.name}</span>
+                <span className="text-[10px] font-mono text-white/25">{a.nat}</span>
+              </div>
+              <div className="text-[10px] text-white/35 mb-2">{a.sport}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="text-[10px] text-white/25">Confidence</div>
+                  <div className="text-[11px] font-semibold text-[#2F80ED]">
+                    {i === 0 ? confidence : a.score}
+                  </div>
+                </div>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${a.delta !== "—" ? "text-[#18A999] bg-[#18A999]/10" : "text-white/25 bg-white/5"}`}>
+                  {a.delta}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Right panel — live intelligence feed */}
+        <div className="col-span-3 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Live Intelligence Feed</div>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#2F80ED]/10 border border-[#2F80ED]/20">
+              <span className="w-1 h-1 rounded-full bg-[#2F80ED] animate-pulse" />
+              <span className="text-[9px] text-[#2F80ED] font-semibold tracking-wider">LIVE</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {visibleItems.map((item, i) => (
+              <div
+                key={`${feedIndex}-${i}`}
+                className={`flex items-start gap-3 p-3 rounded-xl border border-white/[0.05] bg-white/[0.025] transition-all duration-300 ${i === 0 && exiting ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"}`}
+                style={{ transitionDelay: i === 0 ? "0ms" : `${i * 30}ms`, opacity: 1 - i * 0.18 }}
+              >
+                <span
+                  className="shrink-0 mt-px px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase"
+                  style={{ color: item.color, background: item.bg }}
+                >
+                  {item.type}
+                </span>
+                <p className="text-[11px] text-white/55 leading-relaxed flex-1">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
     <>
       <Helmet>
-        <title>Athlete Intelligence — Know more about every athlete than anyone else</title>
-        <meta name="description" content="Persistent AI agents monitor every athlete on your roster — surfacing results, rankings, media, sponsorship moves, and career changes as they happen. Built for national federations, professional clubs, academies, and agencies." />
-        <meta property="og:title" content="Athlete Intelligence — Know more about every athlete than anyone else" />
-        <meta property="og:description" content="Persistent AI agents monitor every athlete on your roster. Built for national federations, professional clubs, academies, and agencies." />
+        <title>Athlete Intelligence — The intelligence platform for elite sport</title>
+        <meta name="description" content="Persistent AI agents continuously monitor every athlete on your roster, surfacing the insights that matter most — from results and rankings to media coverage, sponsorship activity and career changes." />
+        <meta property="og:title" content="Athlete Intelligence — The intelligence platform for elite sport" />
+        <meta property="og:description" content="Every athlete has data. We create intelligence. Built for national federations, professional clubs, academies, and agencies." />
         <meta property="og:image" content="https://athleteintelligence.ai/og-image.png" />
         <meta property="og:url" content="https://athleteintelligence.ai/" />
         <meta property="og:type" content="website" />
@@ -89,245 +200,189 @@ export default function LandingPage() {
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
           "name": "Athlete Intelligence",
-          "description": "AI-powered athlete monitoring platform for national federations, professional clubs, academies, and agencies.",
+          "description": "AI-powered athlete intelligence platform for national federations, professional clubs, academies, and agencies.",
           "operatingSystem": "Web",
           "applicationCategory": "BusinessApplication",
-          "offers": { "@type": "Offer", "price": "299", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "299", "priceCurrency": "USD", "billingDuration": "P1M" } },
-          "url": "https://athleteintelligence.ai"
+          "url": "https://athleteintelligence.ai",
         })}</script>
       </Helmet>
+
       <PublicLayout>
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-[#0B0F1E] pt-24 pb-32">
-        {/* Background gradients */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#293055]/40 rounded-full blur-[120px]" />
-          <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-[#E75D50]/8 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#344F9F]/10 rounded-full blur-[100px]" />
-          {/* Grid lines */}
-          <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
-        </div>
 
-        <div className="relative max-w-6xl mx-auto px-6 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E75D50]/10 border border-[#E75D50]/25 text-[12px] text-[#E75D50] font-medium mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#E75D50] animate-pulse" />
-            Now in private beta — 5 pilot organisations
+        {/* ── Hero ─────────────────────────────────────────────────────────── */}
+        <section className="relative overflow-hidden bg-[#0E1423] pt-32 pb-28">
+          {/* Ambient backgrounds */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* Radial glow — behind headline */}
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] rounded-full bg-[#2F80ED]/[0.09] blur-[130px]" />
+            {/* Edge glows */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-[#112240]/60 blur-[120px]" />
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-[#0E1F3D]/40 blur-[100px]" />
+            {/* Subtle grid — texture only */}
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px)",
+                backgroundSize: "72px 72px",
+              }}
+            />
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.05] mb-6 max-w-4xl mx-auto">
-            Know more about every
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E75D50] to-[#FF8C7A]">athlete</span> than anyone else.
-          </h1>
-
-          <p className="text-lg text-white/45 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Persistent AI agents monitor every athlete on your roster — surfacing results, rankings, media coverage, sponsorship moves, and career changes as they happen. Built for national federations, professional clubs, academies, and talent agencies.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-20">
-            <Link href="/contact">
-              <span className="px-6 py-3.5 rounded-xl bg-[#E75D50] hover:bg-[#D04840] text-white font-semibold text-[15px] cursor-pointer transition-all shadow-[0_4px_20px_rgba(231,93,80,0.4)] hover:shadow-[0_4px_30px_rgba(231,93,80,0.55)]">
-                Request a demo
-              </span>
-            </Link>
-            <Link href="/pricing">
-              <span className="px-6 py-3.5 rounded-xl border border-white/15 text-white/70 hover:text-white hover:border-white/30 font-medium text-[15px] cursor-pointer transition-all hover:bg-white/5">
-                View pricing →
-              </span>
-            </Link>
-          </div>
-
-          {/* Intelligence feed preview */}
-          <div className="relative max-w-2xl mx-auto">
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-white/10 to-transparent" />
-            <div className="relative rounded-2xl bg-[#131929] border border-white/[0.08] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.5)]">
-              {/* Window chrome */}
-              <div className="flex items-center gap-1.5 px-4 h-9 border-b border-white/[0.06] bg-[#0E1525]">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
-                <div className="ml-auto text-[10px] text-white/20 font-mono">Intelligence Feed — Live</div>
-              </div>
-              {/* Feed items */}
-              <div className="p-4 space-y-2.5">
-                {FEED_ITEMS.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-left">
-                    <span className="shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ color: item.color, background: item.bg }}>
-                      {item.type}
-                    </span>
-                    <p className="text-[12px] text-white/60 leading-relaxed">{item.text}</p>
-                    <span className="shrink-0 text-[10px] text-white/20 mt-0.5">just now</span>
-                  </div>
-                ))}
-              </div>
+          <div className="relative max-w-5xl mx-auto px-6 text-center">
+            {/* Credibility badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[12px] text-white/50 font-medium mb-10 tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#18A999] animate-pulse" />
+              Trusted by 5 pilot organisations · Private Beta
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ── Trusted by ───────────────────────────────────────────────────── */}
-      <section className="bg-[#0D1220] border-y border-white/[0.05] py-10">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-[12px] text-white/25 uppercase tracking-widest mb-6">Purpose-built for the people who make decisions about athletes</p>
-          <div className="flex flex-wrap items-center justify-center gap-8">
-            {["National Sport Organisations", "High Performance Centres", "Professional Clubs", "Talent Academies", "Athlete Agencies"].map((org) => (
-              <span key={org} className="text-[13px] font-medium text-white/20">{org}</span>
-            ))}
-          </div>
-        </div>
-      </section>
+            {/* Headline */}
+            <h1 className="text-5xl md:text-[72px] lg:text-[80px] font-bold text-white tracking-tight leading-[1.04] mb-7 max-w-4xl mx-auto">
+              The intelligence platform<br />for elite sport.
+            </h1>
 
-      {/* ── Features ─────────────────────────────────────────────────────── */}
-      <section id="features" className="bg-[#0B0F1E] py-28">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Platform</div>
-            <h2 className="text-4xl font-bold text-white tracking-tight mb-4">Intelligence infrastructure<br />for professional sport</h2>
-            <p className="text-white/40 text-lg max-w-xl mx-auto">Your analysts are good at analysis — not at manually checking fifty sources across a hundred athletes every week. We solve that.</p>
-          </div>
+            {/* Supporting copy */}
+            <p className="text-lg md:text-xl text-white/45 max-w-2xl mx-auto mb-12 leading-relaxed font-normal">
+              Every athlete has data. We create intelligence. Persistent AI agents continuously monitor every athlete on your roster, surfacing the insights that matter most — from results and rankings to media coverage, sponsorship activity and career changes — in one intelligent platform.
+            </p>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="group p-6 rounded-2xl bg-[#131929] border border-white/[0.06] hover:border-white/[0.12] hover:bg-[#161e30] transition-all">
-                <div className="w-10 h-10 rounded-xl bg-[#E75D50]/10 flex items-center justify-center text-[#E75D50] mb-4 group-hover:bg-[#E75D50]/15 transition-colors">
-                  {f.icon}
-                </div>
-                <h3 className="text-[15px] font-semibold text-white/90 mb-2">{f.title}</h3>
-                <p className="text-[13px] text-white/40 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="bg-[#0D1220] py-28">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">How it works</div>
-            <h2 className="text-4xl font-bold text-white tracking-tight mb-4">Up and running in minutes</h2>
-            <p className="text-white/40 text-lg max-w-xl mx-auto">No integrations. No data migration. No IT project. Add your first athlete and the agents start working immediately.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {STEPS.map((s, i) => (
-              <div key={i} className="relative">
-                {i < STEPS.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-white/10 to-transparent z-10" />
-                )}
-                <div className="text-5xl font-bold text-white/5 mb-4 font-mono">{s.n}</div>
-                <h3 className="text-[17px] font-semibold text-white/90 mb-3">{s.title}</h3>
-                <p className="text-[13px] text-white/40 leading-relaxed">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Intelligence Centre promo ─────────────────────────────────────── */}
-      <section className="bg-[#0B0F1E] py-28">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="rounded-3xl bg-gradient-to-br from-[#131929] to-[#0E1525] border border-white/[0.07] overflow-hidden">
-            <div className="grid md:grid-cols-2 gap-0">
-              <div className="p-12">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#344F9F]/15 border border-[#344F9F]/30 text-[11px] text-[#6B8FFF] font-semibold uppercase tracking-wider mb-6">
-                  Intelligence Centre
-                </div>
-                <h2 className="text-3xl font-bold text-white tracking-tight mb-5 leading-tight">
-                  Stop searching.<br />Start deciding.
-                </h2>
-                <p className="text-[14px] text-white/45 leading-relaxed mb-8">
-                  The platform proactively surfaces what matters: emerging athletes, ranking movements, sponsorship opportunities, unusual media spikes, and career changes — structured and scored, ready for your team to act on before your competitors notice.
-                </p>
-                <Link href="/contact">
-                  <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#344F9F] hover:bg-[#2d4491] text-white text-[13px] font-medium cursor-pointer transition-colors">
-                    See it in action →
-                  </span>
-                </Link>
-              </div>
-              <div className="p-8 border-l border-white/[0.05] flex flex-col gap-3">
-                {[
-                  { emoji: "↑", label: "Rankings jump", text: "Sarah Smith moved 18th → 11th in world rankings." },
-                  { emoji: "🤝", label: "Sponsorship", text: "Trek-Segafredo announced deal with Alex Brown." },
-                  { emoji: "📣", label: "Media surge", text: "3× increase in media mentions over 7 days." },
-                  { emoji: "🔄", label: "Career change", text: "Athlete joined national squad. Coaching staff updated." },
-                  { emoji: "📊", label: "Emerging talent", text: "Under-23 athlete in top 15% for performance trajectory." },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                    <span className="text-lg">{item.emoji}</span>
-                    <div>
-                      <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider">{item.label}</span>
-                      <p className="text-[12px] text-white/55 mt-0.5">{item.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing teaser ───────────────────────────────────────────────── */}
-      <section className="bg-[#0D1220] py-28">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <div className="text-[12px] font-semibold text-[#E75D50] uppercase tracking-widest mb-3">Pricing</div>
-          <h2 className="text-4xl font-bold text-white tracking-tight mb-4">Simple, transparent tiers</h2>
-          <p className="text-white/40 text-lg mb-12">From single federations to enterprise organisations.</p>
-
-          <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-10">
-            {[
-              { name: "Starter", price: "$299", period: "/month", athletes: "50 athletes", users: "5 users", highlight: false },
-              { name: "Pro", price: "$799", period: "/month", athletes: "200 athletes", users: "15 users", highlight: true },
-              { name: "Enterprise", price: "Custom", period: "", athletes: "Unlimited athletes", users: "Unlimited users", highlight: false },
-            ].map((tier) => (
-              <div key={tier.name} className={`rounded-2xl p-6 text-left border ${tier.highlight ? "bg-[#E75D50]/8 border-[#E75D50]/30" : "bg-[#131929] border-white/[0.07]"}`}>
-                <div className="text-[13px] font-semibold text-white/60 mb-3">{tier.name}</div>
-                <div className="flex items-end gap-1 mb-5">
-                  <span className="text-3xl font-bold text-white">{tier.price}</span>
-                  <span className="text-[13px] text-white/35 mb-1">{tier.period}</span>
-                </div>
-                <div className="space-y-2 mb-5">
-                  <div className="text-[13px] text-white/50">{tier.athletes}</div>
-                  <div className="text-[13px] text-white/50">{tier.users}</div>
-                </div>
-                <Link href="/pricing">
-                  <span className={`block text-center py-2 rounded-lg text-[13px] font-medium cursor-pointer transition-colors ${tier.highlight ? "bg-[#E75D50] hover:bg-[#D04840] text-white" : "border border-white/15 text-white/60 hover:text-white hover:border-white/30"}`}>
-                    {tier.name === "Enterprise" ? "Contact sales" : "Get started"}
-                  </span>
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          <Link href="/pricing">
-            <span className="text-[13px] text-white/35 hover:text-white/60 cursor-pointer transition-colors">See full feature comparison →</span>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── Final CTA ────────────────────────────────────────────────────── */}
-      <section className="bg-[#0B0F1E] py-28">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-4xl font-bold text-white tracking-tight mb-5">Ready to see it in action?</h2>
-            <p className="text-white/40 text-lg mb-10">We run personalised demos built around athletes you actually work with — so you see real intelligence, not a rehearsed walkthrough.</p>
+            {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/contact">
-                <span className="px-8 py-4 rounded-xl bg-[#E75D50] hover:bg-[#D04840] text-white font-semibold text-[15px] cursor-pointer transition-all shadow-[0_4px_20px_rgba(231,93,80,0.4)]">
-                  Book a demo
+                <span className="px-7 py-3.5 rounded-xl bg-[#2F80ED] hover:bg-[#1E72DE] text-white font-semibold text-[15px] cursor-pointer transition-all shadow-[0_4px_24px_rgba(47,128,237,0.4)] hover:shadow-[0_4px_32px_rgba(47,128,237,0.55)]">
+                  Request a demo
                 </span>
               </Link>
-              <Link href="/pricing">
-                <span className="px-8 py-4 rounded-xl border border-white/15 text-white/60 hover:text-white hover:border-white/25 font-medium text-[15px] cursor-pointer transition-all">
-                  View pricing
+              <Link href="/about">
+                <span className="px-7 py-3.5 rounded-xl border border-white/[0.12] text-white/60 hover:text-white hover:border-white/25 font-medium text-[15px] cursor-pointer transition-all hover:bg-white/[0.04]">
+                  Explore the platform →
                 </span>
               </Link>
             </div>
           </div>
-        </div>
-      </section>
-    </PublicLayout>
+        </section>
+
+        {/* ── Trust metrics ────────────────────────────────────────────────── */}
+        <section className="bg-[#0A0E1A] border-y border-white/[0.05] py-12">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {STATS.map((s) => (
+                <div key={s.label} className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-1.5">{s.value}</div>
+                  <div className="text-[12px] text-white/30 font-medium tracking-wide">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Dashboard preview ────────────────────────────────────────────── */}
+        <section className="bg-[#0E1423] py-24">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <p className="text-[11px] font-semibold text-[#2F80ED] uppercase tracking-widest mb-3">Platform</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+                Intelligence, live and structured
+              </h2>
+              <p className="text-white/40 text-base max-w-lg mx-auto leading-relaxed">
+                Every update your team needs — sourced, scored, and surfaced automatically.
+              </p>
+            </div>
+            {/* Outer glow frame */}
+            <div className="relative">
+              <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-white/[0.07] to-transparent pointer-events-none" />
+              <LiveDashboard />
+            </div>
+          </div>
+        </section>
+
+        {/* ── Features ─────────────────────────────────────────────────────── */}
+        <section className="bg-[#0A0E1A] py-24">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-14">
+              <p className="text-[11px] font-semibold text-[#2F80ED] uppercase tracking-widest mb-3">What we track</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+                Four pillars of athlete intelligence
+              </h2>
+              <p className="text-white/40 text-base max-w-lg mx-auto leading-relaxed">
+                One platform. Every signal that matters in modern professional sport.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              {FEATURES.map((f) => (
+                <div
+                  key={f.title}
+                  className="group p-7 rounded-2xl bg-[#0C1120] border border-white/[0.06] hover:border-[#2F80ED]/25 hover:bg-[#0E1525] transition-all"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-[#2F80ED]/10 flex items-center justify-center text-[#2F80ED] mb-5 group-hover:bg-[#2F80ED]/18 transition-colors">
+                    {f.icon}
+                  </div>
+                  <h3 className="text-[16px] font-semibold text-white/90 mb-2.5">{f.title}</h3>
+                  <p className="text-[13px] text-white/40 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── How it works ─────────────────────────────────────────────────── */}
+        <section className="bg-[#0E1423] py-24">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-14">
+              <p className="text-[11px] font-semibold text-[#2F80ED] uppercase tracking-widest mb-3">How it works</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Up and running in minutes</h2>
+              <p className="text-white/40 text-base max-w-lg mx-auto leading-relaxed">
+                No integrations. No data migration. No IT project. Add your first athlete and the agents start working immediately.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-10">
+              {STEPS.map((s, i) => (
+                <div key={i} className="relative">
+                  {i < STEPS.length - 1 && (
+                    <div className="hidden md:block absolute top-6 left-full w-full h-px bg-gradient-to-r from-white/[0.08] to-transparent z-10" />
+                  )}
+                  <div className="text-[52px] font-bold text-white/[0.04] mb-4 font-mono leading-none">{s.n}</div>
+                  <h3 className="text-[16px] font-semibold text-white/90 mb-3">{s.title}</h3>
+                  <p className="text-[13px] text-white/40 leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Final CTA ────────────────────────────────────────────────────── */}
+        <section className="bg-[#0A0E1A] py-28">
+          <div className="max-w-5xl mx-auto px-6 text-center">
+            {/* Subtle glow */}
+            <div className="relative inline-block">
+              <div className="absolute inset-0 -m-16 rounded-full bg-[#2F80ED]/[0.06] blur-[80px] pointer-events-none" />
+              <div className="relative max-w-xl mx-auto">
+                <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-5 leading-tight">
+                  Ready to see it<br />in action?
+                </h2>
+                <p className="text-white/40 text-lg mb-10 leading-relaxed">
+                  We run personalised demos built around athletes you actually work with — so you see real intelligence, not a rehearsed walkthrough.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Link href="/contact">
+                    <span className="px-8 py-4 rounded-xl bg-[#2F80ED] hover:bg-[#1E72DE] text-white font-semibold text-[15px] cursor-pointer transition-all shadow-[0_4px_24px_rgba(47,128,237,0.4)] hover:shadow-[0_4px_36px_rgba(47,128,237,0.55)]">
+                      Book a demo
+                    </span>
+                  </Link>
+                  <Link href="/about">
+                    <span className="px-8 py-4 rounded-xl border border-white/[0.12] text-white/55 hover:text-white hover:border-white/25 font-medium text-[15px] cursor-pointer transition-all hover:bg-white/[0.04]">
+                      Learn more
+                    </span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </PublicLayout>
     </>
   );
 }
