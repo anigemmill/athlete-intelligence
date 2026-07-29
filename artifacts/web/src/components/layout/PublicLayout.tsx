@@ -13,13 +13,13 @@ export function PublicNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0B0F1E]/90 backdrop-blur-md border-b border-white/[0.06]">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0B1809]/95 backdrop-blur-md border-b border-white/[0.06]">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-[#2F80ED] to-[#1A65CC] flex items-center justify-center shadow-[0_2px_10px_rgba(47,128,237,0.4)]">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
+            <div className="w-7 h-7 rounded-[7px] bg-[#B9FF4A] flex items-center justify-center shadow-[0_2px_10px_rgba(185,255,74,0.35)]">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#0D1C0B" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
             </div>
@@ -31,7 +31,7 @@ export function PublicNav() {
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((l) => (
             <Link key={l.label} href={l.href}>
-              <span className={`px-3 py-1.5 rounded-md text-[13px] transition-colors cursor-pointer ${location === l.href ? "text-white bg-white/8" : "text-white/50 hover:text-white/80 hover:bg-white/5"}`}>
+              <span className={`px-3 py-1.5 rounded-md text-[13px] transition-colors cursor-pointer ${location === l.href ? "text-white bg-white/8" : "text-white/45 hover:text-white/80 hover:bg-white/5"}`}>
                 {l.label}
               </span>
             </Link>
@@ -41,10 +41,10 @@ export function PublicNav() {
         {/* CTAs */}
         <div className="flex items-center gap-3">
           <Link href="/sign-in">
-            <span className="hidden md:block text-[13px] text-white/50 hover:text-white/80 cursor-pointer transition-colors">Sign in</span>
+            <span className="hidden md:block text-[13px] text-white/45 hover:text-white/80 cursor-pointer transition-colors">Sign in</span>
           </Link>
           <Link href="/contact">
-            <span className="px-4 py-2 rounded-lg bg-[#2F80ED] hover:bg-[#1E72DE] text-white text-[13px] font-medium cursor-pointer transition-colors shadow-[0_2px_12px_rgba(47,128,237,0.35)]">
+            <span className="px-4 py-2 rounded-lg bg-[#B9FF4A] hover:bg-[#CBFF6A] text-[#0D1C0B] text-[13px] font-bold cursor-pointer transition-colors shadow-[0_2px_12px_rgba(185,255,74,0.3)]">
               Request demo
             </span>
           </Link>
@@ -56,15 +56,15 @@ export function PublicNav() {
 
 export function PublicFooter() {
   return (
-    <footer className="bg-[#0B0F1E] border-t border-white/[0.06]">
+    <footer className="bg-[#080F07] border-t border-white/[0.06]">
       <div className="max-w-6xl mx-auto px-6 py-16">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
           {/* Brand */}
           <div className="col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 rounded-[7px] bg-gradient-to-br from-[#2F80ED] to-[#1A65CC] flex items-center justify-center">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              <div className="w-7 h-7 rounded-[7px] bg-[#B9FF4A] flex items-center justify-center">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#0D1C0B" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
               </div>
               <span className="text-[13px] font-semibold text-white/80">Athlete Intelligence</span>
@@ -101,8 +101,8 @@ export function PublicFooter() {
         <div className="border-t border-white/[0.06] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-[12px] text-white/25">© {new Date().getFullYear()} Athlete Intelligence. All rights reserved.</p>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#B9FF4A]/10 border border-[#B9FF4A]/20 text-[11px] text-[#B9FF4A] font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#B9FF4A] animate-pulse" />
               All systems operational
             </span>
           </div>
@@ -114,7 +114,7 @@ export function PublicFooter() {
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#0B0F1E]">
+    <div className="min-h-screen bg-[#0D1C0B]">
       <PublicNav />
       <main className="pt-16">{children}</main>
       <PublicFooter />
