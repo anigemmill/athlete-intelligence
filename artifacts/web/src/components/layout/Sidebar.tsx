@@ -8,8 +8,6 @@ interface SidebarProps {
   activePage?: ActivePage;
 }
 
-// ── Nav sections ─────────────────────────────────────────────────────────────
-
 const NAV = [
   {
     section: null,
@@ -152,8 +150,8 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
     padding: "6px 10px",
     borderRadius: 6,
     marginBottom: 1,
-    background: isActive ? "rgba(231,93,80,0.16)" : "transparent",
-    color: isActive ? "#FEEEEE" : "rgba(252,250,250,0.45)",
+    background: isActive ? "rgba(185,255,74,0.12)" : "transparent",
+    color: isActive ? "#B9FF4A" : "rgba(255,255,255,0.45)",
     fontSize: 13,
     fontWeight: isActive ? 500 : 400,
     cursor: "pointer",
@@ -165,8 +163,8 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       style={{
         width: 224,
         flexShrink: 0,
-        background: "#293055",
-        borderRight: "1px solid rgba(255,255,255,0.07)",
+        background: "#0B1809",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -174,16 +172,16 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       }}
     >
       {/* Brand */}
-      <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+      <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: "linear-gradient(135deg, #E75D50 0%, #C84840 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(231,93,80,0.4)" }}>
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: "#B9FF4A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(185,255,74,0.35)" }}>
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#0D1C0B" strokeWidth={2.2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(252,250,250,0.95)", letterSpacing: "-0.01em" }}>Athlete Intelligence</div>
-            <div style={{ fontSize: 10, color: "rgba(252,250,250,0.30)", letterSpacing: "0.05em", marginTop: 1 }}>{user?.organizationMemberships?.[0]?.organization?.name ?? "Professional"}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.95)", letterSpacing: "-0.01em" }}>Athlete Intelligence</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", letterSpacing: "0.05em", marginTop: 1 }}>{user?.organizationMemberships?.[0]?.organization?.name ?? "Professional"}</div>
           </div>
         </div>
       </div>
@@ -193,7 +191,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
         {NAV.map((group) => (
           <div key={group.section ?? "root"}>
             {group.section && (
-              <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(252,250,250,0.25)", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 10px 4px" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.22)", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 10px 4px" }}>
                 {group.section}
               </div>
             )}
@@ -201,11 +199,11 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
               const isActive = activePage === item.id;
               return (
                 <Link key={item.id} href={item.href} aria-current={isActive ? "page" : undefined}>
-                  <div style={navItemStyle(isActive)} className="hover:!bg-[rgba(255,255,255,0.06)] hover:!text-[rgba(252,250,250,0.75)]">
-                    <span style={{ opacity: isActive ? 1 : 0.6 }} aria-hidden="true">{item.icon}</span>
+                  <div style={navItemStyle(isActive)} className="hover:!bg-[rgba(255,255,255,0.05)] hover:!text-[rgba(255,255,255,0.75)]">
+                    <span style={{ opacity: isActive ? 1 : 0.55 }} aria-hidden="true">{item.icon}</span>
                     <span style={{ flex: 1 }}>{item.label}</span>
                     {"badge" in item && item.badge ? (
-                      <div style={{ background: "#E75D50", color: "white", fontSize: 10, fontWeight: 600, borderRadius: 10, padding: "1px 6px", lineHeight: "14px", marginLeft: "auto" }} aria-label={`${item.badge} notifications`}>{item.badge}</div>
+                      <div style={{ background: "#B9FF4A", color: "#0D1C0B", fontSize: 10, fontWeight: 700, borderRadius: 10, padding: "1px 6px", lineHeight: "14px", marginLeft: "auto" }} aria-label={`${item.badge} notifications`}>{item.badge}</div>
                     ) : null}
                   </div>
                 </Link>
@@ -216,33 +214,31 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       </nav>
 
       {/* Athlete roster */}
-      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ padding: "10px 18px 6px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(252,250,250,0.25)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.22)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
             Roster ({allAthletes.length})
           </span>
           <Link href="/athletes/new">
-            <div style={{ width: 18, height: 18, borderRadius: 4, background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} title="Add Athlete">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="rgba(252,250,250,0.5)" strokeWidth={2.5}>
+            <div style={{ width: 18, height: 18, borderRadius: 4, background: "rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} title="Add Athlete">
+              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.45)" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
             </div>
           </Link>
         </div>
 
-        {/* Search */}
         {allAthletes.length > 5 && (
           <div style={{ padding: "0 10px 6px", flexShrink: 0 }}>
             <input
               value={athleteSearch}
               onChange={(e) => setAthleteSearch(e.target.value)}
               placeholder="Search roster…"
-              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "rgba(252,250,250,0.65)", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "rgba(255,255,255,0.65)", outline: "none", boxSizing: "border-box" }}
             />
           </div>
         )}
 
-        {/* Athlete list */}
         <div style={{ overflow: "auto", flex: 1, padding: "0 8px 8px" }} className="hide-scrollbar">
           {filteredAthletes.map((athlete: any) => (
             <Link key={athlete.id} href={`/athletes/${athlete.id}`}>
@@ -250,7 +246,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 6, cursor: "pointer", marginBottom: 1 }}
                 className="hover:bg-[rgba(255,255,255,0.05)] transition-colors"
               >
-                <div style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.07)" : "rgba(231,93,80,0.20)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.25)" : "rgba(252,250,250,0.90)" }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.06)" : "rgba(185,255,74,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.22)" : "rgba(185,255,74,0.90)" }}>
                   {athlete.avatarUrl ? (
                     <img src={athlete.avatarUrl} alt={athlete.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                   ) : (
@@ -258,28 +254,27 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.25)" : "rgba(252,250,250,0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.72)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {athlete.name}
                   </div>
-                  <div style={{ fontSize: 10, color: "rgba(252,250,250,0.28)", marginTop: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{athlete.sport}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.26)", marginTop: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{athlete.sport}</div>
                 </div>
                 {athlete.hasNewIntelligence && (
-                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#E75D50", flexShrink: 0 }} />
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#B9FF4A", flexShrink: 0 }} />
                 )}
               </div>
             </Link>
           ))}
           {filteredAthletes.length === 0 && athleteSearch && (
-            <div style={{ fontSize: 11, color: "rgba(252,250,250,0.25)", padding: "8px 10px" }}>No athletes match</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.22)", padding: "8px 10px" }}>No athletes match</div>
           )}
         </div>
       </div>
 
-      {/* Bottom nav (settings, admin) + user footer */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+      {/* Bottom nav + user footer */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
         <div style={{ padding: "8px 8px 4px" }}>
           {BOTTOM_NAV.filter((item) => {
-            // Admin link is only shown to the founder
             if (item.id === "admin") {
               const email = user?.primaryEmailAddress?.emailAddress ?? "";
               return email.toLowerCase() === "anigemmill@theoutsidein.nz";
@@ -289,8 +284,8 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             const isActive = activePage === item.id;
             return (
               <Link key={item.id} href={item.href}>
-                <div style={navItemStyle(isActive)} className="hover:!bg-[rgba(255,255,255,0.06)] hover:!text-[rgba(252,250,250,0.75)]">
-                  <span style={{ opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
+                <div style={navItemStyle(isActive)} className="hover:!bg-[rgba(255,255,255,0.05)] hover:!text-[rgba(255,255,255,0.75)]">
+                  <span style={{ opacity: isActive ? 1 : 0.55 }}>{item.icon}</span>
                   {item.label}
                 </div>
               </Link>
@@ -298,19 +293,18 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
           })}
         </div>
 
-        {/* User footer */}
         <div style={{ padding: "8px 14px 14px", display: "flex", alignItems: "center", gap: 9 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: "rgba(252,250,250,0.80)", flexShrink: 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(185,255,74,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 600, color: "#B9FF4A", flexShrink: 0 }}>
             {user?.firstName?.[0] || ""}{user?.lastName?.[0] || ""}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(252,250,250,0.70)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.70)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {user?.fullName || "User"}
             </div>
-            <div style={{ fontSize: 10, color: "rgba(252,250,250,0.28)" }}>Pro Plan</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.26)" }}>Pro Plan</div>
           </div>
-          <button onClick={() => signOut()} className="hover:bg-[rgba(255,255,255,0.08)] p-1.5 rounded transition-colors" aria-label="Sign out">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(252,250,250,0.25)" strokeWidth={2} className="hover:stroke-[rgba(252,250,250,0.7)] transition-colors">
+          <button onClick={() => signOut()} className="hover:bg-[rgba(255,255,255,0.07)] p-1.5 rounded transition-colors" aria-label="Sign out">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.22)" strokeWidth={2} className="hover:stroke-[rgba(255,255,255,0.65)] transition-colors">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
             </svg>
           </button>

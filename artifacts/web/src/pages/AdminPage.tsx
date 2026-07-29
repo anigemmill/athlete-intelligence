@@ -1,214 +1,159 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useUser, useAuth } from "@clerk/react";
-import { useLocation } from "wouter";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuthFetch } from "@/lib/useAuthFetch";
 import {
-  Shield, Users, CreditCard, Zap, Activity, Server,
-  GitBranch, MessageSquare, Mail, Loader2, RefreshCw,
-  CheckCircle2, Clock, XCircle,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Mail,
 } from "lucide-react";
 
-const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
+type AuthFetch = ReturnType<typeof useAuthFetch>;
 
-type Tab = "customers" | "enquiries" | "licences" | "ai-usage" | "crawl" | "health" | "flags";
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "customers", label: "Customers", icon: <Users size={13} /> },
-  { id: "enquiries", label: "Enquiries", icon: <Mail size={13} /> },
-  { id: "licences", label: "Licences", icon: <CreditCard size={13} /> },
-  { id: "ai-usage", label: "AI Usage", icon: <Zap size={13} /> },
-  { id: "crawl", label: "Crawl Monitor", icon: <Activity size={13} /> },
-  { id: "health", label: "Health", icon: <Server size={13} /> },
-  { id: "flags", label: "Feature Flags", icon: <GitBranch size={13} /> },
-];
-
-const PLAN_COLORS: Record<string, string> = {
-  Starter: "bg-[#F0F2F8] text-[#6B7080]",
-  Pro: "bg-[rgba(52,79,159,0.10)] text-[#344F9F]",
-  Enterprise: "bg-[rgba(231,93,80,0.10)] text-[#E75D50]",
-  None: "bg-[#F5F5F5] text-[#AAAAAA]",
-  Unknown: "bg-[#F5F5F5] text-[#AAAAAA]",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-600",
-  trialing: "bg-amber-50 text-amber-600",
-  canceled: "bg-red-50 text-red-600",
-  none: "bg-[#F0F2F8] text-[#8A90A8]",
-  past_due: "bg-red-50 text-red-500",
-};
-
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
-  return (
-    <div className="p-5 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
-      <div className="text-[12px] font-medium text-[#6B7080] mb-2">{label}</div>
-      <div className={`text-2xl font-bold mb-1 ${color ?? "text-[#1C1F3A]"}`}>{value}</div>
-      {sub && <div className="text-[11px] text-[#A0A8C0]">{sub}</div>}
-    </div>
-  );
-}
-
-function timeAgo(iso: string) {
-  const d = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(d / 60000);
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
   if (m < 2) return "Just now";
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Yesterday";
+  return `${d}d ago`;
 }
 
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" });
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// Shared type for the auth-aware fetch function passed from AdminPage
-type AuthFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+// Dark card style
+const card: React.CSSProperties = {
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.09)",
+  borderRadius: 12,
+};
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="rounded-xl p-5" style={card}>
+      <div className="text-[11px] font-medium uppercase tracking-wide mb-2" style={{ color: "rgba(255,255,255,0.38)" }}>{label}</div>
+      <div className="text-[28px] font-bold" style={{ color: color ?? "white" }}>{value}</div>
+    </div>
+  );
+}
 
 // ── Customers tab ─────────────────────────────────────────────────────────────
 
-type Customer = {
-  id: string; name: string; email: string;
-  plan: string; subscriptionStatus: string; mrr: number;
-  trialEnd: number | null; signedUpAt: string;
-  lastActiveAt: string | null; imageUrl: string;
-};
+interface Customer {
+  id: string;
+  email: string;
+  name?: string;
+  created: number;
+  activeSubscription: boolean;
+  subscriptionStatus?: string;
+  planName?: string;
+  currentPeriodEnd?: number;
+  cancelAtPeriodEnd?: boolean;
+  trialEnd?: number;
+  athleteCount?: number;
+}
 
 function CustomersTab({ authFetch }: { authFetch: AuthFetch }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true); setError(null);
-    try {
-      const r = await authFetch("/api/admin/customers");
-      if (!r.ok) throw new Error(await r.text());
-      const d = await r.json();
-      setCustomers(d.customers ?? []);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
-  };
+  useEffect(() => {
+    authFetch("/api/admin/customers")
+      .then((r) => r.json())
+      .then((d) => setCustomers(d.customers ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  useEffect(() => { load(); }, []);
-
-  const active = customers.filter((c) => c.subscriptionStatus === "active");
-  const trialing = customers.filter((c) => c.subscriptionStatus === "trialing");
-  const mrr = active.reduce((s, c) => s + c.mrr, 0);
+  const active = customers.filter((c) => c.activeSubscription).length;
+  const trialing = customers.filter((c) => c.subscriptionStatus === "trialing").length;
+  const canceling = customers.filter((c) => c.cancelAtPeriodEnd).length;
 
   if (loading) return (
-    <div className="flex items-center gap-2 text-[13px] text-[#8A90A8] py-8">
-      <Loader2 size={14} className="animate-spin" /> Loading customers from Clerk + Stripe…
+    <div className="flex items-center gap-2 text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>
+      <Loader2 size={14} className="animate-spin" /> Loading customers…
     </div>
   );
 
-  if (error) return (
-    <div className="py-8 text-[13px] text-red-500">Error: {error}</div>
-  );
-
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-4 gap-4">
-        <StatCard label="Total sign-ups" value={String(customers.length)} sub={`${trialing.length} in trial`} />
-        <StatCard label="Monthly recurring revenue" value={`$${mrr.toLocaleString()}`} sub="Active subscriptions only" color="text-emerald-600" />
-        <StatCard label="Active subscribers" value={String(active.length)} />
-        <StatCard label="Trialling" value={String(trialing.length)} color="text-amber-600" />
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Total customers" value={String(customers.length)} />
+        <StatCard label="Active subscriptions" value={String(active)} color="#4ade80" />
+        <StatCard label="Cancelling" value={String(canceling)} color={canceling > 0 ? "#fbbf24" : undefined} />
       </div>
 
-      <div className="rounded-xl border border-[#DCE2EF] bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#DCE2EF] flex items-center justify-between">
-          <h3 className="text-[13px] font-semibold text-[#1C1F3A]">All sign-ups ({customers.length})</h3>
-          <button onClick={load} className="flex items-center gap-1.5 text-[12px] text-[#8A90A8] hover:text-[#6B7080] transition-colors">
-            <RefreshCw size={12} /> Refresh
-          </button>
+      {customers.length === 0 ? (
+        <div className="rounded-xl p-10 text-center text-[13px]" style={{ ...card, color: "rgba(255,255,255,0.35)" }}>
+          No customers yet.
         </div>
-
-        {customers.length === 0 ? (
-          <div className="px-5 py-10 text-center text-[13px] text-[#8A90A8]">No sign-ups yet.</div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#DCE2EF] bg-[#FAFBFF]">
-                {["User", "Plan", "Status", "MRR", "Signed up", "Last active", "Trial ends"].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 text-[11px] font-semibold text-[#8A90A8] uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => (
-                <tr key={c.id} className="border-b border-[#F0F2F8] last:border-0 hover:bg-[#FAFBFF]">
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                      {c.imageUrl ? (
-                        <img src={c.imageUrl} alt={c.name || c.email} loading="lazy" className="w-7 h-7 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-[#EEF0F8] flex items-center justify-center text-[11px] font-bold text-[#6B7080]">
-                          {c.name.charAt(0) || c.email.charAt(0)}
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-[13px] font-medium text-[#1C1F3A]">{c.name || "—"}</div>
-                        <div className="text-[11px] text-[#8A90A8]">{c.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${PLAN_COLORS[c.plan] ?? PLAN_COLORS.None}`}>
-                      {c.plan}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_COLORS[c.subscriptionStatus] ?? STATUS_COLORS.none}`}>
-                      {c.subscriptionStatus}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-[13px] font-medium text-[#1C1F3A]">
-                    {c.mrr ? `$${c.mrr}` : "—"}
-                  </td>
-                  <td className="px-5 py-3.5 text-[12px] text-[#8A90A8]">{formatDate(c.signedUpAt)}</td>
-                  <td className="px-5 py-3.5 text-[12px] text-[#8A90A8]">
-                    {c.lastActiveAt ? timeAgo(c.lastActiveAt) : "—"}
-                  </td>
-                  <td className="px-5 py-3.5 text-[12px] text-[#8A90A8]">
-                    {c.trialEnd ? formatDate(new Date(c.trialEnd * 1000).toISOString()) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      ) : (
+        <div className="rounded-xl overflow-hidden" style={card}>
+          <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr] px-5 py-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.28)", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+            <div>Customer</div>
+            <div>Plan</div>
+            <div>Athletes</div>
+            <div>Status</div>
+            <div>Joined</div>
+          </div>
+          {customers.map((c) => {
+            const statusColor = c.subscriptionStatus === "active" ? "#4ade80"
+              : c.subscriptionStatus === "trialing" ? "#fbbf24"
+              : c.subscriptionStatus === "past_due" ? "#f87171"
+              : "rgba(255,255,255,0.35)";
+            return (
+              <div key={c.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr] px-5 py-4 items-center transition-colors" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <div>
+                  <div className="text-[13px] font-medium text-white">{c.name || "—"}</div>
+                  <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.40)" }}>{c.email}</div>
+                </div>
+                <div className="text-[12px]" style={{ color: "rgba(255,255,255,0.65)" }}>{c.planName ?? "—"}</div>
+                <div className="text-[12px]" style={{ color: "rgba(255,255,255,0.55)" }}>{c.athleteCount ?? "—"}</div>
+                <div>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ color: statusColor, background: `${statusColor}15` }}>
+                    {c.subscriptionStatus ?? "none"}
+                    {c.cancelAtPeriodEnd ? " (cancelling)" : ""}
+                  </span>
+                </div>
+                <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                  {new Date(c.created * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Enquiries tab ─────────────────────────────────────────────────────────────
 
-type Enquiry = {
-  id: number; type: string; name: string; org: string;
-  email: string; role: string | null; athletes: string | null;
-  message: string | null; status: string; createdAt: string;
-};
+interface Enquiry {
+  id: number;
+  name: string;
+  email: string;
+  org?: string;
+  role?: string;
+  athletes?: string;
+  message?: string;
+  type: string;
+  status: string;
+  createdAt: string;
+}
 
-const ENQUIRY_TYPE_LABELS: Record<string, string> = {
-  demo: "Demo request",
-  sales: "Enterprise",
-  general: "General",
-};
-
-const ENQUIRY_TYPE_COLORS: Record<string, string> = {
-  demo: "bg-[rgba(52,79,159,0.10)] text-[#344F9F]",
-  sales: "bg-[rgba(231,93,80,0.10)] text-[#E75D50]",
-  general: "bg-[#F0F2F8] text-[#6B7080]",
-};
-
+const ENQUIRY_TYPE_LABELS: Record<string, string> = { demo: "Demo", sales: "Sales", general: "General" };
 const ENQUIRY_STATUS_OPTIONS = ["new", "read", "replied"];
-const ENQUIRY_STATUS_COLORS: Record<string, string> = {
-  new: "bg-amber-50 text-amber-600",
-  read: "bg-blue-50 text-blue-600",
-  replied: "bg-emerald-50 text-emerald-600",
-};
 
 function EnquiriesTab({ authFetch }: { authFetch: AuthFetch }) {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
@@ -237,121 +182,128 @@ function EnquiriesTab({ authFetch }: { authFetch: AuthFetch }) {
   };
 
   if (loading) return (
-    <div className="flex items-center gap-2 text-[13px] text-[#8A90A8] py-8">
+    <div className="flex items-center gap-2 text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>
       <Loader2 size={14} className="animate-spin" /> Loading enquiries…
     </div>
   );
 
   const newCount = enquiries.filter((e) => e.status === "new").length;
 
+  const typeColor = (type: string) => type === "demo" ? "#C8BDFF" : type === "sales" ? "#B9FF4A" : "rgba(255,255,255,0.40)";
+  const statusBadge = (status: string) => status === "new"
+    ? { color: "#fbbf24", bg: "rgba(251,191,36,0.10)" }
+    : status === "read"
+    ? { color: "#C8BDFF", bg: "rgba(200,189,255,0.10)" }
+    : { color: "#4ade80", bg: "rgba(74,222,128,0.10)" };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
         <StatCard label="Total enquiries" value={String(enquiries.length)} />
-        <StatCard label="New (unread)" value={String(newCount)} color={newCount > 0 ? "text-amber-600" : undefined} />
-        <StatCard label="Replied" value={String(enquiries.filter((e) => e.status === "replied").length)} color="text-emerald-600" />
+        <StatCard label="New (unread)" value={String(newCount)} color={newCount > 0 ? "#fbbf24" : undefined} />
+        <StatCard label="Replied" value={String(enquiries.filter((e) => e.status === "replied").length)} color="#4ade80" />
       </div>
 
       {enquiries.length === 0 ? (
-        <div className="rounded-xl border border-[#DCE2EF] bg-white p-10 text-center text-[13px] text-[#8A90A8]">
+        <div className="rounded-xl p-10 text-center text-[13px]" style={{ ...card, color: "rgba(255,255,255,0.35)" }}>
           No enquiries yet. Submissions from the contact form will appear here.
         </div>
       ) : (
         <div className="space-y-2">
-          {enquiries.map((e) => (
-            <div key={e.id} className="rounded-xl border border-[#DCE2EF] bg-white shadow-sm overflow-hidden">
-              {/* Header row */}
-              <div
-                className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-[#FAFBFF] transition-colors"
-                onClick={() => setExpanded(expanded === e.id ? null : e.id)}
-              >
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${ENQUIRY_TYPE_COLORS[e.type] ?? ENQUIRY_TYPE_COLORS.general}`}>
-                  {ENQUIRY_TYPE_LABELS[e.type] ?? e.type}
-                </span>
-
-                <div className="flex-1 min-w-0">
-                  <span className="text-[13px] font-medium text-[#1C1F3A]">{e.name}</span>
-                  <span className="text-[12px] text-[#8A90A8] ml-2">{e.org}</span>
-                  {e.message && (
-                    <span className="text-[12px] text-[#A0A8C0] ml-2 truncate hidden sm:inline">
-                      — {e.message.slice(0, 80)}{e.message.length > 80 ? "…" : ""}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-[11px] text-[#A0A8C0]">{timeAgo(e.createdAt)}</span>
-                  <select
-                    value={e.status}
-                    onClick={(ev) => ev.stopPropagation()}
-                    onChange={(ev) => updateStatus(e.id, ev.target.value)}
-                    className={`text-[11px] font-semibold px-2 py-1 rounded-full border-0 cursor-pointer focus:outline-none ${ENQUIRY_STATUS_COLORS[e.status] ?? ""}`}
-                  >
-                    {ENQUIRY_STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Expanded detail */}
-              {expanded === e.id && (
-                <div className="border-t border-[#F0F2F8] px-5 py-4 space-y-3 bg-[#FAFBFF]">
-                  <div className="grid grid-cols-3 gap-4 text-[12px]">
-                    <div>
-                      <div className="text-[10px] font-semibold text-[#8A90A8] uppercase tracking-wider mb-1">Email</div>
-                      <a href={`mailto:${e.email}`} className="text-[#344F9F] hover:underline">{e.email}</a>
-                    </div>
-                    {e.role && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#8A90A8] uppercase tracking-wider mb-1">Role</div>
-                        <div className="text-[#1C1F3A]">{e.role}</div>
-                      </div>
-                    )}
-                    {e.athletes && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#8A90A8] uppercase tracking-wider mb-1">Roster size</div>
-                        <div className="text-[#1C1F3A]">{e.athletes}</div>
-                      </div>
+          {enquiries.map((e) => {
+            const sb = statusBadge(e.status);
+            return (
+              <div key={e.id} className="rounded-xl overflow-hidden" style={card}>
+                <div className="flex items-center gap-3 px-5 py-4 cursor-pointer transition-colors" onClick={() => setExpanded(expanded === e.id ? null : e.id)}
+                  onMouseEnter={(el) => el.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseLeave={(el) => el.currentTarget.style.background = "transparent"}
+                >
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0" style={{ color: typeColor(e.type), background: `${typeColor(e.type)}15`, border: `1px solid ${typeColor(e.type)}25` }}>
+                    {ENQUIRY_TYPE_LABELS[e.type] ?? e.type}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium text-white">{e.name}</span>
+                    <span className="text-[12px] ml-2" style={{ color: "rgba(255,255,255,0.40)" }}>{e.org}</span>
+                    {e.message && (
+                      <span className="text-[12px] ml-2 truncate hidden sm:inline" style={{ color: "rgba(255,255,255,0.28)" }}>
+                        — {e.message.slice(0, 80)}{e.message.length > 80 ? "…" : ""}
+                      </span>
                     )}
                   </div>
-                  {e.message && (
-                    <div>
-                      <div className="text-[10px] font-semibold text-[#8A90A8] uppercase tracking-wider mb-1">Message</div>
-                      <p className="text-[13px] text-[#3D426A] leading-relaxed whitespace-pre-wrap">{e.message}</p>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 pt-1">
-                    <a
-                      href={`mailto:${e.email}?subject=Re: Your Athlete Intelligence enquiry`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#293055] text-white text-[12px] font-medium hover:bg-[#1e2440] transition-colors"
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.28)" }}>{timeAgo(e.createdAt)}</span>
+                    <select
+                      value={e.status}
+                      onClick={(ev) => ev.stopPropagation()}
+                      onChange={(ev) => updateStatus(e.id, ev.target.value)}
+                      className="text-[11px] font-semibold px-2 py-1 rounded-full border-0 cursor-pointer focus:outline-none"
+                      style={{ color: sb.color, background: sb.bg }}
                     >
-                      <Mail size={12} /> Reply by email
-                    </a>
-                    <span className="text-[11px] text-[#A0A8C0]">Received {formatDate(e.createdAt)}</span>
+                      {ENQUIRY_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {expanded === e.id && (
+                  <div className="px-5 py-4 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+                    <div className="grid grid-cols-3 gap-4 text-[12px]">
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "rgba(255,255,255,0.30)" }}>Email</div>
+                        <a href={`mailto:${e.email}`} style={{ color: "#C8BDFF" }}>{e.email}</a>
+                      </div>
+                      {e.role && (
+                        <div>
+                          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "rgba(255,255,255,0.30)" }}>Role</div>
+                          <div className="text-white">{e.role}</div>
+                        </div>
+                      )}
+                      {e.athletes && (
+                        <div>
+                          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "rgba(255,255,255,0.30)" }}>Roster size</div>
+                          <div className="text-white">{e.athletes}</div>
+                        </div>
+                      )}
+                    </div>
+                    {e.message && (
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "rgba(255,255,255,0.30)" }}>Message</div>
+                        <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: "rgba(255,255,255,0.65)" }}>{e.message}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 pt-1">
+                      <a href={`mailto:${e.email}?subject=Re: Your Athlete Intelligence enquiry`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors"
+                        style={{ background: "#B9FF4A", color: "#0D1C0B" }}
+                      >
+                        <Mail size={12} /> Reply by email
+                      </a>
+                      <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.30)" }}>Received {formatDate(e.createdAt)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-// ── Placeholder tabs (mock data kept) ─────────────────────────────────────────
+// ── AI Usage tab ──────────────────────────────────────────────────────────────
 
 function AiUsageTab() {
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
-        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">AI usage telemetry</h3>
-        <p className="text-[13px] text-[#8A90A8]">LLM call volumes, token consumption, and crawler activity metrics will appear here once the analytics pipeline is connected.</p>
+      <div className="rounded-xl p-6" style={card}>
+        <h3 className="text-[13px] font-semibold text-white mb-1">AI usage telemetry</h3>
+        <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>LLM call volumes, token consumption, and crawler activity metrics will appear here once the analytics pipeline is connected.</p>
       </div>
     </div>
   );
 }
+
+// ── Crawl tab ─────────────────────────────────────────────────────────────────
 
 function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
   const [backfilling, setBackfilling] = useState(false);
@@ -362,8 +314,7 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
   const [socialResult, setSocialResult] = useState<{ updated: number; notFound: number; total: number; results: { name: string; instagram?: string; twitter?: string; tiktok?: string }[] } | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
-  // Per-athlete repopulate
-  const [athletes, setAthletes] = useState<{ id: number; name: string; sport: string; intelligence_count: number; last_crawled_at: string | null }[]>([]);
+  const [athletes, setAthletes] = useState<{ id: number; name: string; sport: string; intelligenceCount: number; lastCrawledAt: string | null }[]>([]);
   const [repopulating, setRepopulating] = useState<Record<number, boolean>>({});
   const [repopulateNote, setRepopulateNote] = useState<Record<number, string>>({});
 
@@ -379,7 +330,6 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error ?? "Failed");
       setRepopulateNote(p => ({ ...p, [id]: "Running in background…" }));
-      // Poll until last_crawled_at is set (up to ~90s)
       const start = Date.now();
       const poll = setInterval(async () => {
         if (Date.now() - start > 90000) { clearInterval(poll); setRepopulateNote(p => ({ ...p, [id]: "Timed out — may still be running" })); return; }
@@ -388,7 +338,7 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
         const a = await ar.json();
         if (a.lastCrawledAt) {
           clearInterval(poll);
-          setAthletes(prev => prev.map(x => x.id === id ? { ...x, intelligence_count: a.intelligenceCount ?? x.intelligence_count, last_crawled_at: a.lastCrawledAt } : x));
+          setAthletes(prev => prev.map(x => x.id === id ? { ...x, intelligenceCount: a.intelligenceCount ?? x.intelligenceCount, lastCrawledAt: a.lastCrawledAt } : x));
           setRepopulateNote(p => ({ ...p, [id]: `Done — ${a.intelligenceCount ?? "?"} items` }));
           setRepopulating(prev => ({ ...prev, [id]: false }));
         }
@@ -431,37 +381,38 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
     }
   };
 
+  const sectionCard: React.CSSProperties = { ...card, padding: 24, marginBottom: 0 };
+
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
-        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Crawl monitor</h3>
-        <p className="text-[13px] text-[#8A90A8]">Live agent job status, queue depth, and crawl latency will appear here once the background crawl service reporting is connected.</p>
+      <div style={sectionCard}>
+        <h3 className="text-[13px] font-semibold text-white mb-1">Crawl monitor</h3>
+        <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.45)" }}>Live agent job status, queue depth, and crawl latency will appear here once the background crawl service reporting is connected.</p>
       </div>
 
       {/* Photo backfill */}
-      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
-        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Backfill athlete photos</h3>
-        <p className="text-[13px] text-[#8A90A8] mb-4">
+      <div style={sectionCard}>
+        <h3 className="text-[13px] font-semibold text-white mb-1">Backfill athlete photos</h3>
+        <p className="text-[13px] mb-4" style={{ color: "rgba(255,255,255,0.45)" }}>
           Runs a Wikipedia lookup for every athlete that has no profile photo. Uses a search fallback for athletes without a direct Wikipedia page. Safe to run multiple times — skips athletes that already have a photo.
         </p>
         <div className="flex items-center gap-3">
-          <button
-            onClick={runBackfill}
-            disabled={backfilling}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#344F9F] text-white text-[13px] font-medium hover:bg-[#2B4490] transition-colors disabled:opacity-60"
+          <button onClick={runBackfill} disabled={backfilling}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-60"
+            style={{ background: "#B9FF4A", color: "#0D1C0B" }}
           >
             {backfilling ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
             {backfilling ? "Searching Wikipedia…" : "Backfill Photos"}
           </button>
           {backfillResult && (
-            <span className="text-[13px] text-emerald-600 font-medium flex items-center gap-1.5">
+            <span className="text-[13px] font-medium flex items-center gap-1.5 text-emerald-400">
               <CheckCircle2 size={14} />
               {backfillResult.found} photo{backfillResult.found !== 1 ? "s" : ""} found from {backfillResult.total} athletes
-              {backfillResult.skipped > 0 && <span className="text-[#A0A8C0] font-normal">({backfillResult.skipped} no Wikipedia page)</span>}
+              {backfillResult.skipped > 0 && <span className="font-normal" style={{ color: "rgba(255,255,255,0.35)" }}>({backfillResult.skipped} no Wikipedia page)</span>}
             </span>
           )}
           {backfillError && (
-            <span className="text-[13px] text-red-500 flex items-center gap-1.5">
+            <span className="text-[13px] text-red-400 flex items-center gap-1.5">
               <XCircle size={14} /> {backfillError}
             </span>
           )}
@@ -469,51 +420,49 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
       </div>
 
       {/* Social stats backfill */}
-      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
-        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Backfill social media stats</h3>
-        <p className="text-[13px] text-[#8A90A8] mb-4">
+      <div style={sectionCard}>
+        <h3 className="text-[13px] font-semibold text-white mb-1">Backfill social media stats</h3>
+        <p className="text-[13px] mb-4" style={{ color: "rgba(255,255,255,0.45)" }}>
           Uses Perplexity live web search to find each athlete's Instagram, Twitter/X and TikTok handles and follower counts from sports media, influencer directories, and team pages. Overwrites existing values with the latest found data.
         </p>
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={runSocialBackfill}
-            disabled={socialFilling}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#344F9F] text-white text-[13px] font-medium hover:bg-[#2B4490] transition-colors disabled:opacity-60"
+          <button onClick={runSocialBackfill} disabled={socialFilling}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-60"
+            style={{ background: "#B9FF4A", color: "#0D1C0B" }}
           >
             {socialFilling ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
             {socialFilling ? "Searching social media…" : "Backfill Social Stats"}
           </button>
           {socialResult && (
-            <span className="text-[13px] text-emerald-600 font-medium flex items-center gap-1.5">
+            <span className="text-[13px] font-medium flex items-center gap-1.5 text-emerald-400">
               <CheckCircle2 size={14} />
               {socialResult.updated} of {socialResult.total} athletes updated
-              {socialResult.notFound > 0 && <span className="text-[#A0A8C0] font-normal">({socialResult.notFound} not found)</span>}
+              {socialResult.notFound > 0 && <span className="font-normal" style={{ color: "rgba(255,255,255,0.35)" }}>({socialResult.notFound} not found)</span>}
             </span>
           )}
           {socialError && (
-            <span className="text-[13px] text-red-500 flex items-center gap-1.5">
+            <span className="text-[13px] text-red-400 flex items-center gap-1.5">
               <XCircle size={14} /> {socialError}
             </span>
           )}
         </div>
         {socialResult && socialResult.results.length > 0 && (
-          <div className="mt-4 rounded-lg border border-[#DCE2EF] overflow-hidden">
+          <div className="mt-4 rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.09)" }}>
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="bg-[#FAFBFF] border-b border-[#DCE2EF]">
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Athlete</th>
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Instagram</th>
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Twitter/X</th>
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">TikTok</th>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+                  {["Athlete", "Instagram", "Twitter/X", "TikTok"].map(h => (
+                    <th key={h} className="text-left px-4 py-2 font-semibold" style={{ color: "rgba(255,255,255,0.35)" }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {socialResult.results.map((r, i) => (
-                  <tr key={i} className="border-b border-[#F0F2F8] last:border-0">
-                    <td className="px-4 py-2 font-medium text-[#1C1F3A]">{r.name}</td>
-                    <td className="px-4 py-2 text-[#6B7080]">{r.instagram ? `@${r.instagram}` : "—"}</td>
-                    <td className="px-4 py-2 text-[#6B7080]">{r.twitter ? `@${r.twitter}` : "—"}</td>
-                    <td className="px-4 py-2 text-[#6B7080]">{r.tiktok ? `@${r.tiktok}` : "—"}</td>
+                  <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <td className="px-4 py-2 font-medium text-white">{r.name}</td>
+                    <td className="px-4 py-2" style={{ color: "rgba(255,255,255,0.55)" }}>{r.instagram ? `@${r.instagram}` : "—"}</td>
+                    <td className="px-4 py-2" style={{ color: "rgba(255,255,255,0.55)" }}>{r.twitter ? `@${r.twitter}` : "—"}</td>
+                    <td className="px-4 py-2" style={{ color: "rgba(255,255,255,0.55)" }}>{r.tiktok ? `@${r.tiktok}` : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -523,53 +472,53 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
       </div>
 
       {/* Per-athlete intelligence repopulate */}
-      <div className="rounded-xl border border-[#DCE2EF] bg-white p-6">
-        <h3 className="text-[13px] font-semibold text-[#1C1F3A] mb-1">Repopulate athlete intelligence</h3>
-        <p className="text-[13px] text-[#8A90A8] mb-4">
+      <div style={sectionCard}>
+        <h3 className="text-[13px] font-semibold text-white mb-1">Repopulate athlete intelligence</h3>
+        <p className="text-[13px] mb-4" style={{ color: "rgba(255,255,255,0.45)" }}>
           Wipes and re-runs the Perplexity + AI intelligence pipeline for a specific athlete. Use when an athlete's feed is empty or contains "not found" placeholders. Takes ~30–60 s per athlete.
         </p>
         {athletes.length === 0 ? (
-          <p className="text-[13px] text-[#A0A8C0]">Loading athletes…</p>
+          <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.30)" }}>Loading athletes…</p>
         ) : (
-          <div className="rounded-lg border border-[#DCE2EF] overflow-hidden">
+          <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.09)" }}>
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="bg-[#FAFBFF] border-b border-[#DCE2EF]">
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Athlete</th>
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Sport</th>
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Items</th>
-                  <th className="text-left px-4 py-2 font-semibold text-[#6B7080]">Last crawled</th>
-                  <th className="px-4 py-2" />
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
+                  {["Athlete", "Sport", "Items", "Last crawled", ""].map((h, i) => (
+                    <th key={i} className="text-left px-4 py-2 font-semibold" style={{ color: "rgba(255,255,255,0.35)" }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {athletes.map((a) => (
-                  <tr key={a.id} className="border-b border-[#F0F2F8] last:border-0">
-                    <td className="px-4 py-2 font-medium text-[#1C1F3A]">{a.name}</td>
-                    <td className="px-4 py-2 text-[#6B7080]">{a.sport ?? "—"}</td>
-                    <td className="px-4 py-2 text-[#6B7080]">
-                      <span className={a.intelligence_count === 0 ? "text-red-500 font-semibold" : ""}>
-                        {a.intelligence_count}
+                  <tr key={a.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <td className="px-4 py-2 font-medium text-white">{a.name}</td>
+                    <td className="px-4 py-2" style={{ color: "rgba(255,255,255,0.55)" }}>{a.sport ?? "—"}</td>
+                    <td className="px-4 py-2">
+                      <span style={{ color: a.intelligenceCount === 0 ? "#f87171" : "rgba(255,255,255,0.55)", fontWeight: a.intelligenceCount === 0 ? 600 : 400 }}>
+                        {a.intelligenceCount}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-[#6B7080]">
-                      {a.last_crawled_at ? new Date(a.last_crawled_at).toLocaleDateString() : <span className="text-amber-500">Never</span>}
+                    <td className="px-4 py-2" style={{ color: "rgba(255,255,255,0.40)" }}>
+                      {a.lastCrawledAt ? timeAgo(a.lastCrawledAt) : <span style={{ color: "rgba(248,113,113,0.80)" }}>Never</span>}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {repopulateNote[a.id] ? (
-                        <span className={`text-[11px] ${repopulateNote[a.id].startsWith("Done") ? "text-emerald-600" : "text-[#A0A8C0]"}`}>
-                          {repopulateNote[a.id]}
-                        </span>
-                      ) : (
+                      <div className="flex items-center justify-end gap-2">
+                        {repopulateNote[a.id] && (
+                          <span className="text-[11px]" style={{ color: repopulateNote[a.id].startsWith("Done") ? "#4ade80" : "rgba(255,255,255,0.40)" }}>
+                            {repopulateNote[a.id]}
+                          </span>
+                        )}
                         <button
                           onClick={() => repopulate(a.id)}
                           disabled={repopulating[a.id]}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#F0F2F8] text-[#344F9F] text-[11px] font-medium hover:bg-[#DCE2EF] transition-colors disabled:opacity-50 ml-auto"
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-60"
+                          style={{ background: "rgba(185,255,74,0.10)", color: "#B9FF4A", border: "1px solid rgba(185,255,74,0.20)" }}
                         >
                           {repopulating[a.id] ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
                           {repopulating[a.id] ? "Running…" : "Repopulate"}
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -582,163 +531,172 @@ function CrawlTab({ authFetch }: { authFetch: AuthFetch }) {
   );
 }
 
-function HealthTab() {
-  const [apiStatus, setApiStatus] = useState<"checking" | "healthy" | "degraded">("checking");
+// ── Health tab ────────────────────────────────────────────────────────────────
+
+function HealthTab({ authFetch }: { authFetch: AuthFetch }) {
+  const [health, setHealth] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/healthz")
-      .then((r) => setApiStatus(r.ok ? "healthy" : "degraded"))
-      .catch(() => setApiStatus("degraded"));
+    authFetch("/api/admin/health")
+      .then((r) => r.json())
+      .then(setHealth)
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  // DB and Stripe are implicitly healthy if the API server is up (they're checked at startup).
-  // Clerk is healthy if the admin can view this page at all.
-  const services = [
-    { name: "API Server", status: apiStatus },
-    { name: "Database (PostgreSQL)", status: apiStatus === "checking" ? "checking" : "healthy" },
-    { name: "Auth (Clerk)", status: "healthy" },
-    { name: "Payments (Stripe)", status: "healthy" },
-    { name: "AI Gateway (OpenAI)", status: "healthy" },
-  ] as const;
+  if (loading) return (
+    <div className="flex items-center gap-2 text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>
+      <Loader2 size={14} className="animate-spin" /> Loading health data…
+    </div>
+  );
 
-  const colors: Record<string, string> = {
-    healthy: "bg-emerald-50 text-emerald-600",
-    degraded: "bg-red-50 text-red-600",
-    checking: "bg-amber-50 text-amber-600",
+  if (!health) return (
+    <div className="text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>No health data available.</div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Database" value={health.db === "ok" ? "OK" : "Error"} color={health.db === "ok" ? "#4ade80" : "#f87171"} />
+        <StatCard label="API" value={health.api === "ok" ? "OK" : "Error"} color={health.api === "ok" ? "#4ade80" : "#f87171"} />
+        <StatCard label="Env" value={health.env === "ok" ? "OK" : "Missing vars"} color={health.env === "ok" ? "#4ade80" : "#fbbf24"} />
+      </div>
+      {health.details && (
+        <div className="rounded-xl p-5" style={card}>
+          <pre className="text-[12px] font-mono leading-relaxed whitespace-pre-wrap" style={{ color: "rgba(255,255,255,0.60)" }}>
+            {JSON.stringify(health.details, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Feature flags tab ─────────────────────────────────────────────────────────
+
+function FlagsTab({ authFetch }: { authFetch: AuthFetch }) {
+  const [flags, setFlags] = useState<{ key: string; value: string; description?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    authFetch("/api/admin/flags")
+      .then((r) => r.json())
+      .then((d) => {
+        setFlags(d.flags ?? []);
+        const initDrafts: Record<string, string> = {};
+        (d.flags ?? []).forEach((f: any) => { initDrafts[f.key] = f.value; });
+        setDrafts(initDrafts);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async (key: string) => {
+    setSaving(key);
+    try {
+      await authFetch(`/api/admin/flags/${key}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: drafts[key] }),
+      });
+      setFlags((prev) => prev.map((f) => f.key === key ? { ...f, value: drafts[key] } : f));
+    } finally {
+      setSaving(null);
+    }
   };
 
-  return (
-    <div className="grid grid-cols-3 gap-4">
-      {services.map((s) => (
-        <div key={s.name} className="p-4 rounded-xl bg-white border border-[#DCE2EF] shadow-sm flex items-center justify-between">
-          <span className="text-[13px] font-medium text-[#1C1F3A]">{s.name}</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${colors[s.status]}`}>
-            {s.status === "checking" ? "checking…" : s.status}
-          </span>
-        </div>
-      ))}
+  if (loading) return (
+    <div className="flex items-center gap-2 text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>
+      <Loader2 size={14} className="animate-spin" /> Loading flags…
     </div>
   );
-}
 
-function FlagsTab() {
-  const [flags, setFlags] = useState([
-    { key: "ai_chat", label: "AI Chat", desc: "Natural language chat interface", enabled: true, env: "all" },
-    { key: "intelligence_centre", label: "Intelligence Centre", desc: "Proactive insights panel", enabled: false, env: "internal" },
-    { key: "bulk_import", label: "Bulk spreadsheet import", desc: "CSV / XLSX athlete import", enabled: true, env: "all" },
-    { key: "relationship_explorer", label: "Relationship Explorer", desc: "Graph view of athlete connections", enabled: false, env: "internal" },
-    { key: "saved_searches", label: "Saved Searches", desc: "Save and auto-refresh search queries", enabled: false, env: "beta" },
-    { key: "api_keys", label: "API Key management", desc: "Generate and manage REST API keys", enabled: false, env: "enterprise" },
-  ]);
-
-  const toggle = (key: string) => setFlags((f) => f.map((flag) => flag.key === key ? { ...flag, enabled: !flag.enabled } : flag));
+  if (!flags.length) return (
+    <div className="text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>No feature flags configured.</div>
+  );
 
   return (
-    <div className="max-w-2xl space-y-3">
-      <div className="mb-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-[12px] text-amber-700">
-        ⚠ These toggles apply to this browser session only and reset on server restart. A persistent feature-flag service has not yet been connected.
-      </div>
-      {flags.map((flag) => (
-        <div key={flag.key} className="flex items-center justify-between p-4 rounded-xl bg-white border border-[#DCE2EF] shadow-sm">
+    <div className="rounded-xl overflow-hidden" style={card}>
+      {flags.map((f, i) => (
+        <div key={f.key} className="px-5 py-4 flex items-start gap-4" style={i < flags.length - 1 ? { borderBottom: "1px solid rgba(255,255,255,0.07)" } : {}}>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[13px] font-medium text-[#1C1F3A]">{flag.label}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#F0F2F8] text-[#8A90A8] font-mono">{flag.env}</span>
-            </div>
-            <p className="text-[12px] text-[#8A90A8]">{flag.desc}</p>
+            <div className="text-[13px] font-medium text-white mb-0.5">{f.key}</div>
+            {f.description && <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.40)" }}>{f.description}</div>}
           </div>
-          <button
-            onClick={() => toggle(flag.key)}
-            className="relative rounded-full transition-colors ml-4 shrink-0"
-            style={{ width: 40, height: 22, background: flag.enabled ? "#293055" : "#DCE2EF" }}
-          >
-            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${flag.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              value={drafts[f.key] ?? f.value}
+              onChange={(e) => setDrafts((d) => ({ ...d, [f.key]: e.target.value }))}
+              className="px-3 py-1.5 rounded-lg text-[12px] w-32 focus:outline-none"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.85)" }}
+            />
+            <button
+              onClick={() => save(f.key)}
+              disabled={saving === f.key || drafts[f.key] === f.value}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors disabled:opacity-50"
+              style={{ background: "#B9FF4A", color: "#0D1C0B" }}
+            >
+              {saving === f.key ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       ))}
     </div>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Admin page ────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: "customers", label: "Customers" },
+  { id: "enquiries", label: "Enquiries" },
+  { id: "ai_usage",  label: "AI Usage" },
+  { id: "crawl",     label: "Crawl Tools" },
+  { id: "health",    label: "Health" },
+  { id: "flags",     label: "Feature Flags" },
+];
 
 export default function AdminPage() {
-  const { user, isLoaded } = useUser();
-  const { getToken } = useAuth();
-  const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<Tab>("customers");
-
-  // Build an auth-aware fetch once, stable across renders
-  const authFetch: AuthFetch = useCallback(
-    async (input, init = {}) => {
-      const token = await getToken();
-      const headers = new Headers((init as RequestInit).headers);
-      if (token && !headers.has("authorization")) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return fetch(input, { ...(init as RequestInit), headers });
-    },
-    [getToken],
-  );
-
-  // Role gate — redirect non-founders immediately
-  useEffect(() => {
-    if (!isLoaded) return;
-    const email = user?.primaryEmailAddress?.emailAddress ?? "";
-    if (email.toLowerCase() !== FOUNDER_EMAIL) {
-      navigate("/dashboard");
-    }
-  }, [isLoaded, user, navigate]);
-
-  if (!isLoaded) return null;
-
-  const email = user?.primaryEmailAddress?.emailAddress ?? "";
-  if (email.toLowerCase() !== FOUNDER_EMAIL) return null;
+  const [activeTab, setActiveTab] = useState("customers");
+  const authFetch = useAuthFetch();
 
   return (
-    <AppLayout activePage="admin" enforceSubscription={false}>
-      <div className="flex flex-col h-full bg-[#FCFAFA]">
-        <header className="flex-shrink-0 px-8 pt-8 pb-6 border-b border-[#DCE2EF]">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield size={16} className="text-[#E75D50]" />
-            <h1 className="text-2xl font-semibold tracking-tight text-[#1C1F3A]">Admin</h1>
-            <span className="px-2 py-0.5 rounded-full bg-[rgba(231,93,80,0.10)] text-[#E75D50] text-[11px] font-semibold">Founder only</span>
+    <AppLayout activePage="admin">
+      <div className="flex flex-col h-full" style={{ background: "#0D1C0B" }}>
+        {/* Header */}
+        <header className="flex-shrink-0 px-8 pt-8 pb-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <h1 className="text-2xl font-semibold tracking-tight text-white mb-1">Admin</h1>
+          <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.40)" }}>Internal tools and platform management.</p>
+
+          {/* Tab bar */}
+          <div className="flex items-center gap-6">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="pb-3 pt-1 text-[13px] font-medium transition-colors relative"
+                  style={{ color: isActive ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.38)" }}
+                >
+                  {tab.label}
+                  {isActive && <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full" style={{ background: "#B9FF4A" }} />}
+                </button>
+              );
+            })}
           </div>
-          <p className="text-sm text-[#6B7080]">Platform management. Not visible to customers.</p>
         </header>
 
-        {/* Horizontal tab bar */}
-        <div className="flex-shrink-0 border-b border-[#DCE2EF] px-8 bg-white">
-          <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3.5 text-[13px] font-medium whitespace-nowrap border-b-2 transition-all -mb-px ${
-                  activeTab === tab.id
-                    ? "border-[#E75D50] text-[#E75D50]"
-                    : "border-transparent text-[#6B7080] hover:text-[#1C1F3A] hover:border-[#DCE2EF]"
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-8">
-          {activeTab === "customers" && <CustomersTab authFetch={authFetch} />}
-          {activeTab === "enquiries" && <EnquiriesTab authFetch={authFetch} />}
-          {activeTab === "licences" && (
-            <div className="text-[13px] text-[#8A90A8] rounded-xl border border-[#DCE2EF] bg-white p-6">
-              Licence management — plan overrides and custom contracts. Coming soon.
-            </div>
-          )}
-          {activeTab === "ai-usage" && <AiUsageTab />}
-          {activeTab === "crawl" && <CrawlTab authFetch={authFetch} />}
-          {activeTab === "health" && <HealthTab />}
-          {activeTab === "flags" && <FlagsTab />}
+        <div className="flex-1 overflow-y-auto p-8 hide-scrollbar">
+          {activeTab === "customers"  && <CustomersTab  authFetch={authFetch} />}
+          {activeTab === "enquiries"  && <EnquiriesTab  authFetch={authFetch} />}
+          {activeTab === "ai_usage"   && <AiUsageTab />}
+          {activeTab === "crawl"      && <CrawlTab      authFetch={authFetch} />}
+          {activeTab === "health"     && <HealthTab     authFetch={authFetch} />}
+          {activeTab === "flags"      && <FlagsTab      authFetch={authFetch} />}
         </div>
       </div>
     </AppLayout>

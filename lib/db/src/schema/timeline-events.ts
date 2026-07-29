@@ -5,6 +5,7 @@ import {
   integer,
   boolean,
   date,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -24,7 +25,10 @@ export const timelineEventsTable = pgTable("timeline_events", {
   sourceUrl: text("source_url"),
   confidence: integer("confidence").notNull().default(85),
   significant: boolean("significant").notNull().default(false),
-});
+}, (table) => [
+  index("idx_timeline_events_athlete_id").on(table.athleteId),
+  index("idx_timeline_events_date").on(table.date),
+]);
 
 export const insertTimelineEventSchema = createInsertSchema(
   timelineEventsTable,

@@ -5,6 +5,7 @@ import {
   integer,
   date,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -26,7 +27,10 @@ export const competitionsTable = pgTable("competitions", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_competitions_athlete_id").on(table.athleteId),
+  index("idx_competitions_date").on(table.date),
+]);
 
 export const insertCompetitionSchema = createInsertSchema(
   competitionsTable,

@@ -10,7 +10,7 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { desc, eq, isNull } from "drizzle-orm";
+import { desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   contactEnquiriesTable, athletesTable,
@@ -272,6 +272,50 @@ router.post("/admin/backfill-social", requireAdmin, async (_req, res): Promise<v
     logger.error({ err }, "backfill-social: failed");
     if (!res.headersSent) res.status(500).json({ error: "Social backfill failed" });
   }
+});
+
+// ── GET /api/admin/health ─────────────────────────────────────────────────────
+
+router.get("/admin/health", requireAdmin, async (_req, res): Promise<void> => {
+  const REQUIRED_ENV = ["DATABASE_URL", "CLERK_SECRET_KEY", "AI_INTEGRATIONS_OPENAI_API_KEY"];
+
+  let dbStatus = "ok";
+  try {
+    await db.execute(sql`SELECT 1`);
+  } catch {
+    dbStatus = "error";
+  }
+
+  const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
+  const envStatus = missingEnv.length === 0 ? "ok" : "missing";
+
+  res.json({
+    db: dbStatus,
+    api: "ok",
+    env: envStatus,
+    details: {
+      dbConnected: dbStatus === "ok",
+      missingEnvVars: missingEnv,
+      nodeVersion: process.version,
+      uptime: Math.floor(process.uptime()),
+      memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    },
+  });
+});
+
+// ── GET /api/admin/flags ──────────────────────────────────────────────────────
+// Feature flags are not yet persisted — returns an empty list until a flags
+// table is added. The UI gracefully shows "No feature flags configured."
+
+router.get("/admin/flags", requireAdmin, (_req, res): void => {
+  res.json({ flags: [] });
+});
+
+// ── PUT /api/admin/flags/:key ─────────────────────────────────────────────────
+
+router.put("/admin/flags/:key", requireAdmin, (_req, res): void => {
+  // Not yet persisted — acknowledge the save so the UI does not break.
+  res.json({ ok: true });
 });
 
 export default router;

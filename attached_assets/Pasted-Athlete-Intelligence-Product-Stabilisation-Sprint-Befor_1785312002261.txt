@@ -1,0 +1,248 @@
+Athlete Intelligence – Product Stabilisation Sprint (Before Phase 2)
+
+We have completed the initial reliability milestones and refreshed the UI.
+
+Before implementing the Identity Engine or any new features, I want to ensure the application is production-ready from an administrator's perspective.
+
+This sprint is focused on finding and fixing existing issues, not adding new features.
+
+Objectives
+
+Perform a complete audit of the application and ensure every existing feature works correctly.
+
+Think like a QA engineer and senior software engineer.
+
+1. Authentication
+
+Audit the complete authentication flow.
+
+Verify:
+
+Admin login
+Logout
+Session persistence
+Protected routes
+Expired sessions
+Refresh behaviour
+Role-based access
+Redirects
+
+Confirm that an administrator can successfully sign in and access all intended pages.
+
+If anything fails, fix the underlying issue.
+
+2. Admin Portal Audit
+
+Test every page available to an administrator.
+
+Verify:
+
+Dashboard loads
+Athlete list loads
+Athlete detail page
+Search
+Filters
+Pagination
+Create athlete
+Repopulate athlete
+Delete athlete (if supported)
+Timeline
+Social profiles
+Evidence
+AI Chat
+Alerts
+Monitoring
+Settings
+Users
+Admin-only tools
+
+Identify:
+
+Broken routes
+Blank pages
+Infinite loading
+Console errors
+API failures
+Missing data
+Broken buttons
+Broken links
+
+Fix every issue discovered.
+
+3. API Audit
+
+For every frontend action:
+
+Verify:
+
+correct endpoint
+expected payload
+validation
+proper error handling
+loading states
+success states
+
+No silent failures.
+
+No unhandled exceptions.
+
+4. Database Audit
+
+Verify:
+
+foreign keys
+orphaned data
+duplicate athletes
+duplicate timelines
+invalid references
+null fields
+migration consistency
+
+Report any inconsistencies before changing schema.
+
+5. Error Handling
+
+Ensure every error shown to users is:
+
+understandable
+actionable
+consistent
+
+Remove raw server errors from the UI.
+
+6. Performance
+
+Check:
+
+unnecessary API calls
+duplicate requests
+excessive re-renders
+slow queries
+N+1 database problems
+
+Optimise only where there is measurable benefit.
+
+7. Console Audit
+
+Application should produce:
+
+no React warnings
+no TypeScript warnings
+no unhandled promise rejections
+no failed network requests during normal use
+8. Accessibility
+
+Check:
+
+keyboard navigation
+focus states
+colour contrast
+aria labels
+button accessibility
+9. Security
+
+Verify:
+
+authentication middleware
+authorisation
+admin-only routes
+API permissions
+sensitive data exposure
+10. End-to-End Testing
+
+Act as a real administrator.
+
+Complete this workflow:
+
+Login
+Open dashboard
+Search athlete
+Open athlete
+Repopulate athlete
+View timeline
+View evidence
+View social profiles
+Use AI Chat
+Return to dashboard
+Logout
+
+Every step must work successfully.
+
+If any step fails:
+
+identify root cause
+fix it
+verify the fix
+Rules
+
+Do not add new features.
+
+Do not redesign architecture.
+
+Do not begin Phase 2.
+
+Only fix existing functionality.
+
+Only refactor where required to resolve issues.
+
+Deliverables
+
+Provide:
+
+Issues Found
+
+For every issue:
+
+description
+severity
+root cause
+Files Changed
+
+List every modified file.
+
+Explain why it changed.
+
+Behaviour Before
+
+Describe previous behaviour.
+
+Behaviour After
+
+Describe corrected behaviour.
+
+Tests Performed
+
+List:
+
+manual tests
+automated tests
+integration tests
+Remaining Issues
+
+If anything remains unresolved:
+
+Explain:
+
+why
+recommended solution
+estimated effort
+
+Stop after completing this stabilisation sprint and wait for approval before beginning Phase 2 (Identity Engine).
+
+One thing I'd add
+
+Ask Replit to create an Admin Acceptance Checklist. Before moving on, you should be able to answer "yes" to questions like:
+
+✅ Can I log in as an admin?
+✅ Does the dashboard load without errors?
+✅ Can I search for athletes?
+✅ Can I open an athlete profile?
+✅ Can I create a new athlete?
+✅ Can I repopulate an athlete?
+✅ Can I view evidence?
+✅ Can I view timelines?
+✅ Does AI Chat respond correctly?
+✅ Do all admin pages load?
+✅ Can I log out and back in?
+✅ Are there no browser console errors during normal use?
+✅ Are there no failed API requests during common workflows?

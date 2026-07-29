@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { athletesTable } from "./athletes";
@@ -19,7 +19,10 @@ export const intelligenceItemsTable = pgTable("intelligence_items", {
   discoveredAt: timestamp("discovered_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("idx_intelligence_items_athlete_id").on(table.athleteId),
+  index("idx_intelligence_items_discovered_at").on(table.discoveredAt),
+]);
 
 export const insertIntelligenceItemSchema = createInsertSchema(
   intelligenceItemsTable,

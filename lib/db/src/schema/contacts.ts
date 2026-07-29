@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { athletesTable } from "./athletes";
@@ -22,7 +22,9 @@ export const contactsTable = pgTable("contacts", {
   dateDiscovered: date("date_discovered", { mode: "string" }).notNull(),
   sourceDomain: text("source_domain").notNull(),
   sourceExcerpt: text("source_excerpt"),
-});
+}, (table) => [
+  index("idx_contacts_athlete_id").on(table.athleteId),
+]);
 
 export const insertContactSchema = createInsertSchema(contactsTable).omit({
   id: true,
