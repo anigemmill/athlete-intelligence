@@ -1,0 +1,300 @@
+Absolutely. I think this is the right time to stop thinking in terms of isolated fixes and instead treat this as a **Product Unification & Stabilisation Sprint**.
+
+From what I've seen over the past few weeks, you now have:
+
+* ✅ A redesigned public-facing style.
+* ✅ A redesigned dashboard concept.
+* ❌ Parts of the app still using the old UI.
+* ❌ Bugs that are preventing the product from feeling production-ready.
+* ❌ Raw API/server errors leaking into the interface.
+
+I'd ask Replit to tackle this as a single coordinated sprint rather than piecemeal.
+
+---
+
+# Athlete Intelligence – Product Unification & Stabilisation Sprint
+
+The visual redesign has been completed.
+
+The next objective is to ensure the **entire application looks and behaves like one cohesive product** while resolving the remaining bugs.
+
+This is **not a feature sprint**.
+
+Do **not** begin the Identity Engine or new intelligence features.
+
+Focus only on design consistency, stability and usability.
+
+---
+
+# Objective 1 — Unify the Design System
+
+The new design language has already been established.
+
+Apply it consistently across **every screen**.
+
+Audit:
+
+* Login
+* Landing page
+* Dashboard
+* Athlete pages
+* Search
+* Tables
+* AI Chat
+* Evidence
+* Timeline
+* Monitoring
+* Alerts
+* Settings
+* Billing
+* Admin pages
+* Customer portal
+
+Ensure every page uses the same:
+
+* typography
+* spacing
+* colour palette
+* border radius
+* shadows
+* buttons
+* cards
+* icons
+* hover states
+* loading animations
+* transitions
+
+There should be **one consistent design system** throughout the application.
+
+---
+
+# Objective 2 — Customer Portal
+
+Audit the entire customer-facing experience.
+
+Verify:
+
+* login
+* registration (if enabled)
+* dashboard
+* navigation
+* athlete search
+* profile viewing
+* AI chat
+* evidence viewing
+* subscriptions
+* billing
+* account settings
+
+The customer experience should feel identical in quality to the admin portal.
+
+---
+
+# Objective 3 — Admin Portal
+
+Audit every admin page.
+
+Verify:
+
+* Dashboard
+* Athletes
+* Search
+* Filters
+* Timeline
+* Evidence
+* Social profiles
+* AI Chat
+* Monitoring
+* Settings
+* Billing
+* Admin tools
+
+Fix:
+
+* broken buttons
+* broken routes
+* console errors
+* infinite loading
+* API failures
+* blank pages
+* inconsistent layouts
+
+---
+
+# Objective 4 — Fix Existing Bugs
+
+Identify and resolve all current bugs.
+
+Examples include (but are not limited to):
+
+### Stripe
+
+The application currently exposes raw Stripe API errors.
+
+Fix this.
+
+If Stripe is unavailable or permissions are missing:
+
+* display a friendly error message
+* never expose API keys or internal account IDs
+* log technical details server-side only
+
+Audit the Stripe configuration to ensure the correct API keys and permissions are being used.
+
+---
+
+### API Errors
+
+Replace raw exceptions with user-friendly messages.
+
+---
+
+### Loading States
+
+Every page should:
+
+* load smoothly
+* show loading indicators
+* recover gracefully from errors
+
+---
+
+### Forms
+
+Verify:
+
+* validation
+* success messages
+* error messages
+* disabled states
+* duplicate submission prevention
+
+---
+
+# Objective 5 — Navigation
+
+Ensure navigation is consistent everywhere.
+
+Verify:
+
+* breadcrumbs
+* sidebar
+* active page highlighting
+* browser refresh
+* deep linking
+* back button
+* mobile navigation
+
+---
+
+# Objective 6 — Performance
+
+Remove:
+
+* duplicate API requests
+* unnecessary renders
+* slow queries
+* console warnings
+* React warnings
+* TypeScript warnings
+
+---
+
+# Objective 7 — Polish
+
+Verify:
+
+* spacing consistency
+* alignment
+* responsive layouts
+* animations
+* hover effects
+* empty states
+* skeleton loaders
+* dark mode consistency (if supported)
+
+The application should feel like a premium SaaS platform.
+
+---
+
+# Objective 8 — End-to-End Testing
+
+Act as both an administrator and a customer.
+
+Complete these workflows.
+
+## Admin
+
+* Login
+* Dashboard
+* Search athlete
+* Open athlete
+* Repopulate athlete
+* View evidence
+* View timeline
+* AI Chat
+* Settings
+* Logout
+
+## Customer
+
+* Login
+* Dashboard
+* Search
+* View athlete
+* AI Chat
+* Account
+* Billing
+* Logout
+
+Every workflow must complete successfully.
+
+---
+
+# Rules
+
+* Do **not** add new features.
+* Do **not** redesign the architecture.
+* Do **not** begin Phase 2.
+* Fix existing functionality only.
+* Preserve all current functionality while improving reliability and consistency.
+
+---
+
+# Deliverables
+
+Provide:
+
+### 1. Design Audit
+
+List every screen updated to match the new design system.
+
+### 2. Bug Report
+
+For each bug:
+
+* description
+* root cause
+* fix applied
+
+### 3. Files Changed
+
+List every modified file and why it changed.
+
+### 4. Testing
+
+Summarise:
+
+* manual tests
+* automated tests
+* end-to-end tests
+
+### 5. Remaining Issues
+
+List anything still unresolved with an explanation and recommended next steps.
+
+---
+
+## One more recommendation
+
+After this sprint, I'd ask Replit to create a **"Production Readiness Checklist"** before you move on. That checklist should verify things like authentication, navigation, billing, error handling, responsiveness, performance, and logging. Once every item passes, you'll be in a much stronger position to start Phase 2 (the Identity Engine) knowing the product itself is solid.
