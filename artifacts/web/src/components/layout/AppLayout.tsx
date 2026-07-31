@@ -3,8 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Sidebar } from "./Sidebar";
 import { useUser, useAuth } from "@clerk/react";
 import PlanSelectionModal, { PLAN_SELECTED_KEY } from "@/components/PlanSelectionModal";
-
-const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 type SubStatus = "loading" | "active" | "none" | "bypass";
 
@@ -16,7 +15,6 @@ function useSubscriptionStatus(
 
   useEffect(() => {
     if (email === undefined) return;
-    if (email?.toLowerCase() === FOUNDER_EMAIL) { setStatus("bypass"); return; }
     if (localStorage.getItem(PLAN_SELECTED_KEY) === "1") { setStatus("bypass"); return; }
     if (!email) { setStatus("bypass"); return; }
 
@@ -67,10 +65,14 @@ interface AppLayoutProps {
 export function AppLayout({ children, activePage = "dashboard", enforceSubscription = true }: AppLayoutProps) {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
+  const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const email = isLoaded ? (user?.primaryEmailAddress?.emailAddress?.trim() ?? null) : undefined;
   const subStatus = useSubscriptionStatus(email, getToken);
 
-  const showPaywall = enforceSubscription && subStatus === "none";
+  // Admins are never blocked by billing — bypass is server-verified.
+  // Also hold off showing the paywall until admin status is resolved, to
+  // prevent a flash of the modal during the first-render race.
+  const showPaywall = enforceSubscription && !isAdmin && !adminLoading && subStatus === "none";
   const userEmail = email ?? null;
 
   return (

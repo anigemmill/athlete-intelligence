@@ -1,0 +1,180 @@
+Athlete Intelligence – Phase 1 Final Verification
+
+Thank you for completing the Product Unification & Stabilisation Sprint.
+
+Before we begin Phase 2, I have identified a discrepancy between the reported test results and the actual behaviour I am experiencing.
+
+The report states that the admin authentication flow is working correctly.
+
+However, when I log in with my administrator email, I am not taken to the Admin Dashboard.
+
+Instead, I am redirected into the customer onboarding flow and asked to begin a free trial.
+
+This means either:
+
+the administrator role is not being detected,
+the redirect logic is incorrect,
+the subscription middleware is executing before authorisation,
+or the automated tests are not covering the real authentication flow.
+
+Do not assume this is a UI bug.
+
+Find the root cause.
+
+Objective 1 – Investigate Administrator Authentication
+
+Determine exactly why my administrator account is not being recognised.
+
+Audit:
+
+Clerk authentication
+User metadata
+Roles
+Session creation
+Middleware
+Route guards
+Subscription checks
+Admin checks
+Redirect logic
+Environment variables
+Development mode overrides
+
+Explain the complete login flow from sign-in until redirect.
+
+I want to know:
+
+Where my role is loaded.
+Where the application decides I am an admin or customer.
+Why that decision is currently wrong.
+The exact file and line responsible.
+The correct fix.
+
+Do not simply patch the symptom.
+
+Fix the underlying logic.
+
+Objective 2 – Verify My Account
+
+Inspect my administrator account.
+
+Confirm:
+
+user exists
+admin role exists
+metadata exists
+organisation membership (if used)
+permissions
+subscription state
+
+If anything is missing, explain why.
+
+Objective 3 – Development Mode
+
+While developing Athlete Intelligence:
+
+Administrators should never be blocked by:
+
+trial requirements
+subscriptions
+billing
+payment
+Stripe
+
+Administrators must always have unrestricted access.
+
+Customer accounts should continue using the normal subscription flow.
+
+Objective 4 – Real End-to-End Verification
+
+Do not rely solely on automated tests.
+
+Perform the real authentication flow.
+
+Verify:
+
+Login
+Redirect
+Dashboard
+Admin pages
+Logout
+Login again
+
+Repeat until behaviour is consistent.
+
+Objective 5 – Explain the Architecture
+
+Provide a simple explanation of how access control currently works.
+
+For example:
+
+Login
+
+↓
+
+Clerk Authentication
+
+↓
+
+Load User
+
+↓
+
+Determine Role
+
+↓
+
+Admin?
+├── Yes → Admin Dashboard
+└── No → Subscription Check
+
+↓
+
+Customer Dashboard
+
+If this is not the current architecture, explain what it actually is and whether it should be refactored.
+
+Deliverables
+
+Provide:
+
+Root Cause
+
+Exactly why administrators are entering the customer flow.
+
+Files Changed
+
+List every modified file.
+
+Before
+
+Describe the incorrect behaviour.
+
+After
+
+Describe the corrected behaviour.
+
+Verification
+
+Confirm you have personally tested:
+
+administrator login
+customer login
+logout
+refresh
+protected routes
+billing flow
+One more thing I noticed
+
+I also have a couple of questions I'd ask Replit based on the report:
+
+It says "Admin Dashboard (loads)". Ask them:
+
+How did you verify this? Did you log in with a real admin account, or was this verified through mocked tests or direct route access?
+
+The checklist says:
+
+/admin loads (requires admin role).
+
+Ask them:
+
+Show me exactly how an admin role is assigned. Is it coming from Clerk public metadata, private metadata, the database, or an environment override?

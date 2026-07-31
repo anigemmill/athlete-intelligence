@@ -18,6 +18,7 @@ import chatRouter from "./chat";
 import stripeProtectedRouter from "./stripe";
 import summaryRouter from "./summary";
 import adminRouter from "./admin";
+import userRouter from "./user";
 
 const router: IRouter = Router();
 
@@ -41,5 +42,6 @@ router.use(chatRouter);
 router.use(stripeProtectedRouter); // POST /stripe/portal, GET /stripe/subscription
 router.use(summaryRouter);
 router.use(adminRouter);
+router.use(userRouter);         // GET /user/me
 
 export default router;

@@ -664,7 +664,7 @@ export default function AdminPage() {
   const authFetch = useAuthFetch();
 
   return (
-    <AppLayout activePage="admin">
+    <AppLayout activePage="admin" enforceSubscription={false}>
       <div className="flex flex-col h-full" style={{ background: "#0D1C0B" }}>
         {/* Header */}
         <header className="flex-shrink-0 px-8 pt-8 pb-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>

@@ -10,8 +10,7 @@ import { ClerkProvider, SignUp, useAuth, useClerk, useUser } from '@clerk/react'
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { registerTokenGetter } from '@/lib/getAuthToken';
-
-const FOUNDER_EMAIL = 'anigemmill@theoutsidein.nz';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 // ── Public pages (lazy-loaded) ────────────────────────────────────────────────
 const LandingPage  = lazy(() => import('@/pages/LandingPage'));
@@ -121,19 +120,22 @@ function ProtectedRoute({ component: Component, ...props }: { component: React.C
   return <Component {...props} />;
 }
 
-// Redirect the founder to /admin automatically; everyone else sees the dashboard
+// Redirect admins to /admin automatically; everyone else sees the dashboard.
+// Admin status is resolved server-side via /api/user/me — never by client-side
+// email matching, which is fragile for OAuth sign-ins and case differences.
 function DashboardRoute() {
-  const { user, isLoaded } = useUser();
+  const { isLoaded } = useUser();
+  const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (isLoaded && user?.primaryEmailAddress?.emailAddress === FOUNDER_EMAIL) {
+    if (!adminLoading && isAdmin) {
       setLocation('/admin');
     }
-  }, [isLoaded, user]);
+  }, [isAdmin, adminLoading]);
 
-  if (!isLoaded) return <PageLoader />;
-  if (user?.primaryEmailAddress?.emailAddress === FOUNDER_EMAIL) return null;
+  if (!isLoaded || adminLoading) return <PageLoader />;
+  if (isAdmin) return null;
   return <Dashboard />;
 }
 
