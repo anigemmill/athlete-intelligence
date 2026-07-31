@@ -10,33 +10,31 @@ import {
   ExternalLink,
   ShieldCheck,
   ChevronRight,
-  Filter,
   Globe,
   Sparkles,
 } from "lucide-react";
 import { useListIntelligence } from "@workspace/api-client-react";
 
-// Map DB category keys → display config
 const categoryConfig: Record<string, { label: string; icon: any; color: string; bg: string; filterKey: string }> = {
   results_rankings: {
     label: "Results & Rankings", icon: Trophy,
-    color: "#344F9F", bg: "rgba(52,79,159,0.10)", filterKey: "results_rankings",
+    color: "#6B8FE0", bg: "rgba(107,143,224,0.15)", filterKey: "results_rankings",
   },
   media_interviews: {
     label: "Media & Interviews", icon: Newspaper,
-    color: "#7C3AED", bg: "rgba(124,58,237,0.10)", filterKey: "media_interviews",
+    color: "#C8BDFF", bg: "rgba(200,189,255,0.15)", filterKey: "media_interviews",
   },
   sponsorships: {
     label: "Sponsorships", icon: Award,
-    color: "#059669", bg: "rgba(5,150,105,0.10)", filterKey: "sponsorships",
+    color: "#4ade80", bg: "rgba(74,222,128,0.15)", filterKey: "sponsorships",
   },
   career_changes: {
     label: "Career Changes", icon: Briefcase,
-    color: "#D97706", bg: "rgba(217,119,6,0.10)", filterKey: "career_changes",
+    color: "#fbbf24", bg: "rgba(251,191,36,0.15)", filterKey: "career_changes",
   },
 };
 
-const defaultCfg = { label: "General", icon: Activity, color: "#344F9F", bg: "rgba(52,79,159,0.10)", filterKey: "" };
+const defaultCfg = { label: "General", icon: Activity, color: "#6B8FE0", bg: "rgba(107,143,224,0.15)", filterKey: "" };
 
 type TabFilter = "all" | string;
 
@@ -78,14 +76,16 @@ export default function FeedPage() {
 
   return (
     <AppLayout activePage="intelligence">
-      <div className="flex flex-col relative w-full h-full overflow-hidden bg-[#FCFAFA]">
+      <div className="flex flex-col relative w-full h-full overflow-hidden" style={{ background: "#0D1C0B" }}>
 
         {/* Breadcrumb */}
-        <div className="h-14 border-b border-[#DCE2EF] flex items-center px-6 shrink-0 bg-[#FCFAFA]">
-          <div className="flex items-center gap-2 text-[13px] font-medium text-[#8A90A8]">
-            <Link href="/dashboard"><span className="hover:text-[#3D426A] cursor-pointer transition-colors">Overview</span></Link>
-            <ChevronRight size={14} className="text-[#C0C8DC]" />
-            <span className="text-[#293055]">Intelligence Feed</span>
+        <div className="h-14 flex items-center px-6 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
+          <div className="flex items-center gap-2 text-[13px] font-medium" style={{ color: "rgba(255,255,255,0.40)" }}>
+            <Link href="/dashboard">
+              <span className="cursor-pointer transition-colors hover:text-white">Overview</span>
+            </Link>
+            <ChevronRight size={14} style={{ color: "rgba(255,255,255,0.25)" }} />
+            <span style={{ color: "rgba(255,255,255,0.85)" }}>Intelligence Feed</span>
           </div>
         </div>
 
@@ -94,18 +94,18 @@ export default function FeedPage() {
 
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-[22px] font-semibold tracking-tight text-[#1C1F3A] flex items-center gap-2.5">
-                  <Sparkles size={20} className="text-[#E75D50]" />
+                <h1 className="text-[22px] font-semibold tracking-tight text-white flex items-center gap-2.5">
+                  <Sparkles size={20} style={{ color: "#B9FF4A" }} />
                   Intelligence Feed
                 </h1>
-                <p className="text-[13px] mt-1 text-[#6B7080]">
+                <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
                   {feedData.length} intelligence items across your monitored roster — sorted by most recent.
                 </p>
               </div>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center justify-between border-b border-[#DCE2EF] mb-6">
+            <div className="flex items-center justify-between mb-6" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
               <div className="flex gap-6 overflow-x-auto hide-scrollbar">
                 {tabs.map((tab) => {
                   const isActive = activeTab === tab.id;
@@ -114,18 +114,19 @@ export default function FeedPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative pb-3 text-[13px] font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                        isActive ? "text-[#293055]" : "text-[#8A90A8] hover:text-[#6B7080]"
-                      }`}
+                      className="relative pb-3 text-[13px] font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                      style={{ color: isActive ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.40)" }}
                     >
                       {tab.label}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        isActive ? "bg-[rgba(41,48,85,0.15)] text-[#293055]" : "bg-[rgba(41,48,85,0.08)] text-[#9097B0]"
-                      }`}>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                        style={{
+                          background: isActive ? "rgba(185,255,74,0.15)" : "rgba(255,255,255,0.07)",
+                          color: isActive ? "#B9FF4A" : "rgba(255,255,255,0.35)",
+                        }}>
                         {count}
                       </span>
                       {isActive && (
-                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E75D50] rounded-t-full" />
+                        <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full" style={{ background: "#B9FF4A" }} />
                       )}
                     </button>
                   );
@@ -135,32 +136,40 @@ export default function FeedPage() {
 
             {/* Feed items */}
             {feedData.length === 0 ? (
-              <div className="py-20 flex flex-col items-center justify-center text-center border border-dashed border-[#DCE2EF] rounded-xl">
-                <div className="w-14 h-14 rounded-full bg-[rgba(41,48,85,0.04)] flex items-center justify-center mb-4">
-                  <Activity size={22} className="text-[#9097B0]" />
+              <div className="py-20 flex flex-col items-center justify-center text-center rounded-xl"
+                style={{ border: "1px dashed rgba(255,255,255,0.12)" }}>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+                  style={{ background: "rgba(255,255,255,0.05)" }}>
+                  <Activity size={22} style={{ color: "rgba(255,255,255,0.30)" }} />
                 </div>
-                <h3 className="text-[14px] font-semibold text-[#293055] mb-2">No intelligence yet</h3>
-                <p className="text-[13px] text-[#8A90A8] max-w-sm">
+                <h3 className="text-[14px] font-semibold text-white mb-2">No intelligence yet</h3>
+                <p className="text-[13px] max-w-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
                   Add athletes to your roster and the intelligence engine will start surfacing updates automatically.
                 </p>
                 <Link href="/athletes/new">
-                  <span className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#E75D50] text-white text-[13px] font-medium hover:bg-[#D04840] transition-colors cursor-pointer">
+                  <span className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer transition-colors"
+                    style={{ background: "#B9FF4A", color: "#0D1C0B" }}>
                     Add first athlete
                   </span>
                 </Link>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="py-16 flex flex-col items-center justify-center text-center border border-dashed border-[#DCE2EF] rounded-xl">
-                <Activity size={20} className="text-[#9097B0] mb-3" />
-                <p className="text-[13px] text-[#8A90A8]">No items in this category yet</p>
+              <div className="py-16 flex flex-col items-center justify-center text-center rounded-xl"
+                style={{ border: "1px dashed rgba(255,255,255,0.12)" }}>
+                <Activity size={20} style={{ color: "rgba(255,255,255,0.25)" }} className="mb-3" />
+                <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.40)" }}>No items in this category yet</p>
               </div>
             ) : (
-              <div className="flex flex-col space-y-4">
+              <div className="flex flex-col space-y-3">
                 {filtered.map((item: any) => {
                   const cfg = categoryConfig[item.category] ?? defaultCfg;
                   const Icon = cfg.icon;
                   return (
-                    <div key={item.id} className="border border-[#DCE2EF] rounded-xl bg-white p-5 relative overflow-hidden group shadow-sm hover:border-[#C8D0E8] transition-colors">
+                    <div key={item.id} className="rounded-xl p-5 relative overflow-hidden group transition-colors"
+                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)" }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)")}
+                    >
                       {/* Top row */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -172,42 +181,43 @@ export default function FeedPage() {
                             {cfg.label}
                           </div>
                           <Link href={`/athletes/${item.athleteId}`}>
-                            <span className="text-[12px] font-semibold text-[#293055] hover:underline cursor-pointer">
+                            <span className="text-[12px] font-semibold cursor-pointer hover:underline" style={{ color: "#B9FF4A" }}>
                               {item.athleteName}
                             </span>
                           </Link>
                         </div>
-                        <div className="text-[12px] text-[#9097B0]">{timeAgo(item.discoveredAt)}</div>
+                        <div className="text-[12px]" style={{ color: "rgba(255,255,255,0.35)" }}>{timeAgo(item.discoveredAt)}</div>
                       </div>
 
                       {/* Title */}
-                      <h3 className="text-[14px] font-semibold text-[#1C1F3A] leading-snug mb-2">{item.title}</h3>
+                      <h3 className="text-[14px] font-semibold text-white leading-snug mb-2">{item.title}</h3>
 
                       {/* Summary */}
                       {item.summary && (
-                        <p className="text-[13px] text-[#6B7080] leading-relaxed mb-4">{item.summary}</p>
+                        <p className="text-[13px] leading-relaxed mb-4" style={{ color: "rgba(255,255,255,0.55)" }}>{item.summary}</p>
                       )}
 
                       {/* Footer */}
-                      <div className="flex items-center justify-between pt-3 border-t border-[#F0F2F8]">
+                      <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1.5 text-[12px] text-[#8A90A8]">
-                            <Globe size={11} className="text-[#A0A8C0]" />
+                          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+                            <Globe size={11} style={{ color: "rgba(255,255,255,0.30)" }} />
                             {item.sourceDomain}
                           </div>
                           {item.sourceUrl && (
                             <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-[11px] text-[#344F9F] hover:underline">
+                              className="flex items-center gap-1 text-[11px] hover:underline" style={{ color: "#C8BDFF" }}>
                               <ExternalLink size={10} /> View source
                             </a>
                           )}
-                          <div className="flex items-center gap-1.5 text-[12px] text-[#6B7080]">
-                            <ShieldCheck size={13} className={(item.confidence ?? 0) >= 90 ? "text-[#059669]" : "text-[#344F9F]"} />
+                          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+                            <ShieldCheck size={13} style={{ color: (item.confidence ?? 0) >= 90 ? "#4ade80" : "#6B8FE0" }} />
                             {item.confidence ?? 80}% confidence
                           </div>
                         </div>
                         <Link href={`/athletes/${item.athleteId}`}>
-                          <span className="text-[11px] text-[#8A90A8] hover:text-[#293055] transition-colors cursor-pointer flex items-center gap-1">
+                          <span className="text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                            style={{ color: "rgba(255,255,255,0.35)" }}>
                             View dossier <ChevronRight size={11} />
                           </span>
                         </Link>

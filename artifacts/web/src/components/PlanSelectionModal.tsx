@@ -49,7 +49,6 @@ const PLANS = [
   },
 ];
 
-// Key stored in localStorage after a successful Stripe checkout redirect
 export const PLAN_SELECTED_KEY = "ai_plan_selected";
 
 function PlanCard({
@@ -99,51 +98,39 @@ function PlanCard({
     }
   };
 
+  const cardStyle: React.CSSProperties = plan.highlight
+    ? { background: "rgba(185,255,74,0.07)", border: "2px solid rgba(185,255,74,0.35)", borderRadius: 16, boxShadow: "0 8px 32px rgba(185,255,74,0.10)" }
+    : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 16 };
+
   return (
-    <div
-      className={`relative flex flex-col rounded-2xl p-6 transition-all ${
-        plan.highlight
-          ? "bg-[#293055] border-2 border-[#E75D50] shadow-[0_8px_32px_rgba(231,93,80,0.2)]"
-          : "bg-white border border-[#DCE2EF]"
-      }`}
-    >
+    <div className="relative flex flex-col p-6 transition-all" style={cardStyle}>
       {plan.badge && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#E75D50] text-white shadow-sm">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-semibold shadow-sm"
+          style={{ background: "#B9FF4A", color: "#0D1C0B" }}>
           {plan.badge}
         </div>
       )}
 
       <div className="mb-4">
-        <h3 className={`text-[17px] font-bold mb-1 ${plan.highlight ? "text-white" : "text-[#1C1F3A]"}`}>
-          {plan.name}
-        </h3>
-        <p className={`text-[12px] leading-relaxed ${plan.highlight ? "text-white/55" : "text-[#6B7080]"}`}>
-          {plan.tagline}
-        </p>
+        <h3 className="text-[17px] font-bold mb-1 text-white">{plan.name}</h3>
+        <p className="text-[12px] leading-relaxed" style={{ color: "rgba(255,255,255,0.50)" }}>{plan.tagline}</p>
       </div>
 
       <div className="mb-5">
         <div className="flex items-baseline gap-1">
-          <span className={`text-[32px] font-bold tracking-tight ${plan.highlight ? "text-white" : "text-[#1C1F3A]"}`}>
-            ${displayPrice}
-          </span>
-          <span className={`text-[13px] ${plan.highlight ? "text-white/40" : "text-[#9097B0]"}`}>/mo</span>
+          <span className="text-[32px] font-bold tracking-tight text-white">${displayPrice}</span>
+          <span className="text-[13px]" style={{ color: "rgba(255,255,255,0.35)" }}>/mo</span>
         </div>
         {cycle === "annual" && (
-          <p className={`text-[11px] mt-0.5 ${plan.highlight ? "text-emerald-400" : "text-emerald-600"}`}>
-            Billed annually — save ~17%
-          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: "#4ade80" }}>Billed annually — save ~17%</p>
         )}
       </div>
 
       <ul className="space-y-2 mb-6 flex-1">
         {plan.features.map((f) => (
           <li key={f} className="flex items-center gap-2">
-            <CheckCircle2
-              size={14}
-              className={plan.highlight ? "text-[#E75D50] shrink-0" : "text-emerald-500 shrink-0"}
-            />
-            <span className={`text-[12px] ${plan.highlight ? "text-white/70" : "text-[#4A5068]"}`}>{f}</span>
+            <CheckCircle2 size={14} style={{ color: plan.highlight ? "#B9FF4A" : "#4ade80" }} className="shrink-0" />
+            <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.70)" }}>{f}</span>
           </li>
         ))}
       </ul>
@@ -151,22 +138,18 @@ function PlanCard({
       <button
         onClick={handleCheckout}
         disabled={loading || !priceId}
-        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
-          plan.highlight
-            ? "bg-[#E75D50] hover:bg-[#D04840] text-white shadow-[0_4px_14px_rgba(231,93,80,0.35)]"
-            : "border border-[#293055] text-[#293055] hover:bg-[#293055] hover:text-white"
-        }`}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        style={plan.highlight
+          ? { background: "#B9FF4A", color: "#0D1C0B", boxShadow: "0 4px 14px rgba(185,255,74,0.25)" }
+          : { border: "1px solid rgba(255,255,255,0.15)", color: "white", background: "rgba(255,255,255,0.06)" }
+        }
       >
         {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-        {loading
-          ? "Redirecting…"
-          : !priceId && prices !== null
-          ? "Coming soon"
-          : "Start 3-day free trial"}
+        {loading ? "Redirecting…" : !priceId && prices !== null ? "Coming soon" : "Start 3-day free trial"}
       </button>
 
       {error && (
-        <p className="text-[11px] text-red-500 text-center mt-2">{error}</p>
+        <p className="text-[11px] text-center mt-2" style={{ color: "#f87171" }}>{error}</p>
       )}
     </div>
   );
@@ -189,49 +172,51 @@ export default function PlanSelectionModal({ userEmail }: { userEmail: string | 
       .catch(() => setPriceError(true));
   };
 
-  useEffect(() => {
-    loadPrices();
-  }, []);
+  useEffect(() => { loadPrices(); }, []);
 
   return (
-    /* Backdrop — pointer-events on backdrop are disabled so clicking outside does nothing */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      style={{ background: "rgba(0,0,0,0.75)" }}
       onMouseDown={(e) => e.preventDefault()}
     >
       <div
-        className="relative w-full max-w-2xl bg-[#FCFAFA] rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.35)] overflow-hidden"
+        className="relative w-full max-w-2xl rounded-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.60)]"
+        style={{ background: "#0D1C0B", border: "1px solid rgba(255,255,255,0.10)" }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="plan-modal-title"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Header — no X button */}
-        <div className="px-8 pt-8 pb-6 border-b border-[#DCE2EF]">
-          <h2 id="plan-modal-title" className="text-[22px] font-bold text-[#1C1F3A] tracking-tight">
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
+          <h2 id="plan-modal-title" className="text-[22px] font-bold text-white tracking-tight">
             Choose your plan to continue
           </h2>
-          <p className="text-[14px] text-[#6B7080] mt-1">
+          <p className="text-[14px] mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
             Start with a{" "}
-            <span className="font-semibold text-[#293055]">3-day free trial</span> — no charge
-            until it ends. Cancel any time before the trial ends.
+            <span className="font-semibold" style={{ color: "#B9FF4A" }}>3-day free trial</span>
+            {" "}— no charge until it ends. Cancel any time before the trial ends.
           </p>
 
           {/* Billing cycle toggle */}
-          <div className="flex items-center gap-1 mt-5 self-start w-fit bg-[#F0F2F8] rounded-lg p-1">
+          <div className="flex items-center gap-1 mt-5 self-start w-fit rounded-lg p-1"
+            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)" }}>
             {(["monthly", "annual"] as Cycle[]).map((c) => (
               <button
                 key={c}
                 onClick={() => setCycle(c)}
-                className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all ${
-                  cycle === c
-                    ? "bg-white text-[#1C1F3A] shadow-sm"
-                    : "text-[#6B7080] hover:text-[#1C1F3A]"
-                }`}
+                className="px-4 py-1.5 rounded-md text-[13px] font-medium transition-all"
+                style={{
+                  background: cycle === c ? "rgba(255,255,255,0.10)" : "transparent",
+                  color: cycle === c ? "white" : "rgba(255,255,255,0.45)",
+                  boxShadow: cycle === c ? "0 1px 3px rgba(0,0,0,0.30)" : "none",
+                }}
               >
                 {c === "monthly" ? "Monthly" : "Annual"}
                 {c === "annual" && (
-                  <span className="ml-1.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                  <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80" }}>
                     Save 17%
                   </span>
                 )}
@@ -244,25 +229,18 @@ export default function PlanSelectionModal({ userEmail }: { userEmail: string | 
         <div className="px-8 py-6 grid grid-cols-2 gap-4">
           {priceError ? (
             <div className="col-span-2 flex flex-col items-center justify-center py-10 gap-3 text-center">
-              <p className="text-[14px] text-[#6B7080]">
+              <p className="text-[14px]" style={{ color: "rgba(255,255,255,0.55)" }}>
                 Couldn't load pricing. Check your connection and try again.
               </p>
-              <button
-                onClick={loadPrices}
-                className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-[#E75D50] text-white hover:bg-[#D04840] transition-colors"
-              >
+              <button onClick={loadPrices}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors"
+                style={{ background: "#B9FF4A", color: "#0D1C0B" }}>
                 Retry
               </button>
             </div>
           ) : (
             PLANS.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                cycle={cycle}
-                prices={prices}
-                userEmail={userEmail}
-              />
+              <PlanCard key={plan.id} plan={plan} cycle={cycle} prices={prices} userEmail={userEmail} />
             ))
           )}
         </div>
@@ -270,43 +248,46 @@ export default function PlanSelectionModal({ userEmail }: { userEmail: string | 
         {/* Footer */}
         <div className="px-8 pb-7 space-y-3">
           {/* Enterprise */}
-          <div className="flex items-center justify-between rounded-xl border border-[#DCE2EF] px-5 py-3.5 bg-white">
+          <div className="flex items-center justify-between rounded-xl px-5 py-3.5"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
             <div>
-              <span className="text-[14px] font-semibold text-[#1C1F3A]">Enterprise</span>
-              <span className="text-[12px] text-[#9097B0] ml-2">
+              <span className="text-[14px] font-semibold text-white">Enterprise</span>
+              <span className="text-[12px] ml-2" style={{ color: "rgba(255,255,255,0.40)" }}>
                 — Unlimited athletes, SSO, API access, dedicated CSM
               </span>
             </div>
             <Link href="/contact">
-              <span className="text-[13px] font-semibold text-[#E75D50] hover:text-[#D04840] transition-colors cursor-pointer whitespace-nowrap">
+              <span className="text-[13px] font-semibold transition-colors cursor-pointer whitespace-nowrap" style={{ color: "#B9FF4A" }}>
                 Contact sales →
               </span>
             </Link>
           </div>
 
           {/* Legal */}
-          <p className="text-[11px] text-[#9097B0] text-center leading-relaxed px-4">
+          <p className="text-[11px] text-center leading-relaxed px-4" style={{ color: "rgba(255,255,255,0.30)" }}>
             By starting a trial you agree to our{" "}
             <Link href="/terms">
-              <span className="underline text-[#6B7080] hover:text-[#1C1F3A] cursor-pointer transition-colors">
+              <span className="underline cursor-pointer transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.45)" }}>
                 Terms of Service
               </span>
             </Link>{" "}
             and{" "}
             <Link href="/security">
-              <span className="underline text-[#6B7080] hover:text-[#1C1F3A] cursor-pointer transition-colors">
+              <span className="underline cursor-pointer transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.45)" }}>
                 Privacy Policy
               </span>
             </Link>
-            . After the 3-day free trial your payment method will be charged at the rate shown
-            above. You can cancel any time before the trial ends.
+            . After the 3-day free trial your payment method will be charged at the rate shown above. You can cancel any time before the trial ends.
           </p>
 
-          {/* Escape hatch — sign out if wrong account */}
+          {/* Escape hatch */}
           <div className="pt-1 pb-2 text-center">
             <button
               onClick={() => signOut({ redirectUrl: `${basePath}/sign-in` })}
-              className="text-[11px] text-[#B0B8D0] hover:text-[#6B7080] transition-colors underline underline-offset-2"
+              className="text-[11px] transition-colors underline underline-offset-2"
+              style={{ color: "rgba(255,255,255,0.25)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
             >
               Wrong account? Sign out
             </button>

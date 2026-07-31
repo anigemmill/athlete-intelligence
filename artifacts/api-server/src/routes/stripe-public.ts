@@ -111,7 +111,9 @@ router.post("/stripe/checkout", checkoutLimiter, async (req, res): Promise<void>
     });
     res.json({ url: session.url });
   } catch (err: any) {
-    res.status(500).json({ error: err.message ?? "Checkout failed" });
+    // Log full error server-side; never expose Stripe internals to the client
+    console.error("[stripe/checkout] session creation failed:", err?.message);
+    res.status(500).json({ error: "Unable to start checkout. Please try again or contact support." });
   }
 });
 

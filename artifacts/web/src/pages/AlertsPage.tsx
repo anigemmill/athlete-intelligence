@@ -7,10 +7,10 @@ import { useListIntelligence, useListAthletes } from "@workspace/api-client-reac
 type AlertFilter = "all" | "unread" | "results_rankings" | "media_interviews" | "sponsorships" | "career_changes";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  results_rankings: { bg: "rgba(52,79,159,0.12)",   text: "#344F9F", label: "Results" },
-  media_interviews: { bg: "rgba(217,119,6,0.12)",    text: "#D97706", label: "Media" },
-  sponsorships:     { bg: "rgba(5,150,105,0.12)",    text: "#059669", label: "Sponsorship" },
-  career_changes:   { bg: "rgba(231,93,80,0.12)",    text: "#E75D50", label: "Career" },
+  results_rankings: { bg: "rgba(107,143,224,0.15)", text: "#6B8FE0", label: "Results" },
+  media_interviews: { bg: "rgba(200,189,255,0.15)", text: "#C8BDFF", label: "Media" },
+  sponsorships:     { bg: "rgba(74,222,128,0.15)",  text: "#4ade80", label: "Sponsorship" },
+  career_changes:   { bg: "rgba(251,191,36,0.15)",  text: "#fbbf24", label: "Career" },
 };
 
 const FILTER_TABS: { id: AlertFilter; label: string }[] = [
@@ -89,18 +89,22 @@ export default function AlertsPage() {
 
   return (
     <AppLayout activePage="alerts">
-      <div className="flex flex-col h-full bg-[#FCFAFA]">
+      <div className="flex flex-col h-full" style={{ background: "#0D1C0B" }}>
 
         {/* Header */}
-        <header className="flex-shrink-0 flex items-center justify-between px-8 pt-8 pb-6 border-b border-[#DCE2EF]">
+        <header className="flex-shrink-0 flex items-center justify-between px-8 pt-8 pb-6"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#1C1F3A] flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
               Alerts
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-[#E75D50] text-white text-[12px] font-semibold">{unreadCount}</span>
+                <span className="px-2 py-0.5 rounded-full text-[12px] font-semibold"
+                  style={{ background: "#B9FF4A", color: "#0D1C0B" }}>
+                  {unreadCount}
+                </span>
               )}
             </h1>
-            <p className="text-sm mt-1 text-[#6B7080]">
+            <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
               Intelligence updates across your monitored athletes — {items.length} items discovered.
             </p>
           </div>
@@ -108,7 +112,10 @@ export default function AlertsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={markAll}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#DCE2EF] text-[12px] font-medium text-[#6B7080] hover:bg-white hover:shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-all"
+                style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.55)", background: "rgba(255,255,255,0.04)" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
               >
                 <CheckCheck size={13} /> Mark all read
               </button>
@@ -117,7 +124,7 @@ export default function AlertsPage() {
         </header>
 
         {/* Filter tabs */}
-        <div className="flex-shrink-0 px-8 pt-4 pb-3 border-b border-[#DCE2EF]">
+        <div className="flex-shrink-0 px-8 pt-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex items-center gap-1 flex-wrap">
             {FILTER_TABS.map((tab) => {
               const count = categoryCount(tab.id);
@@ -126,10 +133,18 @@ export default function AlertsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${isActive ? "bg-[rgba(41,48,85,0.08)] text-[#293055]" : "text-[#6B7080] hover:text-[#1C1F3A] hover:bg-[#F0F2F8]"}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                  style={{
+                    background: isActive ? "rgba(185,255,74,0.12)" : "transparent",
+                    color: isActive ? "#B9FF4A" : "rgba(255,255,255,0.55)",
+                  }}
                 >
                   {tab.label}
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${isActive ? "bg-[#293055] text-white" : "bg-[#EEF0F8] text-[#8A90A8]"}`}>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                    style={{
+                      background: isActive ? "rgba(185,255,74,0.20)" : "rgba(255,255,255,0.08)",
+                      color: isActive ? "#B9FF4A" : "rgba(255,255,255,0.40)",
+                    }}>
                     {count}
                   </span>
                 </button>
@@ -142,19 +157,24 @@ export default function AlertsPage() {
         <div className="flex-1 overflow-y-auto hide-scrollbar">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-center px-8">
-              <div className="w-12 h-12 rounded-full bg-[#EEF0F8] flex items-center justify-center">
-                <Bell size={20} className="text-[#A0A8C0]" />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.06)" }}>
+                <Bell size={20} style={{ color: "rgba(255,255,255,0.35)" }} />
               </div>
-              <p className="text-[14px] font-medium text-[#6B7080]">No alerts yet</p>
-              <p className="text-[12px] text-[#A0A8C0]">Add athletes to your roster and intelligence updates will appear here as agents discover new information.</p>
+              <p className="text-[14px] font-medium text-white">No alerts yet</p>
+              <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+                Add athletes to your roster and intelligence updates will appear here as agents discover new information.
+              </p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 gap-2">
-              <Bell size={16} className="text-[#C0C8DC]" />
-              <p className="text-[13px] text-[#8A90A8]">No {filter === "unread" ? "unread alerts" : "alerts in this category"}</p>
+              <Bell size={16} style={{ color: "rgba(255,255,255,0.25)" }} />
+              <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.40)" }}>
+                No {filter === "unread" ? "unread alerts" : "alerts in this category"}
+              </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#F0F2F8]">
+            <div>
               {filtered.map((alert) => {
                 const colors = TYPE_COLORS[alert.category] ?? TYPE_COLORS.results_rankings;
                 const isUnread = !readIds.has(alert.id);
@@ -162,32 +182,44 @@ export default function AlertsPage() {
                 return (
                   <div
                     key={alert.id}
-                    className={`flex items-start gap-4 px-8 py-4 hover:bg-white transition-colors cursor-pointer group ${isUnread ? "bg-[rgba(231,93,80,0.025)]" : ""}`}
+                    className="flex items-start gap-4 px-8 py-4 cursor-pointer group transition-colors"
+                    style={{
+                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      background: isUnread ? "rgba(185,255,74,0.025)" : "transparent",
+                    }}
                     onClick={() => markRead(alert.id)}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = isUnread ? "rgba(185,255,74,0.025)" : "transparent")}
                   >
                     {/* Unread dot */}
                     <div className="w-2 shrink-0 flex items-start justify-center pt-2.5">
-                      {isUnread && <div className="w-2 h-2 rounded-full bg-[#E75D50]" />}
+                      {isUnread && <div className="w-2 h-2 rounded-full" style={{ background: "#B9FF4A" }} />}
                     </div>
 
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#293055] to-[#344F9F] flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5"
+                      style={{ background: "linear-gradient(135deg, rgba(185,255,74,0.25), rgba(185,255,74,0.10))", color: "#B9FF4A", border: "1px solid rgba(185,255,74,0.25)" }}>
                       {ath}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-[13px] font-semibold text-[#1C1F3A]">{alert.athleteName}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: colors.bg, color: colors.text }}>
+                        <span className="text-[13px] font-semibold text-white">{alert.athleteName}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                          style={{ background: colors.bg, color: colors.text }}>
                           {colors.label}
                         </span>
                       </div>
-                      <p className="text-[13px] font-medium text-[#293055] mb-1 leading-snug">{alert.title}</p>
+                      <p className="text-[13px] font-medium mb-1 leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+                        {alert.title}
+                      </p>
                       {alert.summary && (
-                        <p className="text-[12px] text-[#6B7080] leading-relaxed mb-2">{alert.summary}</p>
+                        <p className="text-[12px] leading-relaxed mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
+                          {alert.summary}
+                        </p>
                       )}
-                      <div className="flex items-center gap-3 text-[11px] text-[#A0A8C0]">
+                      <div className="flex items-center gap-3 text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>
                         <span className="flex items-center gap-1">
                           <Globe size={10} />
                           {alert.sourceDomain}
@@ -206,13 +238,18 @@ export default function AlertsPage() {
                     <div className="shrink-0 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
                       <button
                         onClick={(e) => { e.stopPropagation(); markRead(alert.id); }}
-                        className="p-1.5 rounded-lg text-[#A0A8C0] hover:text-[#6B7080] hover:bg-[#F0F2F8] transition-colors"
+                        className="p-1.5 rounded-lg transition-colors"
+                        style={{ color: "rgba(255,255,255,0.35)", background: "transparent" }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "rgba(255,255,255,0.70)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
                         title="Mark read"
                       >
                         <Archive size={13} />
                       </button>
                       <Link href={`/athletes/${alert.athleteId}`}>
-                        <span className="p-1.5 rounded-lg text-[#A0A8C0] hover:text-[#6B7080] hover:bg-[#F0F2F8] transition-colors block" title="View athlete">
+                        <span className="p-1.5 rounded-lg transition-colors block"
+                          style={{ color: "rgba(255,255,255,0.35)" }}
+                          title="View athlete">
                           <ChevronRight size={13} />
                         </span>
                       </Link>
