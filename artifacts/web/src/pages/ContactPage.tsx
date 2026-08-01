@@ -38,7 +38,7 @@ export default function ContactPage() {
   };
 
   const inputCls = "w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.09] text-[13px] text-white/80 placeholder:text-white/20 focus:outline-none focus:border-[#B9FF4A]/50 focus:ring-1 focus:ring-[#B9FF4A]/15 transition-all";
-  const labelCls = "block text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-1.5";
+  const labelCls = "block text-[11px] font-semibold text-white/55 uppercase tracking-wider mb-1.5";
 
   return (
     <>
@@ -70,7 +70,7 @@ export default function ContactPage() {
               <span className="text-[11px] font-bold text-[#B9FF4A] uppercase tracking-widest">Contact</span>
             </div>
             <h1 className="text-4xl font-black text-white tracking-tight mb-4">Let's talk.</h1>
-            <p className="text-white/40 text-lg max-w-xl mx-auto">Whether you want a demo with your own athletes, have questions about fit, or need an enterprise conversation — we respond within one business day.</p>
+            <p className="text-white/70 text-lg max-w-xl mx-auto">Whether you want a demo with your own athletes, have questions about fit, or need an enterprise conversation — we respond within one business day.</p>
           </div>
         </section>
 
@@ -90,29 +90,29 @@ export default function ContactPage() {
                     <button
                       key={t.id}
                       onClick={() => setType(t.id as typeof type)}
-                      className={`w-full text-left flex items-start gap-3 p-3 rounded-xl mb-1.5 border transition-all ${type === t.id ? "border-[#B9FF4A]/30 bg-[#B9FF4A]/8" : "border-transparent hover:bg-white/[0.03]"}`}
+                      className={`w-full text-left flex items-start gap-3 p-3 rounded-xl mb-1.5 border transition-all ${type === t.id ? "border-[#B9FF4A]/30 bg-[#B9FF4A]/8" : "border-transparent hover:bg-white/[0.04]"}`}
                     >
-                      <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${type === t.id ? "bg-[#B9FF4A]" : "bg-white/15"}`} />
+                      <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${type === t.id ? "bg-[#B9FF4A]" : "bg-white/25"}`} />
                       <div>
-                        <div className={`text-[13px] font-medium ${type === t.id ? "text-white/90" : "text-white/50"}`}>{t.label}</div>
-                        <div className="text-[11px] text-white/25 mt-0.5">{t.desc}</div>
+                        <div className={`text-[13px] font-medium ${type === t.id ? "text-white/90" : "text-white/70"}`}>{t.label}</div>
+                        <div className="text-[11px] text-white/40 mt-0.5">{t.desc}</div>
                       </div>
                     </button>
                   ))}
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/[0.04] border border-white/[0.07] space-y-4">
+                <div className="p-5 rounded-2xl bg-white/[0.04] border border-white/[0.09] space-y-4">
                   <div>
                     <div className={labelCls}>Response time</div>
-                    <div className="text-[13px] text-white/50">Within 1 business day, often same day</div>
+                    <div className="text-[13px] text-white/70">Within 1 business day, often same day</div>
                   </div>
                   <div>
                     <div className={labelCls}>Demo format</div>
-                    <div className="text-[13px] text-white/50">30–45 min, built around athletes from your actual roster — not a canned walkthrough</div>
+                    <div className="text-[13px] text-white/70">30–45 min, built around athletes from your actual roster — not a canned walkthrough</div>
                   </div>
                   <div>
                     <div className={labelCls}>Based in</div>
-                    <div className="text-[13px] text-white/50">New Zealand — working with organisations across NZ, AU, UK, US, and CA</div>
+                    <div className="text-[13px] text-white/70">New Zealand — working with organisations across NZ, AU, UK, US, and CA</div>
                   </div>
                 </div>
               </div>
@@ -190,7 +190,7 @@ export default function ContactPage() {
                       ) : type === "demo" ? "Request demo" : "Send message"}
                     </button>
 
-                    <p className="text-[11px] text-white/20 text-center">We never share your information with third parties.</p>
+                    <p className="text-[11px] text-white/40 text-center">We never share your information with third parties.</p>
                   </form>
                 )}
               </div>

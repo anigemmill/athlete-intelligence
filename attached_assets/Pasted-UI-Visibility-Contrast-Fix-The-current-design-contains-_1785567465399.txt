@@ -1,0 +1,77 @@
+UI Visibility & Contrast Fix
+
+The current design contains elements that are technically rendering but are almost invisible due to poor colour contrast.
+
+This is affecting usability and does not match the intended design system.
+
+Issue
+
+In the numbered timeline/process section, the large background numbers ("02", "03", etc.) are almost indistinguishable from the page background.
+
+The divider line is also too subtle.
+
+This section should feel premium and intentional—not hidden.
+
+Audit
+
+Review this entire component and determine:
+
+How the background numbers are styled.
+Whether they use opacity, blend modes, filters, or z-index.
+Whether the dark theme variables are being applied correctly.
+Whether the colour tokens match the new design system.
+Whether any parent opacity or overlay is unintentionally reducing visibility.
+Fix
+
+Adjust the design so that:
+
+The background numbers are clearly visible while remaining subtle.
+The divider line has enough contrast to define the layout.
+The section remains elegant and uncluttered.
+Contrast meets accessibility guidelines without becoming visually heavy.
+All colours come from the central design tokens rather than hard-coded values.
+
+Do not simply increase opacity arbitrarily. Choose colours and opacity that fit the established design language.
+
+Verify
+
+Confirm the section is readable in:
+
+Light mode (if supported)
+Dark mode
+Standard displays
+Lower-brightness displays
+High-resolution monitors
+Deliverables
+
+Provide:
+
+Root cause of the poor visibility.
+Files changed.
+Before vs after explanation.
+Confirmation that the component now matches the rest of the design system.
+One additional thing I'd ask Replit
+
+Since you're polishing the UI now, I'd also include this:
+
+Perform a full colour contrast audit across the application.
+
+Identify any elements with insufficient contrast, including:
+
+headings
+body text
+muted text
+badges
+icons
+dividers
+charts
+progress bars
+timeline markers
+background numbers
+hover states
+disabled states
+form placeholders
+
+Bring all components into alignment with the new design system and ensure visual consistency throughout the application.
+
+That will catch issues like this everywhere instead of fixing them one at a time.

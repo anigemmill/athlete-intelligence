@@ -51,7 +51,7 @@ export default function AboutPage() {
             <h1 className="text-5xl font-black text-white tracking-tight mb-6 leading-tight">
               Professional sport deserves<br />professional intelligence.
             </h1>
-            <p className="text-white/45 text-lg leading-relaxed max-w-2xl mx-auto">
+            <p className="text-white/70 text-lg leading-relaxed max-w-2xl mx-auto">
               Athlete Intelligence was built after watching high-performing sports organisations make major decisions — selection, investment, partnerships — on incomplete, delayed, and often anecdotal information. That gap is now closeable.
             </p>
           </div>
@@ -69,7 +69,7 @@ export default function AboutPage() {
                 <h2 className="text-3xl font-black text-white tracking-tight mb-5 leading-tight">
                   Give every sports organisation access to world-class athlete intelligence.
                 </h2>
-                <p className="text-white/40 text-[14px] leading-relaxed">
+                <p className="text-white/55 text-[14px] leading-relaxed">
                   The best-resourced organisations in professional sport spend millions on scouts, analysts, and research operations. We're building the infrastructure that makes that same intelligence capacity accessible to any organisation — regardless of budget or headcount.
                 </p>
               </div>
@@ -80,9 +80,9 @@ export default function AboutPage() {
                   { n: "24/7", label: "Agents running continuously" },
                   { n: "< 4h", label: "Average intelligence latency" },
                 ].map((s) => (
-                  <div key={s.n} className="flex items-center gap-5 p-4 rounded-xl bg-white/[0.04] border border-white/[0.07]">
+                  <div key={s.n} className="flex items-center gap-5 p-4 rounded-xl bg-white/[0.04] border border-white/[0.09]">
                     <div className="text-2xl font-black text-[#C8BDFF] w-24 shrink-0">{s.n}</div>
-                    <div className="text-[13px] text-white/50">{s.label}</div>
+                    <div className="text-[13px] text-white/70">{s.label}</div>
                   </div>
                 ))}
               </div>
@@ -98,7 +98,7 @@ export default function AboutPage() {
               <span className="text-[11px] font-bold text-[#B9FF4A] uppercase tracking-widest">Our story</span>
             </div>
             <h2 className="text-3xl font-black text-white tracking-tight mb-10 text-center">Why we built this</h2>
-            <div className="space-y-5 text-[15px] text-white/45 leading-relaxed">
+            <div className="space-y-5 text-[15px] text-white/70 leading-relaxed">
               <p>
                 The idea took shape watching a national federation miss a significant sponsorship opportunity — not because the information didn't exist, but because they simply didn't know. An athlete had changed management six weeks earlier. It was publicly announced. No one had caught it.
               </p>
@@ -125,9 +125,9 @@ export default function AboutPage() {
             <h2 className="text-3xl font-black text-white tracking-tight mb-12 text-center">How we think</h2>
             <div className="grid md:grid-cols-2 gap-5">
               {VALUES.map((v) => (
-                <div key={v.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.07] hover:border-[#C8BDFF]/20 transition-colors">
+                <div key={v.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.09] hover:border-[#C8BDFF]/25 transition-colors">
                   <h3 className="text-[15px] font-bold text-white/90 mb-3">{v.title}</h3>
-                  <p className="text-[13px] text-white/40 leading-relaxed">{v.desc}</p>
+                  <p className="text-[13px] text-white/55 leading-relaxed">{v.desc}</p>
                 </div>
               ))}
             </div>

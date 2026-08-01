@@ -204,11 +204,11 @@ export default function PricingPage() {
               <span className="text-[11px] font-bold text-[#B9FF4A] uppercase tracking-widest">Pricing</span>
             </div>
             <h1 className="text-5xl font-black text-white tracking-tight mb-4">Simple, transparent pricing.</h1>
-            <p className="text-white/40 text-lg mb-3 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. 3-day free trial on all plans.</p>
-            <p className="text-white/25 text-[13px] mb-10">No credit card required to start your trial.</p>
+            <p className="text-white/70 text-lg mb-3 max-w-xl mx-auto">Three tiers. No hidden fees. No long-term lock-in. 3-day free trial on all plans.</p>
+            <p className="text-white/40 text-[13px] mb-10">No credit card required to start your trial.</p>
 
             {/* Billing toggle */}
-            <div className="inline-flex items-center gap-1 bg-white/[0.04] border border-white/[0.07] rounded-xl p-1">
+            <div className="inline-flex items-center gap-1 bg-white/[0.04] border border-white/[0.09] rounded-xl p-1">
               <button
                 onClick={() => setCycle("monthly")}
                 className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-all ${cycle === "monthly" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"}`}
@@ -246,7 +246,7 @@ export default function PricingPage() {
                   )}
 
                   <div className="text-[15px] font-black text-white/90 mb-2">{tier.name}</div>
-                  <p className="text-[12px] text-white/35 mb-6 leading-relaxed">{tier.tagline}</p>
+                  <p className="text-[12px] text-white/55 mb-6 leading-relaxed">{tier.tagline}</p>
 
                   <div className="flex items-end gap-1 mb-2">
                     {tier.monthly !== null ? (
@@ -254,7 +254,7 @@ export default function PricingPage() {
                         <span className="text-4xl font-black text-white">
                           ${cycle === "monthly" ? tier.monthly : tier.annual}
                         </span>
-                        <span className="text-[13px] text-white/30 mb-1.5">/month</span>
+                        <span className="text-[13px] text-white/55 mb-1.5">/month</span>
                       </>
                     ) : (
                       <span className="text-4xl font-black text-white">Custom</span>
@@ -267,7 +267,7 @@ export default function PricingPage() {
                   )}
                   {(tier.monthly === null || cycle !== "annual") && <div className="mb-5" />}
 
-                  <div className="space-y-2 mb-7 text-[13px] text-white/45">
+                  <div className="space-y-2 mb-7 text-[13px] text-white/70">
                     <div>{tier.athletes === -1 ? "Unlimited athletes" : `${tier.athletes} athletes`}</div>
                     <div>{tier.users === -1 ? "Unlimited users" : `${tier.users} team seats`}</div>
                     <div>All sports & disciplines</div>
@@ -289,7 +289,7 @@ export default function PricingPage() {
               ))}
             </div>
 
-            <p className="text-center text-white/20 text-[12px] mt-6">
+            <p className="text-center text-white/40 text-[12px] mt-6">
               Prices in USD. Annual plans billed as a single payment. Cancel any time.
             </p>
           </div>
@@ -302,11 +302,11 @@ export default function PricingPage() {
               <Asterisk size={14} color="#C8BDFF" />
               <h2 className="text-2xl font-black text-white tracking-tight">Full feature comparison</h2>
             </div>
-            <div className="rounded-2xl border border-white/[0.07] overflow-hidden">
+            <div className="rounded-2xl border border-white/[0.09] overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/[0.07] bg-white/[0.04]">
-                    <th className="text-left px-6 py-4 text-[12px] font-semibold text-white/30 uppercase tracking-wider w-1/2">Feature</th>
+                  <tr className="border-b border-white/[0.09] bg-white/[0.04]">
+                    <th className="text-left px-6 py-4 text-[12px] font-semibold text-white/55 uppercase tracking-wider w-1/2">Feature</th>
                     {TIERS.map((t) => (
                       <th
                         key={t.id}
@@ -321,14 +321,14 @@ export default function PricingPage() {
                   {FEATURES.map((f, i) => (
                     <React.Fragment key={i}>
                       {f.section && (
-                        <tr className="border-t border-white/[0.07]">
-                          <td colSpan={4} className="px-6 py-3 text-[11px] font-semibold text-white/25 uppercase tracking-widest bg-white/[0.02]">
+                        <tr className="border-t border-white/[0.09]">
+                          <td colSpan={4} className="px-6 py-3 text-[11px] font-semibold text-white/40 uppercase tracking-widest bg-white/[0.02]">
                             {f.section}
                           </td>
                         </tr>
                       )}
-                      <tr className="border-t border-white/[0.04] hover:bg-white/[0.01]">
-                        <td className="px-6 py-3.5 text-[13px] text-white/55">{f.label}</td>
+                      <tr className="border-t border-white/[0.07] hover:bg-white/[0.02]">
+                        <td className="px-6 py-3.5 text-[13px] text-white/70">{f.label}</td>
                         <td className="px-4 py-3.5 text-center"><Cell value={f.starter} /></td>
                         <td className="px-4 py-3.5 text-center bg-[#B9FF4A]/[0.03]"><Cell value={f.pro} /></td>
                         <td className="px-4 py-3.5 text-center"><Cell value={f.enterprise} /></td>
@@ -350,20 +350,20 @@ export default function PricingPage() {
             </div>
             <div className="space-y-2">
               {FAQ.map((item, i) => (
-                <div key={i} className="rounded-xl border border-white/[0.07] bg-white/[0.04] overflow-hidden">
+                <div key={i} className="rounded-xl border border-white/[0.09] bg-white/[0.04] overflow-hidden">
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     className="w-full flex items-center justify-between px-6 py-4 text-left"
                   >
-                    <span className="text-[14px] font-medium text-white/80">{item.q}</span>
-                    <span className={`text-white/30 transition-transform ${openFaq === i ? "rotate-45" : ""}`}>
+                    <span className="text-[14px] font-medium text-white/90">{item.q}</span>
+                    <span className={`text-white/40 transition-transform ${openFaq === i ? "rotate-45" : ""}`}>
                       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                       </svg>
                     </span>
                   </button>
                   {openFaq === i && (
-                    <div className="px-6 pb-5 text-[13px] text-white/45 leading-relaxed border-t border-white/[0.05] pt-4">
+                    <div className="px-6 pb-5 text-[13px] text-white/70 leading-relaxed border-t border-white/[0.08] pt-4">
                       {item.a}
                     </div>
                   )}

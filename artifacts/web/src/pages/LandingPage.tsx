@@ -93,7 +93,7 @@ function CountUpStat({ value, label }: { value: string; label: string }) {
       <div className="text-4xl md:text-5xl font-black text-[#C8BDFF] tracking-tight mb-2 tabular-nums">
         {prefix}{display}{suffix}
       </div>
-      <div className="text-[12px] text-white/30 font-medium tracking-wide">{label}</div>
+      <div className="text-[12px] text-white/55 font-medium tracking-wide">{label}</div>
     </div>
   );
 }
@@ -174,7 +174,7 @@ function LiveDashboard() {
   return (
     <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] bg-[#07100A] shadow-[0_60px_120px_rgba(0,0,0,0.6)]">
       {/* Window chrome */}
-      <div className="flex items-center justify-between px-5 h-11 border-b border-white/[0.06] bg-[#050D07]">
+      <div className="flex items-center justify-between px-5 h-11 border-b border-white/[0.09] bg-[#050D07]">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]/70" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]/70" />
@@ -182,33 +182,33 @@ function LiveDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#B9FF4A] animate-pulse" />
-          <span className="text-[10px] text-white/25 font-mono tracking-wider">LIVE · 7 athletes monitored</span>
+          <span className="text-[10px] text-white/40 font-mono tracking-wider">LIVE · 7 athletes monitored</span>
         </div>
-        <div className="text-[10px] text-white/15 font-mono">athlete intelligence</div>
+        <div className="text-[10px] text-white/30 font-mono">athlete intelligence</div>
       </div>
 
       <div className="grid grid-cols-5">
         {/* Left — roster */}
-        <div className="col-span-2 border-r border-white/[0.05] p-4 space-y-2.5">
-          <div className="text-[10px] text-white/25 uppercase tracking-widest mb-3 font-medium">Roster</div>
+        <div className="col-span-2 border-r border-white/[0.08] p-4 space-y-2.5">
+          <div className="text-[10px] text-white/40 uppercase tracking-widest mb-3 font-medium">Roster</div>
           {ATHLETES.map((a, i) => (
             <div
               key={a.name}
-              className={`p-3 rounded-xl border transition-colors ${i === 0 ? "bg-[#B9FF4A]/8 border-[#B9FF4A]/25" : "bg-white/[0.025] border-white/[0.05]"}`}
+              className={`p-3 rounded-xl border transition-colors ${i === 0 ? "bg-[#B9FF4A]/8 border-[#B9FF4A]/25" : "bg-white/[0.04] border-white/[0.08]"}`}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[12px] font-semibold text-white/90">{a.name}</span>
-                <span className="text-[10px] font-mono text-white/25">{a.nat}</span>
+                <span className="text-[10px] font-mono text-white/40">{a.nat}</span>
               </div>
-              <div className="text-[10px] text-white/35 mb-2">{a.sport}</div>
+              <div className="text-[10px] text-white/55 mb-2">{a.sport}</div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <div className="text-[10px] text-white/25">Confidence</div>
+                  <div className="text-[10px] text-white/40">Confidence</div>
                   <div className="text-[11px] font-semibold text-[#B9FF4A]">
                     {i === 0 ? confidence : a.score}
                   </div>
                 </div>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${a.delta !== "—" ? "text-[#B9FF4A] bg-[#B9FF4A]/10" : "text-white/25 bg-white/5"}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${a.delta !== "—" ? "text-[#B9FF4A] bg-[#B9FF4A]/10" : "text-white/40 bg-white/[0.07]"}`}>
                   {a.delta}
                 </span>
               </div>
@@ -219,7 +219,7 @@ function LiveDashboard() {
         {/* Right — feed */}
         <div className="col-span-3 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Live Intelligence Feed</div>
+            <div className="text-[10px] text-white/40 uppercase tracking-widest font-medium">Live Intelligence Feed</div>
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#B9FF4A]/10 border border-[#B9FF4A]/20">
               <span className="w-1 h-1 rounded-full bg-[#B9FF4A] animate-pulse" />
               <span className="text-[9px] text-[#B9FF4A] font-bold tracking-wider">LIVE</span>
@@ -229,7 +229,7 @@ function LiveDashboard() {
             {visibleItems.map((item, i) => (
               <div
                 key={`${feedIndex}-${i}`}
-                className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.05] bg-white/[0.025] transition-all duration-300"
+                className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.08] bg-white/[0.04] transition-all duration-300"
                 style={{
                   opacity: i === 0 && exiting ? 0 : 1 - i * 0.18,
                   transform: i === 0 && exiting ? "translateY(-4px)" : "translateY(0)",
@@ -425,7 +425,7 @@ export default function LandingPage() {
                   Up and running<br />in minutes.
                 </h2>
               </div>
-              <p className="text-white/40 text-base max-w-xs leading-relaxed md:text-right">
+              <p className="text-white/55 text-base max-w-xs leading-relaxed md:text-right">
                 No integrations. No data migration. No IT project. Add your first athlete and the agents start immediately.
               </p>
             </div>
@@ -438,11 +438,11 @@ export default function LandingPage() {
               ].map((s, i) => (
                 <div key={i} className="relative">
                   {i < 2 && (
-                    <div className="hidden md:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-[#B9FF4A]/20 to-transparent z-10" />
+                    <div className="hidden md:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-[#B9FF4A]/35 to-transparent z-10" />
                   )}
-                  <div className="text-[56px] font-black text-[#B9FF4A]/15 mb-4 leading-none font-mono">{s.n}</div>
+                  <div className="text-[56px] font-black text-[#B9FF4A]/28 mb-4 leading-none font-mono">{s.n}</div>
                   <h3 className="text-[17px] font-black text-white mb-3">{s.title}</h3>
-                  <p className="text-[13px] text-white/40 leading-relaxed">{s.desc}</p>
+                  <p className="text-[13px] text-white/55 leading-relaxed">{s.desc}</p>
                 </div>
               ))}
             </div>

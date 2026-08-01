@@ -68,7 +68,7 @@ export default function SecurityPage() {
               <span className="text-[11px] font-bold text-[#B9FF4A] uppercase tracking-widest">Security & Trust</span>
             </div>
             <h1 className="text-4xl font-black text-white tracking-tight mb-4">Security, privacy, and responsible AI</h1>
-            <p className="text-white/40 text-lg max-w-2xl mx-auto">We handle intelligence data for professional sports organisations — trust is the product. Here is exactly how we protect your data and how our AI systems work.</p>
+            <p className="text-white/70 text-lg max-w-2xl mx-auto">We handle intelligence data for professional sports organisations — trust is the product. Here is exactly how we protect your data and how our AI systems work.</p>
             <div className="mt-8 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#B9FF4A]/10 border border-[#B9FF4A]/20 text-[12px] text-[#B9FF4A] font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-[#B9FF4A] animate-pulse" />
               All systems operational
@@ -85,11 +85,11 @@ export default function SecurityPage() {
             </div>
             <div className="grid md:grid-cols-2 gap-5">
               {PILLARS.map((p) => (
-                <div key={p.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.07] hover:border-[#C8BDFF]/20 transition-colors">
+                <div key={p.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.09] hover:border-[#C8BDFF]/25 transition-colors">
                   <h3 className="text-[15px] font-bold text-white/90 mb-4">{p.title}</h3>
                   <ul className="space-y-2">
                     {p.items.map((item) => (
-                      <li key={item} className="flex items-center gap-2 text-[13px] text-white/45">
+                      <li key={item} className="flex items-center gap-2 text-[13px] text-white/70">
                         <span className="w-1 h-1 rounded-full bg-[#B9FF4A] shrink-0" />
                         {item}
                       </li>
@@ -113,9 +113,9 @@ export default function SecurityPage() {
             </div>
             <div className="grid md:grid-cols-2 gap-5">
               {AI_PRINCIPLES.map((p) => (
-                <div key={p.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.07] hover:border-[#B9FF4A]/15 transition-colors">
+                <div key={p.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.09] hover:border-[#B9FF4A]/20 transition-colors">
                   <h3 className="text-[14px] font-bold text-white/90 mb-2">{p.title}</h3>
-                  <p className="text-[13px] text-white/40 leading-relaxed">{p.desc}</p>
+                  <p className="text-[13px] text-white/55 leading-relaxed">{p.desc}</p>
                 </div>
               ))}
             </div>
@@ -129,10 +129,10 @@ export default function SecurityPage() {
               <Asterisk size={14} color="#C8BDFF" />
               <h2 className="text-2xl font-black text-white tracking-tight">Data sources</h2>
             </div>
-            <p className="text-white/40 text-[14px] mb-8 max-w-2xl">Our agents crawl a curated set of trusted sources. We maintain quality scores and blacklists for every domain.</p>
+            <p className="text-white/55 text-[14px] mb-8 max-w-2xl">Our agents crawl a curated set of trusted sources. We maintain quality scores and blacklists for every domain.</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {["World Athletics", "World Aquatics", "UCI Cycling", "FIFA / UEFA", "National Federations", "Official Results Feeds", "Accredited News Media", "Social Media (public)", "Competition Databases", "Athlete Official Sites", "Sports Analytics APIs", "Government Sports Bodies"].map((s) => (
-                <div key={s} className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[12px] text-white/45">{s}</div>
+                <div key={s} className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.09] text-[12px] text-white/70">{s}</div>
               ))}
             </div>
           </div>
@@ -151,19 +151,19 @@ export default function SecurityPage() {
                 { title: "NZ Privacy Act 2020 / CCPA", status: "Compliant", desc: "Information privacy principles followed for NZ and AU customers. CCPA rights (opt-out, deletion, disclosure) honoured for California-based users." },
                 { title: "SOC 2 Type II", status: "In progress", desc: "Audit underway. Report expected Q4 2026. Security, availability, and confidentiality controls are in place now." },
               ].map((c) => (
-                <div key={c.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+                <div key={c.title} className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.09]">
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <span className="text-[15px] font-bold text-white/90">{c.title}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.status === "Compliant" ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>{c.status}</span>
                   </div>
-                  <p className="text-[12px] text-white/35 leading-relaxed">{c.desc}</p>
+                  <p className="text-[12px] text-white/55 leading-relaxed">{c.desc}</p>
                 </div>
               ))}
             </div>
 
-            <div className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
-              <h3 className="text-[14px] font-bold text-white/80 mb-2">Questions about security or compliance?</h3>
-              <p className="text-[13px] text-white/40 mb-4">For vulnerability disclosures, data processing agreement requests, GDPR queries, or any compliance question — reach out directly. We respond within one business day.</p>
+            <div className="p-6 rounded-2xl bg-white/[0.04] border border-white/[0.09]">
+              <h3 className="text-[14px] font-bold text-white/92 mb-2">Questions about security or compliance?</h3>
+              <p className="text-[13px] text-white/55 mb-4">For vulnerability disclosures, data processing agreement requests, GDPR queries, or any compliance question — reach out directly. We respond within one business day.</p>
               <Link href="/contact">
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B9FF4A]/10 border border-[#B9FF4A]/25 text-[13px] text-[#B9FF4A] font-semibold cursor-pointer hover:bg-[#B9FF4A]/18 transition-colors">
                   Contact security team →

@@ -164,7 +164,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
         width: 224,
         flexShrink: 0,
         background: "#0B1809",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        borderRight: "1px solid rgba(255,255,255,0.09)",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -172,7 +172,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       }}
     >
       {/* Brand */}
-      <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: "#B9FF4A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 2px 8px rgba(185,255,74,0.35)" }}>
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#0D1C0B" strokeWidth={2.2}>
@@ -191,7 +191,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
         {NAV.map((group) => (
           <div key={group.section ?? "root"}>
             {group.section && (
-              <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.22)", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 10px 4px" }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.40)", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 10px 4px" }}>
                 {group.section}
               </div>
             )}
@@ -214,9 +214,9 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       </nav>
 
       {/* Athlete roster */}
-      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", borderTop: "1px solid rgba(255,255,255,0.09)" }}>
         <div style={{ padding: "10px 18px 6px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.22)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.40)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
             Roster ({allAthletes.length})
           </span>
           <Link href="/athletes/new">
@@ -254,10 +254,10 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.72)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: athlete.agentStatus === "paused" ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.82)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {athlete.name}
                   </div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.26)", marginTop: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{athlete.sport}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.40)", marginTop: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{athlete.sport}</div>
                 </div>
                 {athlete.hasNewIntelligence && (
                   <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#B9FF4A", flexShrink: 0 }} />
@@ -266,13 +266,13 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             </Link>
           ))}
           {filteredAthletes.length === 0 && athleteSearch && (
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.22)", padding: "8px 10px" }}>No athletes match</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.40)", padding: "8px 10px" }}>No athletes match</div>
           )}
         </div>
       </div>
 
       {/* Bottom nav + user footer */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.09)", flexShrink: 0 }}>
         <div style={{ padding: "8px 8px 4px" }}>
           {BOTTOM_NAV.filter((item) => {
             if (item.id === "admin") {
@@ -301,10 +301,10 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
             <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.70)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {user?.fullName || "User"}
             </div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.26)" }}>Pro Plan</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.40)" }}>Pro Plan</div>
           </div>
           <button onClick={() => signOut()} className="hover:bg-[rgba(255,255,255,0.07)] p-1.5 rounded transition-colors" aria-label="Sign out">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.22)" strokeWidth={2} className="hover:stroke-[rgba(255,255,255,0.65)] transition-colors">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.40)" strokeWidth={2} className="hover:stroke-[rgba(255,255,255,0.75)] transition-colors">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
             </svg>
           </button>
