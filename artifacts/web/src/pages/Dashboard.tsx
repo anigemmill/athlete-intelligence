@@ -3,11 +3,12 @@ import { Link, useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   Plus, Activity, Bell, Users, Search, ChevronRight, Sparkles,
-  MessageSquare, ArrowUpRight, Clock, FileText, Zap,
+  MessageSquare, ArrowUpRight, Clock, FileText, Zap, Globe2,
 } from "lucide-react";
-import { useGetDashboard, useListAthletes, useListIntelligence } from "@workspace/api-client-react";
+import { useGetDashboard, useListAthletes, useListIntelligence, useListCompetitions } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 import { TiltCard } from "@/components/3d/TiltCard";
+import { IntelligenceGlobe } from "@/components/3d/IntelligenceGlobe";
 import { T, CATEGORY_TOKENS, freshnessColor } from "@/lib/tokens";
 import { DsMetric, DsBadge, DsStatusDot, DsEmptyState, DsLoadingSkeleton, DsCard, DsCardHeader } from "@/components/ui/ds";
 
@@ -48,9 +49,13 @@ export default function Dashboard() {
     () => localStorage.getItem(ONBOARDING_KEY) === "1"
   );
 
+  const { data: competitionsData } = useListCompetitions();
+
   const athletes = (athletesData ?? []) as any[];
   const feedItems = ((Array.isArray(rawFeed) ? rawFeed : (rawFeed as any)?.items ?? []) as any[])
     .slice(0, 10);
+  const competitions = (competitionsData ?? []) as any[];
+  const intelligenceItems = ((Array.isArray(rawFeed) ? rawFeed : (rawFeed as any)?.items ?? []) as any[]);
 
   const isLoading = dashboard === undefined && athletesData === undefined;
   const isEmptyRoster = athletesData !== undefined && athletes.length === 0;
@@ -242,6 +247,32 @@ export default function Dashboard() {
               />
             </div>
           )}
+
+          {/* ── Intelligence Globe ──────────────────────────────────────── */}
+          <div className="mb-6">
+            <DsCard padded={false} className="overflow-hidden">
+              <DsCardHeader>
+                <span className="text-[13px] font-semibold flex items-center gap-2" style={{ color: T.t92 }}>
+                  <Globe2 size={13} style={{ color: T.lime }} />
+                  Global Intelligence Map
+                </span>
+                <span className="text-[11px]" style={{ color: T.t40 }}>
+                  Live · athlete locations, competitions &amp; signals
+                </span>
+              </DsCardHeader>
+              <div className="p-5">
+                {isLoading ? (
+                  <div className="rounded-xl animate-pulse" style={{ height: 280, background: T.bgElevated }} />
+                ) : (
+                  <IntelligenceGlobe
+                    athletes={athletes}
+                    competitions={competitions}
+                    intelligence={intelligenceItems}
+                  />
+                )}
+              </div>
+            </DsCard>
+          </div>
 
           {/* ── Main grid ───────────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-6">
