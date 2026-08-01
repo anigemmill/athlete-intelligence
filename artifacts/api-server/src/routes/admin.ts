@@ -10,10 +10,11 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { desc, eq, isNull, sql } from "drizzle-orm";
+import { desc, eq, isNull, sql, count } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   contactEnquiriesTable, athletesTable,
+  intelligenceItemsTable, timelineEventsTable, contactsTable, competitionsTable,
 } from "@workspace/db";
 import { repopulateAthlete } from "../lib/auto-populate.js";
 import { clerkClient, getAuth } from "@clerk/express";
@@ -301,6 +302,50 @@ router.get("/admin/health", requireAdmin, async (_req, res): Promise<void> => {
       memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
     },
   });
+});
+
+// ── GET /api/admin/data-health ────────────────────────────────────────────────
+// Returns per-athlete data freshness metrics for the Admin Data Health tab.
+
+router.get("/admin/data-health", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    const athletes = await db.select().from(athletesTable).orderBy(athletesTable.name);
+
+    // Count related rows for each athlete in one query per table
+    const intelCounts    = await db.select({ athleteId: intelligenceItemsTable.athleteId, n: count() }).from(intelligenceItemsTable).groupBy(intelligenceItemsTable.athleteId);
+    const timelineCounts = await db.select({ athleteId: timelineEventsTable.athleteId,   n: count() }).from(timelineEventsTable).groupBy(timelineEventsTable.athleteId);
+    const contactCounts  = await db.select({ athleteId: contactsTable.athleteId,          n: count() }).from(contactsTable).groupBy(contactsTable.athleteId);
+    const compCounts     = await db.select({ athleteId: competitionsTable.athleteId,      n: count() }).from(competitionsTable).groupBy(competitionsTable.athleteId);
+
+    const intelMap    = Object.fromEntries(intelCounts.map((r)    => [r.athleteId, Number(r.n)]));
+    const timelineMap = Object.fromEntries(timelineCounts.map((r) => [r.athleteId, Number(r.n)]));
+    const contactMap  = Object.fromEntries(contactCounts.map((r)  => [r.athleteId, Number(r.n)]));
+    const compMap     = Object.fromEntries(compCounts.map((r)     => [r.athleteId, Number(r.n)]));
+
+    const today = Date.now();
+
+    const rows = athletes.map((a) => {
+      const lastCrawledMs = a.lastCrawledAt ? new Date(a.lastCrawledAt).getTime() : null;
+      const dataAgeDays   = lastCrawledMs ? Math.floor((today - lastCrawledMs) / (1000 * 60 * 60 * 24)) : null;
+      return {
+        id:            a.id,
+        name:          a.name,
+        sport:         a.sport,
+        agentStatus:   a.agentStatus,
+        lastCrawledAt: a.lastCrawledAt ?? null,
+        dataAgeDays,
+        intelligenceCount: intelMap[a.id]    ?? 0,
+        timelineCount:     timelineMap[a.id] ?? 0,
+        contactCount:      contactMap[a.id]  ?? 0,
+        competitionCount:  compMap[a.id]     ?? 0,
+      };
+    });
+
+    res.json({ athletes: rows });
+  } catch (err) {
+    logger.error({ err }, "data-health failed");
+    res.status(500).json({ error: "Failed to load data health" });
+  }
 });
 
 // ── GET /api/admin/flags ──────────────────────────────────────────────────────

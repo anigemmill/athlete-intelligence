@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   XCircle,
   Mail,
+  Activity,
 } from "lucide-react";
 
 type AuthFetch = ReturnType<typeof useAuthFetch>;
@@ -648,15 +649,180 @@ function FlagsTab({ authFetch }: { authFetch: AuthFetch }) {
   );
 }
 
+// ── Data Health tab ───────────────────────────────────────────────────────────
+
+interface DataHealthRow {
+  id: number;
+  name: string;
+  sport: string;
+  agentStatus: string;
+  lastCrawledAt: string | null;
+  dataAgeDays: number | null;
+  intelligenceCount: number;
+  timelineCount: number;
+  contactCount: number;
+  competitionCount: number;
+}
+
+function DataHealthTab({ authFetch }: { authFetch: AuthFetch }) {
+  const [rows, setRows] = useState<DataHealthRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshingId, setRefreshingId] = useState<number | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await authFetch("/api/admin/data-health");
+      const d = await r.json();
+      setRows(d.athletes ?? []);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const freshnessDot = (ageDays: number | null) => {
+    if (ageDays === null) return "#f87171";
+    if (ageDays <= 7)  return "#4ade80";
+    if (ageDays <= 30) return "#fbbf24";
+    return "#f87171";
+  };
+
+  const formatAge = (ageDays: number | null) => {
+    if (ageDays === null) return "Never";
+    if (ageDays === 0) return "Today";
+    if (ageDays === 1) return "Yesterday";
+    return `${ageDays}d ago`;
+  };
+
+  const triggerRefresh = async (id: number) => {
+    setRefreshingId(id);
+    try {
+      await authFetch(`/api/admin/repopulate/${id}`, { method: "POST" });
+      setTimeout(() => { load(); setRefreshingId(null); }, 8000);
+    } catch {
+      setRefreshingId(null);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex items-center gap-2 text-[13px] py-8" style={{ color: "rgba(255,255,255,0.40)" }}>
+      <Loader2 size={14} className="animate-spin" /> Loading data health…
+    </div>
+  );
+
+  const staleCount  = rows.filter((r) => r.dataAgeDays === null || r.dataAgeDays > 30).length;
+  const freshCount  = rows.filter((r) => r.dataAgeDays !== null && r.dataAgeDays <= 7).length;
+  const warnCount   = rows.filter((r) => r.dataAgeDays !== null && r.dataAgeDays > 7 && r.dataAgeDays <= 30).length;
+
+  return (
+    <div className="space-y-5">
+      {/* Summary stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <StatCard label="Total athletes" value={String(rows.length)} />
+        <StatCard label="Fresh (≤7 days)"    value={String(freshCount)} color="#4ade80" />
+        <StatCard label="Stale (8–30 days)"  value={String(warnCount)}  color={warnCount  > 0 ? "#fbbf24" : undefined} />
+        <StatCard label="Very stale (30d+)"  value={String(staleCount)} color={staleCount > 0 ? "#f87171" : undefined} />
+      </div>
+
+      {/* Per-athlete table */}
+      <div className="rounded-xl overflow-hidden" style={card}>
+        <div
+          className="grid px-5 py-3 text-[10px] font-bold uppercase tracking-widest"
+          style={{
+            gridTemplateColumns: "2fr 1fr 80px 60px 60px 60px 60px 80px",
+            color: "rgba(255,255,255,0.28)",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            background: "rgba(255,255,255,0.02)",
+          }}
+        >
+          <div>Athlete</div>
+          <div>Last Crawl</div>
+          <div>Agent</div>
+          <div>Intel</div>
+          <div>Events</div>
+          <div>Contacts</div>
+          <div>Comps</div>
+          <div></div>
+        </div>
+
+        {rows.length === 0 ? (
+          <div className="px-5 py-10 text-center text-[13px]" style={{ color: "rgba(255,255,255,0.35)" }}>No athletes found.</div>
+        ) : rows.map((row, i) => (
+          <div
+            key={row.id}
+            className="grid px-5 py-3.5 items-center"
+            style={{
+              gridTemplateColumns: "2fr 1fr 80px 60px 60px 60px 60px 80px",
+              borderBottom: i < rows.length - 1 ? "1px solid rgba(255,255,255,0.05)" : undefined,
+              background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)",
+            }}
+          >
+            {/* Name */}
+            <div>
+              <div className="text-[13px] font-medium text-white">{row.name}</div>
+              <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>{row.sport}</div>
+            </div>
+
+            {/* Last crawl */}
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: freshnessDot(row.dataAgeDays) }} />
+              <div>
+                <div className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>{formatAge(row.dataAgeDays)}</div>
+                {row.lastCrawledAt && (
+                  <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.30)" }}>
+                    {new Date(row.lastCrawledAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Agent status */}
+            <div>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{
+                color:      row.agentStatus === "active" ? "#4ade80" : "rgba(255,255,255,0.38)",
+                background: row.agentStatus === "active" ? "rgba(74,222,128,0.10)" : "rgba(255,255,255,0.05)",
+              }}>
+                {row.agentStatus}
+              </span>
+            </div>
+
+            {/* Counts */}
+            {[row.intelligenceCount, row.timelineCount, row.contactCount, row.competitionCount].map((n, ci) => (
+              <div key={ci} className="text-[13px] font-semibold" style={{ color: n > 0 ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.25)" }}>{n}</div>
+            ))}
+
+            {/* Refresh */}
+            <button
+              onClick={() => triggerRefresh(row.id)}
+              disabled={refreshingId === row.id}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all disabled:opacity-50"
+              style={{ background: "rgba(185,255,74,0.08)", border: "1px solid rgba(185,255,74,0.15)", color: "#B9FF4A" }}
+            >
+              <RefreshCw size={10} className={refreshingId === row.id ? "animate-spin" : ""} />
+              {refreshingId === row.id ? "Starting…" : "Refresh"}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.30)" }}>
+        The background auto-refresh scheduler picks the most-stale active athlete every 6 hours. Use Refresh to trigger an immediate repopulation for a specific athlete.
+      </p>
+    </div>
+  );
+}
+
 // ── Admin page ────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: "customers", label: "Customers" },
-  { id: "enquiries", label: "Enquiries" },
-  { id: "ai_usage",  label: "AI Usage" },
-  { id: "crawl",     label: "Crawl Tools" },
-  { id: "health",    label: "Health" },
-  { id: "flags",     label: "Feature Flags" },
+  { id: "customers",   label: "Customers" },
+  { id: "enquiries",   label: "Enquiries" },
+  { id: "ai_usage",    label: "AI Usage" },
+  { id: "crawl",       label: "Crawl Tools" },
+  { id: "data_health", label: "Data Health" },
+  { id: "health",      label: "System Health" },
+  { id: "flags",       label: "Feature Flags" },
 ];
 
 export default function AdminPage() {
@@ -691,12 +857,13 @@ export default function AdminPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 hide-scrollbar">
-          {activeTab === "customers"  && <CustomersTab  authFetch={authFetch} />}
-          {activeTab === "enquiries"  && <EnquiriesTab  authFetch={authFetch} />}
-          {activeTab === "ai_usage"   && <AiUsageTab />}
-          {activeTab === "crawl"      && <CrawlTab      authFetch={authFetch} />}
-          {activeTab === "health"     && <HealthTab     authFetch={authFetch} />}
-          {activeTab === "flags"      && <FlagsTab      authFetch={authFetch} />}
+          {activeTab === "customers"   && <CustomersTab   authFetch={authFetch} />}
+          {activeTab === "enquiries"   && <EnquiriesTab   authFetch={authFetch} />}
+          {activeTab === "ai_usage"    && <AiUsageTab />}
+          {activeTab === "crawl"       && <CrawlTab       authFetch={authFetch} />}
+          {activeTab === "data_health" && <DataHealthTab  authFetch={authFetch} />}
+          {activeTab === "health"      && <HealthTab      authFetch={authFetch} />}
+          {activeTab === "flags"       && <FlagsTab       authFetch={authFetch} />}
         </div>
       </div>
     </AppLayout>

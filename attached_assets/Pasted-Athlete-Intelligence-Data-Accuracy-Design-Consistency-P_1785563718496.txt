@@ -1,0 +1,267 @@
+Athlete Intelligence – Data Accuracy, Design Consistency & Production Quality Sprint
+
+We have completed the design refresh and the initial reliability milestones.
+
+The next objective is to make Athlete Intelligence feel like a production-ready intelligence platform.
+
+This sprint is not about adding new features.
+
+It is about ensuring the existing platform is visually consistent, accurate, current and trustworthy.
+
+Objective 1 — Complete the Design System
+
+Audit every screen.
+
+Identify any remaining UI that still uses the previous design language.
+
+Examples include:
+
+old colours
+old typography
+inconsistent buttons
+white/light cards
+incorrect spacing
+old icons
+inconsistent hover states
+legacy components
+outdated modals
+
+Apply the new design system everywhere.
+
+The application should look like one cohesive product.
+
+Objective 2 — Image Audit
+
+Audit every athlete image.
+
+Determine:
+
+where each image comes from
+when it was last updated
+whether it is still valid
+whether better public images exist
+
+Ensure athlete photos are refreshed whenever better publicly available images are found.
+
+If an image cannot be verified, prefer a placeholder over a misleading or outdated image.
+
+Explain the image retrieval strategy.
+
+Objective 3 — Data Freshness Audit (Highest Priority)
+
+The application currently displays stale information.
+
+Examples:
+
+Upcoming events from February 2026 despite the current date being August 2026.
+Old competition results.
+Outdated rankings.
+Stale timelines.
+Incorrect social statistics.
+
+Investigate why this is happening.
+
+Determine:
+
+when data was last crawled
+whether crawl jobs are running
+whether refresh schedules are working
+whether cache invalidation is failing
+whether the crawler is skipping updates
+whether APIs are returning stale data
+whether prompts are encouraging historical rather than current information
+
+I want the platform to prioritise current information while preserving historical records.
+
+Objective 4 — Intelligence Accuracy Audit
+
+Audit the entire intelligence pipeline.
+
+Determine why athlete information is inaccurate.
+
+Verify:
+
+Results
+Rankings
+Competitions
+Teams
+Sponsors
+Social accounts
+Followers
+Biography
+Timeline
+Education
+Awards
+
+For each category explain:
+
+current data source
+confidence
+refresh strategy
+why inaccuracies occur
+recommended fix
+
+Do not guess.
+
+Trace every incorrect fact back to its source.
+
+Objective 5 — Continuous Refresh
+
+The platform should not become stale.
+
+Design and implement a refresh strategy.
+
+Examples:
+
+Competition results:
+
+Daily
+
+Rankings:
+
+Daily
+
+News:
+
+Every few hours
+
+Social statistics:
+
+Daily
+
+Athlete profile verification:
+
+Weekly
+
+Biography:
+
+Monthly
+
+Historical records:
+
+Never overwritten.
+
+Only append.
+
+Objective 6 — Source Quality
+
+Review every external source currently used.
+
+Rank them.
+
+For each source explain:
+
+authority
+reliability
+update frequency
+confidence
+
+Official governing bodies should always outrank news websites.
+
+News websites should outrank AI-generated summaries.
+
+AI should never become the source of truth.
+
+Objective 7 — Admin Visibility
+
+Create an administrator "Data Health" dashboard.
+
+For every athlete show:
+
+Last crawl
+Last successful crawl
+Last failed crawl
+Evidence count
+Timeline completeness
+Image freshness
+Social freshness
+Results freshness
+Overall confidence score
+Data quality score
+
+Administrators should immediately see which athlete profiles require attention.
+
+Objective 8 — Validation
+
+Randomly sample at least 20 athletes.
+
+Compare the platform against publicly available official sources.
+
+Measure:
+
+accuracy
+completeness
+freshness
+
+Report:
+
+what is correct
+what is outdated
+what is missing
+what is incorrect
+
+Recommend improvements.
+
+Objective 9 — Production Readiness
+
+Verify that:
+
+dates are always current
+upcoming competitions are genuinely upcoming
+completed competitions move into history automatically
+rankings update
+timelines grow
+stale information is replaced by newer verified evidence
+old evidence is preserved
+Deliverables
+
+Provide:
+
+1. Design Audit
+
+List every remaining page using the old design system.
+
+2. Data Freshness Report
+
+Explain why stale data exists.
+
+3. Intelligence Accuracy Report
+
+For every incorrect athlete profile:
+
+root cause
+source
+confidence
+fix
+4. Image Audit
+
+Explain how image retrieval has been improved.
+
+5. Files Changed
+
+List every modified file.
+
+6. Testing
+
+Explain how the fixes were verified.
+
+7. Remaining Technical Debt
+
+List anything still preventing the platform from being considered production-ready.
+
+One additional recommendation
+
+I think you're missing one feature that would make debugging much easier: an Athlete Health Panel.
+
+On every athlete profile, add a collapsible admin-only section that shows:
+
+🟢 Last crawl: "31 Jul 2026, 2:14 PM"
+🟢 Last successful update
+🟡 Last failed update (if any)
+🟢 Number of evidence items
+🟢 Number of timeline events
+🟡 Photo age (e.g. "Updated 183 days ago")
+🟢 Social stats age (e.g. "Updated today")
+🟢 Results age
+🟢 Overall confidence (92%)
+🔵 "Refresh now" button

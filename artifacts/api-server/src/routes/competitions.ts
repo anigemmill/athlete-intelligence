@@ -13,8 +13,17 @@ const router: IRouter = Router();
 
 function toApiCompetition(c: Competition) {
   const today = new Date().toISOString().split("T")[0];
+
+  // Auto-correct stale "upcoming" competitions: if the stored status is
+  // "upcoming" but the date is today or in the past, treat it as completed.
+  // This prevents February events (populated months ago) from still appearing
+  // in the upcoming schedule in August. The DB is not written to — this is a
+  // view-layer correction applied on every read.
+  const effectiveStatus =
+    c.status === "upcoming" && c.date <= today ? "completed" : c.status;
+
   const daysAway =
-    c.status === "upcoming"
+    effectiveStatus === "upcoming"
       ? Math.ceil(
           (new Date(c.date).getTime() - new Date(today).getTime()) /
             (1000 * 60 * 60 * 24),
@@ -29,7 +38,7 @@ function toApiCompetition(c: Competition) {
     location: c.location ?? null,
     date: c.date,
     tier: c.tier,
-    status: c.status,
+    status: effectiveStatus,
     result: c.result ?? null,
     daysAway,
   };

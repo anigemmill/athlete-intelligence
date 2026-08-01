@@ -2,6 +2,10 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./lib/stripeClient.js";
+import { db } from "@workspace/db";
+import { athletesTable } from "@workspace/db";
+import { lt, isNull, or, eq } from "drizzle-orm";
+import { repopulateAthlete } from "./lib/auto-populate.js";
 
 // ── Stripe init ───────────────────────────────────────────────────────────────
 async function initStripe() {
@@ -20,6 +24,50 @@ async function initStripe() {
 }
 
 await initStripe();
+
+// ── Background auto-refresh scheduler ─────────────────────────────────────────
+// Every 6 hours, find the single most-stale active athlete and repopulate it.
+// Staggered one-at-a-time so Perplexity + OpenAI rate limits are respected.
+// Athletes crawled within the last 7 days are skipped — only genuinely stale
+// profiles (or never-crawled profiles) get refreshed automatically.
+
+async function runRefreshCycle() {
+  try {
+    const staleCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Pick the one athlete crawled longest ago (or never crawled) that is active
+    const staleAthletes = await db
+      .select({ id: athletesTable.id, name: athletesTable.name, lastCrawledAt: athletesTable.lastCrawledAt })
+      .from(athletesTable)
+      .where(
+        or(
+          isNull(athletesTable.lastCrawledAt),
+          lt(athletesTable.lastCrawledAt, staleCutoff),
+        ),
+      )
+      .orderBy(athletesTable.lastCrawledAt)
+      .limit(1);
+
+    if (staleAthletes.length === 0) {
+      logger.info("Auto-refresh: no stale athletes found");
+      return;
+    }
+
+    const target = staleAthletes[0];
+    logger.info({ athleteId: target.id, name: target.name }, "Auto-refresh: repopulating stale athlete");
+    await repopulateAthlete(target.id);
+    logger.info({ athleteId: target.id }, "Auto-refresh: repopulation complete");
+  } catch (err) {
+    logger.error({ err }, "Auto-refresh cycle failed");
+  }
+}
+
+// Wait 2 min after boot before first run (lets server warm up / Stripe init finish),
+// then run every 6 hours.
+setTimeout(() => {
+  runRefreshCycle();
+  setInterval(runRefreshCycle, 6 * 60 * 60 * 1000);
+}, 2 * 60 * 1000);
 
 const rawPort = process.env["PORT"];
 
