@@ -12,8 +12,11 @@ import {
   ChevronRight,
   Globe,
   Sparkles,
+  Clock,
 } from "lucide-react";
 import { useListIntelligence } from "@workspace/api-client-react";
+import { T } from "@/lib/tokens";
+import { DsBadge, DsEmptyState } from "@/components/ui/ds";
 
 const categoryConfig: Record<string, { label: string; icon: any; color: string; bg: string; filterKey: string }> = {
   results_rankings: {
@@ -136,29 +139,25 @@ export default function FeedPage() {
 
             {/* Feed items */}
             {feedData.length === 0 ? (
-              <div className="py-20 flex flex-col items-center justify-center text-center rounded-xl"
-                style={{ border: "1px dashed rgba(255,255,255,0.12)" }}>
-                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
-                  style={{ background: "rgba(255,255,255,0.05)" }}>
-                  <Activity size={22} style={{ color: "rgba(255,255,255,0.30)" }} />
-                </div>
-                <h3 className="text-[14px] font-semibold text-white mb-2">No intelligence yet</h3>
-                <p className="text-[13px] max-w-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  Add athletes to your roster and the intelligence engine will start surfacing updates automatically.
-                </p>
-                <Link href="/athletes/new">
-                  <span className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer transition-colors"
-                    style={{ background: "#B9FF4A", color: "#0D1C0B" }}>
-                    Add first athlete
-                  </span>
-                </Link>
-              </div>
+              <DsEmptyState
+                icon={<Activity size={22} />}
+                title="No intelligence yet"
+                description="Add athletes to your roster and the intelligence engine will start surfacing updates automatically."
+                action={
+                  <Link href="/athletes/new">
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer"
+                      style={{ background: T.lime, color: T.limeFg }}>
+                      Add first athlete
+                    </span>
+                  </Link>
+                }
+              />
             ) : filtered.length === 0 ? (
-              <div className="py-16 flex flex-col items-center justify-center text-center rounded-xl"
-                style={{ border: "1px dashed rgba(255,255,255,0.12)" }}>
-                <Activity size={20} style={{ color: "rgba(255,255,255,0.25)" }} className="mb-3" />
-                <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.40)" }}>No items in this category yet</p>
-              </div>
+              <DsEmptyState
+                icon={<Activity size={18} />}
+                title="No items in this category"
+                description="Try a different filter or wait for the intelligence engine to surface new updates."
+              />
             ) : (
               <div className="flex flex-col space-y-3">
                 {filtered.map((item: any) => {
@@ -197,27 +196,51 @@ export default function FeedPage() {
                         <p className="text-[13px] leading-relaxed mb-4" style={{ color: "rgba(255,255,255,0.55)" }}>{item.summary}</p>
                       )}
 
-                      {/* Footer */}
-                      <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.40)" }}>
-                            <Globe size={11} style={{ color: "rgba(255,255,255,0.30)" }} />
+                      {/* Footer — source + confidence visualisation */}
+                      <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${T.borderSubtle}` }}>
+                        <div className="flex items-center gap-5">
+                          {/* Source domain */}
+                          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: T.t40 }}>
+                            <Globe size={11} style={{ color: T.t28 }} />
                             {item.sourceDomain}
                           </div>
                           {item.sourceUrl && (
                             <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-[11px] hover:underline" style={{ color: "#C8BDFF" }}>
-                              <ExternalLink size={10} /> View source
+                              className="flex items-center gap-1 text-[11px] hover:underline" style={{ color: T.lavender }}>
+                              <ExternalLink size={10} /> Source
                             </a>
                           )}
-                          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "rgba(255,255,255,0.40)" }}>
-                            <ShieldCheck size={13} style={{ color: (item.confidence ?? 0) >= 90 ? "#4ade80" : "#6B8FE0" }} />
-                            {item.confidence ?? 80}% confidence
+                          {/* Confidence bar */}
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck size={12} style={{ color: (item.confidence ?? 0) >= 90 ? T.statusFresh : T.lavender, flexShrink: 0 }} />
+                            <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: T.bgElevated }}>
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${item.confidence ?? 75}%`,
+                                  background: (item.confidence ?? 0) >= 90
+                                    ? T.statusFresh
+                                    : (item.confidence ?? 0) >= 70
+                                    ? T.statusAging
+                                    : T.lavender,
+                                }}
+                              />
+                            </div>
+                            <span className="text-[11px] tabular-nums" style={{ color: T.t40 }}>
+                              {item.confidence ?? 75}%
+                            </span>
+                          </div>
+                          {/* Freshness */}
+                          <div className="flex items-center gap-1 text-[11px]" style={{ color: T.t40 }}>
+                            <Clock size={11} style={{ color: T.t28 }} />
+                            {timeAgo(item.discoveredAt)}
                           </div>
                         </div>
                         <Link href={`/athletes/${item.athleteId}`}>
                           <span className="text-[11px] transition-colors cursor-pointer flex items-center gap-1"
-                            style={{ color: "rgba(255,255,255,0.35)" }}>
+                            style={{ color: T.t40 }}
+                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = T.t70)}
+                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = T.t40)}>
                             View dossier <ChevronRight size={11} />
                           </span>
                         </Link>

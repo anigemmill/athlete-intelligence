@@ -1,0 +1,141 @@
+Athlete Intelligence – Design System Enforcement
+
+The recent contrast audit successfully corrected many inconsistencies.
+
+I now want to prevent these issues from returning.
+
+Objective
+
+Convert the design system from a set of conventions into an enforced system.
+
+There should be no arbitrary colours or opacity values throughout the application.
+
+1. Design Token Audit
+
+Search the entire codebase for:
+
+hard-coded colours
+arbitrary opacity values
+arbitrary border colours
+inconsistent spacing
+inconsistent radii
+inconsistent shadows
+
+Replace them with the approved design tokens.
+
+2. Typography Audit
+
+Ensure every text element belongs to an approved hierarchy.
+
+Examples:
+
+Display
+H1
+H2
+H3
+Body
+Secondary
+Caption
+Label
+
+Avoid custom font sizes unless absolutely necessary.
+
+3. Colour Audit
+
+Every colour should come from the design system.
+
+No:
+
+text-white/37
+
+No:
+
+border-lime/13
+
+Use only approved semantic tokens.
+
+4. Component Audit
+
+Ensure every component uses the same:
+
+buttons
+cards
+inputs
+badges
+tables
+modals
+tooltips
+dropdowns
+sidebars
+
+The UI should feel like it was designed by one team, not assembled over time.
+
+5. Create Reusable Components
+
+Where duplicate styling exists, extract reusable components.
+
+Examples:
+
+Card
+Section
+Metric
+Badge
+Empty State
+Loading Skeleton
+
+Reduce duplicated styling throughout the application.
+
+6. Final Design QA
+
+Review every page as if preparing for launch.
+
+Identify anything that still feels:
+
+inconsistent
+unfinished
+visually noisy
+low contrast
+difficult to read
+
+Fix it.
+
+Deliverables
+
+Provide:
+
+Remaining inconsistencies found.
+Files changed.
+Components extracted.
+Tokens introduced.
+Confirmation that the application now uses a single enforced design system.
+One other thing...
+
+Looking back at all the screenshots you've shared over the last month, I think there are three visual areas that still need the most attention:
+
+1. 🌍 The Globe
+
+It should become a hero feature rather than a confusing animation. It needs better contrast, lighting, meaningful data overlays, and clear interaction.
+
+2. 📊 Dashboard hierarchy
+
+When I land on the dashboard, I should immediately understand:
+
+what changed today,
+how many athletes are monitored,
+what requires attention,
+where activity is happening.
+
+Right now it looks good, but it could tell a clearer story.
+
+3. 🧠 Intelligence visualisation
+
+This is where Athlete Intelligence can really stand out. Rather than just showing lists and tables, think about visualising:
+
+evidence confidence,
+data freshness,
+source reliability,
+crawl status,
+relationship networks,
+monitoring health.
+
+Those elements reinforce that this is an intelligence platform, not just an athlete database.
