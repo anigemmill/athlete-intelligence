@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Helmet } from "react-helmet-async";
@@ -31,6 +31,72 @@ const STATS = [
   { value: "1.8M",    label: "Data Points Processed" },
   { value: "24 / 7",  label: "Real-Time Monitoring" },
 ];
+
+// Parses a display string like "12,400+", "1.8M", "24 / 7" into parts for animation
+function parseStatValue(raw: string): { prefix: string; num: number; suffix: string; decimals: number; static?: boolean } {
+  if (raw.includes(" / ")) {
+    // e.g. "24 / 7" — animate only the first number, keep " / 7"
+    const [left, right] = raw.split(" / ");
+    const n = parseFloat(left.replace(/,/g, ""));
+    return { prefix: "", num: n, suffix: ` / ${right}`, decimals: 0 };
+  }
+  // Strip commas, find leading digits (with optional decimal), then suffix
+  const match = raw.match(/^([^0-9]*)([0-9][0-9,]*(?:\.[0-9]+)?)(.*)$/);
+  if (!match) return { prefix: "", num: 0, suffix: raw, decimals: 0, static: true };
+  const [, prefix, numStr, suffix] = match;
+  const num = parseFloat(numStr.replace(/,/g, ""));
+  const decimals = numStr.includes(".") ? numStr.split(".")[1].length : 0;
+  return { prefix, num, suffix, decimals };
+}
+
+function formatNum(n: number, decimals: number): string {
+  if (decimals > 0) return n.toFixed(decimals);
+  // Add comma separators
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function CountUpStat({ value, label }: { value: string; label: string }) {
+  const { prefix, num, suffix, decimals } = parseStatValue(value);
+  const [display, setDisplay] = useState("0");
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setStarted(true); observer.disconnect(); } },
+      { threshold: 0.4 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
+    const duration = 1400; // ms
+    const start = performance.now();
+    function easeOut(t: number) { return 1 - Math.pow(1 - t, 3); }
+    function tick(now: number) {
+      const t = Math.min((now - start) / duration, 1);
+      const current = easeOut(t) * num;
+      setDisplay(formatNum(current, decimals));
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [started, num, decimals]);
+
+  return (
+    <div ref={ref} className="text-center">
+      <div className="text-4xl md:text-5xl font-black text-[#C8BDFF] tracking-tight mb-2 tabular-nums">
+        {prefix}{display}{suffix}
+      </div>
+      <div className="text-[12px] text-white/30 font-medium tracking-wide">{label}</div>
+    </div>
+  );
+}
 
 const FEATURES = [
   {
@@ -257,10 +323,7 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {STATS.map((s) => (
-                <div key={s.label} className="text-center">
-                  <div className="text-4xl md:text-5xl font-black text-[#C8BDFF] tracking-tight mb-2">{s.value}</div>
-                  <div className="text-[12px] text-white/30 font-medium tracking-wide">{s.label}</div>
-                </div>
+                <CountUpStat key={s.label} value={s.value} label={s.label} />
               ))}
             </div>
           </div>
