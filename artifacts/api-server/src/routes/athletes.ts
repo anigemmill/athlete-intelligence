@@ -13,6 +13,7 @@ import {
 } from "@workspace/db";
 import { autoPopulateAthlete, discoverAthleteProfile, repopulateAthlete, DISCOVERY_CONFIDENCE_THRESHOLD } from "../lib/auto-populate.js";
 import { lookupSocialData } from "../lib/social-extract.js";
+import { computeAthleteHealth } from "../lib/athlete-health.js";
 import {
   GetAthleteParams,
   UpdateAthleteParams,
@@ -413,6 +414,25 @@ router.delete("/athletes/:id", async (req, res): Promise<void> => {
   }
 
   res.sendStatus(204);
+});
+
+// ── GET /api/athletes/:id/health ─────────────────────────────────────────────
+// Intelligence Health metrics for a single athlete.
+// Returns confidence, freshness, source diversity, result completeness, and
+// known gaps — used by the IntelligenceHealthPanel on the dossier page.
+
+router.get("/athletes/:id/health", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "");
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid athlete id" }); return; }
+
+  try {
+    const health = await computeAthleteHealth(id);
+    if (!health) { res.status(404).json({ error: "Athlete not found" }); return; }
+    res.json(health);
+  } catch (err) {
+    logger.error({ err, athleteId: id }, "health endpoint failed");
+    res.status(500).json({ error: "Failed to compute health metrics" });
+  }
 });
 
 export default router;

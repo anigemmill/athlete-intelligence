@@ -529,12 +529,61 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     } else {
       // GPT extraction or database write failed after research succeeded.
       // Partial data may have been written; admin retry will overwrite with fresh data.
+      // IMPORTANT: stamp lastCrawledAt so the scheduler doesn't immediately re-queue
+      // this athlete on the next cycle — give it 24 hours before retrying.
+      try {
+        await db
+          .update(athletesTable)
+          .set({ lastCrawledAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) }) // 6 days ago → retries in ~1 day
+          .where(eq(athletesTable.id, athlete.id));
+      } catch {
+        // ignore — best-effort
+      }
       logger.error(
         { err, athleteId: athlete.id, name: athlete.name },
         "auto-populate: failed during extraction or database write",
       );
     }
   }
+}
+
+// ── Domain-authority confidence adjuster ─────────────────────────────────────
+// Post-processes GPT-assigned confidence scores with a domain quality modifier.
+// Authoritative sports domains get a small boost; unknown/generic domains get a
+// small penalty. Applied to intelligence items before they are inserted.
+
+const HIGH_AUTHORITY_DOMAINS = new Set([
+  "worldathletics.org", "olympics.com", "uci.org", "fis-ski.com", "iaaf.org",
+  "worldrowing.com", "worldsailing.org", "fina.org", "worldarchery.org",
+  "redbull.com", "bbc.co.uk", "bbc.com", "reuters.com", "apnews.com",
+  "theguardian.com", "espn.com", "si.com", "athleticsweekly.com",
+  "insidethegames.biz", "cyclingnews.com", "velonews.com", "runnersworld.com",
+  "swimswam.com", "trackandfielddailynews.com", "lequipe.fr",
+]);
+
+const LOW_AUTHORITY_DOMAINS = new Set([
+  "unknown", "reddit.com", "twitter.com", "x.com", "facebook.com",
+  "instagram.com", "tiktok.com", "youtube.com", "wikipedia.org",
+]);
+
+export function adjustConfidenceByDomain(
+  confidence: number,
+  sourceDomain: string,
+  hasSourceUrl: boolean,
+): number {
+  const domain = sourceDomain.toLowerCase().replace(/^www\./, "");
+  let adjusted = confidence;
+
+  if (HIGH_AUTHORITY_DOMAINS.has(domain)) {
+    adjusted = Math.min(97, adjusted + 5); // authoritative source boost
+  } else if (LOW_AUTHORITY_DOMAINS.has(domain)) {
+    adjusted = Math.max(40, adjusted - 10); // low-authority penalty
+  }
+
+  // Items with no source URL lose 5 points — harder to verify
+  if (!hasSourceUrl) adjusted = Math.max(40, adjusted - 5);
+
+  return Math.round(adjusted);
 }
 
 /**

@@ -21,7 +21,6 @@ import {
   AlertCircle,
   Trophy,
   ChevronDown,
-  Activity,
   RefreshCw,
 } from "lucide-react";
 import {
@@ -36,6 +35,7 @@ import { MiniGlobe } from "@/components/3d/MiniGlobe";
 import { Timeline3D } from "@/components/3d/Timeline3D";
 import { RelationshipGraph3D } from "@/components/3d/RelationshipGraph3D";
 import { Canvas3DWrapper } from "@/components/3d/Canvas3DWrapper";
+import { IntelligenceHealthPanel } from "@/components/IntelligenceHealthPanel";
 
 // ── Design system ──────────────────────────────────────────────────────────────
 const BG       = "#0D1C0B";
@@ -96,7 +96,7 @@ export default function DossierPage() {
   const params = useParams<{ id: string }>();
   const athleteId = parseInt(params.id ?? "0");
   const [activeTab, setActiveTab] = useState<string>("overview");
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin: _isAdmin } = useIsAdmin(); // reserved for future admin-only features
 
   // Auto-poll while the AI populates freshly-created athletes.
   const [isPopulating, setIsPopulating] = useState(false);
@@ -177,8 +177,6 @@ export default function DossierPage() {
   const [togglingAgent, setTogglingAgent] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [healthPanelOpen, setHealthPanelOpen] = useState(false);
-
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshLabel, setRefreshLabel] = useState("Refreshing…");
   const repopulateRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -408,22 +406,8 @@ export default function DossierPage() {
     );
   }
 
-  // ── Data health metrics (used in health panel) ────────────────────────────
+  // ── Data display helpers ─────────────────────────────────────────────────
   const lastCrawledAgo = timeAgo(athlete.lastCrawledAt);
-  const dataAge = athlete.lastCrawledAt
-    ? Math.floor((Date.now() - new Date(athlete.lastCrawledAt).getTime()) / (1000 * 60 * 60 * 24))
-    : null;
-  const avgConfidence = intel.length > 0
-    ? Math.round(intel.reduce((s: number, i: any) => s + (i.confidence ?? 80), 0) / intel.length)
-    : null;
-  const healthDot = (age: number | null) => {
-    if (age === null) return { color: "#fbbf24", label: "Unknown" };
-    if (age <= 1)  return { color: "#4ade80", label: "Today" };
-    if (age <= 7)  return { color: "#4ade80", label: `${age}d ago` };
-    if (age <= 30) return { color: "#fbbf24", label: `${age}d ago` };
-    return { color: "#f87171", label: `${age}d ago` };
-  };
-  const hd = healthDot(dataAge);
 
   return (
     <AppLayout activePage="athletes">
@@ -651,84 +635,13 @@ export default function DossierPage() {
             </div>
           </div>
 
-          {/* Admin Health Panel */}
-          {isAdmin && (
-            <div className="px-8 py-3 shrink-0" style={{ borderBottom: `1px solid ${BDR_DIM}`, background: "rgba(185,255,74,0.03)" }}>
-              <div className="max-w-6xl mx-auto">
-                <button
-                  onClick={() => setHealthPanelOpen((o) => !o)}
-                  className="flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase transition-colors"
-                  style={{ color: "rgba(185,255,74,0.60)" }}
-                >
-                  <Activity size={12} style={{ color: LIME }} />
-                  Data Health
-                  <ChevronDown size={12} className={`transition-transform ${healthPanelOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {healthPanelOpen && (
-                  <div className="mt-3 grid grid-cols-5 gap-3">
-                    {[
-                      {
-                        label: "Last crawl",
-                        value: lastCrawledAgo,
-                        dot: hd.color,
-                        sub: athlete.lastCrawledAt
-                          ? new Date(athlete.lastCrawledAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
-                          : "Never crawled",
-                      },
-                      {
-                        label: "Evidence items",
-                        value: String(intel.length),
-                        dot: intel.length >= 8 ? "#4ade80" : intel.length >= 4 ? "#fbbf24" : "#f87171",
-                        sub: `${intel.length} intelligence items`,
-                      },
-                      {
-                        label: "Timeline events",
-                        value: String(timeline.length),
-                        dot: timeline.length >= 15 ? "#4ade80" : timeline.length >= 8 ? "#fbbf24" : "#f87171",
-                        sub: `${completedComps.length} completed comps`,
-                      },
-                      {
-                        label: "Contacts",
-                        value: String(contacts.length),
-                        dot: contacts.length >= 3 ? "#4ade80" : contacts.length >= 1 ? "#fbbf24" : "#f87171",
-                        sub: contacts.length > 0 ? contacts.slice(0, 2).map((c: any) => c.role).join(", ") : "No contacts",
-                      },
-                      {
-                        label: "Avg confidence",
-                        value: avgConfidence !== null ? `${avgConfidence}%` : "—",
-                        dot: avgConfidence !== null ? (avgConfidence >= 85 ? "#4ade80" : avgConfidence >= 70 ? "#fbbf24" : "#f87171") : "#fbbf24",
-                        sub: "Across intelligence items",
-                      },
-                    ].map((item) => (
-                      <div key={item.label} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.dot }} />
-                          <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: T40 }}>{item.label}</span>
-                        </div>
-                        <div className="text-[18px] font-bold mb-0.5" style={{ color: T92 }}>{item.value}</div>
-                        <div className="text-[10px] leading-snug" style={{ color: T40 }}>{item.sub}</div>
-                      </div>
-                    ))}
-
-                    {/* Refresh now button */}
-                    <div className="rounded-lg p-3 flex flex-col justify-between" style={{ background: "rgba(185,255,74,0.05)", border: "1px solid rgba(185,255,74,0.15)" }}>
-                      <div className="text-[10px] font-medium uppercase tracking-wide mb-2" style={{ color: "rgba(185,255,74,0.60)" }}>Actions</div>
-                      <button
-                        onClick={refreshData}
-                        disabled={isRefreshing}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-all disabled:opacity-50"
-                        style={{ background: LIME, color: BG }}
-                      >
-                        <RefreshCw size={10} className={isRefreshing ? "animate-spin" : ""} />
-                        {isRefreshing ? "Refreshing…" : "Refresh now"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Intelligence Health Panel — visible to all users */}
+          <IntelligenceHealthPanel
+            athleteId={athleteId}
+            onRefresh={refreshData}
+            isRefreshing={isRefreshing}
+            refreshLabel={refreshLabel}
+          />
 
           {/* Tab bar */}
           <div className="px-8 shrink-0" style={{ borderBottom: `1px solid ${BDR_DIM}`, background: BG }}>

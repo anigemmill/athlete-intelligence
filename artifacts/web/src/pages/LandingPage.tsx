@@ -437,9 +437,6 @@ export default function LandingPage() {
                 { n: "03", title: "Intelligence comes to you", desc: "Structured, source-attributed updates flow into your feed, dossiers, and alerts. No searching. No aggregating. Just decisions." },
               ].map((s, i) => (
                 <div key={i} className="relative">
-                  {i < 2 && (
-                    <div className="hidden md:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-[#B9FF4A]/35 to-transparent z-10" />
-                  )}
                   <div className="text-[56px] font-black text-[#B9FF4A]/28 mb-4 leading-none font-mono">{s.n}</div>
                   <h3 className="text-[17px] font-black text-white mb-3">{s.title}</h3>
                   <p className="text-[13px] text-white/55 leading-relaxed">{s.desc}</p>

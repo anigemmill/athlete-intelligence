@@ -17,6 +17,7 @@ import {
   intelligenceItemsTable, timelineEventsTable, contactsTable, competitionsTable,
 } from "@workspace/db";
 import { repopulateAthlete } from "../lib/auto-populate.js";
+import { backfillCompetitionResults, flushStaleCompetitionStatuses } from "../lib/result-backfill.js";
 import { clerkClient, getAuth } from "@clerk/express";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
@@ -345,6 +346,31 @@ router.get("/admin/data-health", requireAdmin, async (_req, res): Promise<void> 
   } catch (err) {
     logger.error({ err }, "data-health failed");
     res.status(500).json({ error: "Failed to load data health" });
+  }
+});
+
+// ── POST /api/admin/backfill-results ─────────────────────────────────────────
+// Fetches real competition results for all past competitions that still have
+// result = NULL. Runs per-athlete via the result-backfill module.
+
+router.post("/admin/backfill-results", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    // First flush all stale "upcoming" statuses to "completed" in the DB
+    const flushed = await flushStaleCompetitionStatuses();
+
+    // Then fetch actual results for all athletes
+    const athletes = await db.select({ id: athletesTable.id }).from(athletesTable);
+    let totalFilled = 0;
+    for (const a of athletes) {
+      const filled = await backfillCompetitionResults(a.id);
+      totalFilled += filled;
+    }
+
+    logger.info({ flushed, totalFilled }, "admin: backfill-results complete");
+    res.json({ ok: true, flushedStatuses: flushed, resultsFilled: totalFilled });
+  } catch (err) {
+    logger.error({ err }, "admin: backfill-results failed");
+    res.status(500).json({ error: "Backfill failed" });
   }
 });
 

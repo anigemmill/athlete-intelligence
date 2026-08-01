@@ -26,16 +26,26 @@ async function initStripe() {
 await initStripe();
 
 // ── Background auto-refresh scheduler ─────────────────────────────────────────
-// Every 6 hours, find the single most-stale active athlete and repopulate it.
-// Staggered one-at-a-time so Perplexity + OpenAI rate limits are respected.
-// Athletes crawled within the last 7 days are skipped — only genuinely stale
-// profiles (or never-crawled profiles) get refreshed automatically.
+// Every 6 hours, refresh up to 3 of the most stale active athletes.
+// Athletes are processed sequentially with a 90s gap between them to respect
+// Perplexity + OpenAI rate limits. Staleness threshold: 5 days (was 7).
+//
+// After each repopulation, the result-backfill pass runs to fill any competition
+// results that were missing from the initial crawl.
+
+import { backfillCompetitionResults, flushStaleCompetitionStatuses } from "./lib/result-backfill.js";
+
+const STALE_DAYS            = 5;   // refresh athletes not crawled within N days
+const MAX_PER_CYCLE         = 3;   // max athletes to refresh per 6-hour cycle
+const INTER_ATHLETE_DELAY   = 90;  // seconds between athletes in the same cycle
 
 async function runRefreshCycle() {
   try {
-    const staleCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // Flush any competition statuses that passed their date since the last crawl
+    await flushStaleCompetitionStatuses();
 
-    // Pick the one athlete crawled longest ago (or never crawled) that is active
+    const staleCutoff = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000);
+
     const staleAthletes = await db
       .select({ id: athletesTable.id, name: athletesTable.name, lastCrawledAt: athletesTable.lastCrawledAt })
       .from(athletesTable)
@@ -46,17 +56,38 @@ async function runRefreshCycle() {
         ),
       )
       .orderBy(athletesTable.lastCrawledAt)
-      .limit(1);
+      .limit(MAX_PER_CYCLE);
 
     if (staleAthletes.length === 0) {
       logger.info("Auto-refresh: no stale athletes found");
       return;
     }
 
-    const target = staleAthletes[0];
-    logger.info({ athleteId: target.id, name: target.name }, "Auto-refresh: repopulating stale athlete");
-    await repopulateAthlete(target.id);
-    logger.info({ athleteId: target.id }, "Auto-refresh: repopulation complete");
+    for (let i = 0; i < staleAthletes.length; i++) {
+      const target = staleAthletes[i];
+
+      // Stagger: wait between athletes (except before the first one)
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, INTER_ATHLETE_DELAY * 1000));
+      }
+
+      logger.info({ athleteId: target.id, name: target.name, slot: i + 1 }, "Auto-refresh: repopulating stale athlete");
+      await repopulateAthlete(target.id);
+
+      // After repopulate, backfill any competition results still missing
+      try {
+        const filled = await backfillCompetitionResults(target.id);
+        if (filled > 0) {
+          logger.info({ athleteId: target.id, filled }, "Auto-refresh: backfilled competition results");
+        }
+      } catch (backfillErr) {
+        logger.warn({ backfillErr, athleteId: target.id }, "Auto-refresh: result backfill failed (non-fatal)");
+      }
+
+      logger.info({ athleteId: target.id, slot: i + 1 }, "Auto-refresh: athlete complete");
+    }
+
+    logger.info({ count: staleAthletes.length }, "Auto-refresh: cycle complete");
   } catch (err) {
     logger.error({ err }, "Auto-refresh cycle failed");
   }

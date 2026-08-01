@@ -1,0 +1,95 @@
+Phase 1 — 🧠 Intelligence Health Panel (Build this first)
+
+This gives you immediate value and helps you debug the platform while you're still improving the intelligence engine.
+
+Every athlete dossier should answer:
+
+How fresh is this data?
+How confident are we?
+How many evidence sources support it?
+What information is missing?
+When was it last verified?
+What should be refreshed?
+
+This becomes your "trust layer."
+
+Phase 2 — 🌍 Global Intelligence Map
+
+Once the trust layer exists, the globe becomes genuinely useful.
+
+It shouldn't just show where athletes are. It should answer questions like:
+
+Where are my monitored athletes?
+Where are competitions happening this week?
+Which countries have new intelligence today?
+Where are alerts being generated?
+Which regions haven't been crawled recently?
+
+The globe becomes a live operational dashboard rather than decoration.
+
+Phase 3 — 🕸️ Intelligence Graph
+
+I'd save this until after the evidence engine and identity engine have matured.
+
+This is the feature that could become your biggest differentiator, but only if every relationship is evidence-backed.
+
+Imagine clicking an athlete and seeing:
+
+Brook Macdonald
+│
+├── Coach
+├── Manager
+├── Sponsors
+├── National Federation
+├── Teams
+├── Competitions
+├── Media Mentions
+├── Brand Partnerships
+├── Teammates
+└── Governing Bodies
+
+Clicking any connection should reveal:
+
+the evidence supporting it,
+confidence,
+when it was discovered,
+and whether it's still current.
+
+That is much more powerful than a simple network diagram.
+
+One thing I'd add before any of those
+
+I think there's one task missing that is actually higher priority than all three.
+
+⭐ Intelligence Accuracy & Evidence Validation
+
+You've mentioned several real issues:
+
+Old athlete photos.
+Results months out of date.
+Upcoming competitions from February when it's now August.
+Incorrect social data.
+Information that doesn't seem to reflect what's online.
+
+Until those are fixed, new visualisations will simply present stale data more attractively.
+
+I'd insert this as the next engineering task:
+
+Trace the complete intelligence pipeline for 10 real athletes and identify exactly why data becomes stale, inaccurate, or incomplete. Improve source selection, refresh logic, validation, and evidence quality before building new intelligence visualisations.
+
+My revised roadmap
+
+I'd suggest this order:
+
+⭐ Intelligence Accuracy & Evidence Validation (highest priority)
+🧠 Intelligence Health Panel
+🌍 Global Intelligence Map
+🕸️ Intelligence Graph
+
+That way, every new visualisation is built on data you actually trust.
+
+What I'd tell Replit
+
+In the "Additional comments" box, I'd write:
+
+Prioritise the Intelligence Health Panel first, but before implementing any new visualisation, perform an Intelligence Accuracy & Evidence Validation audit. I want to ensure the platform is retrieving current, evidence-backed information from the best available sources. Once data quality is demonstrably reliable, proceed with the Health Panel, then the Global Intelligence Map, and finally the Intelligence Graph. Every new feature should be driven by verified intelligence rather than static or potentially stale data.
