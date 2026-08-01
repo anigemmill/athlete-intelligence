@@ -1,0 +1,222 @@
+Athlete Intelligence – Intelligence Accuracy & Source Validation Sprint
+
+The application has reached a point where the design system, dashboard, Health Panel, and supporting infrastructure are in a good place.
+
+The highest priority is now intelligence quality.
+
+The platform is still returning stale, incomplete or incorrect information.
+
+This sprint is not about adding new features.
+
+It is about making the intelligence trustworthy.
+
+Objective
+
+Determine why Athlete Intelligence is not consistently retrieving the latest, most accurate publicly available information.
+
+Do not assume the issue is the crawler.
+
+Trace the entire intelligence pipeline from discovery to display.
+
+I want evidence, not assumptions.
+
+Objective 1 – Full Pipeline Audit
+
+Select 10 athletes from different sports and different levels (high school, national, international).
+
+For each athlete, trace every stage of the pipeline.
+
+Show:
+
+Discovery
+Search queries generated
+External sources queried
+Raw responses
+AI extraction
+Validation
+Database writes
+Data shown in the UI
+
+For every incorrect value, identify exactly where it entered the pipeline.
+
+Objective 2 – Accuracy Audit
+
+Compare the stored data against current publicly available information.
+
+Audit:
+
+Athlete photo
+Biography
+Current team
+Coach
+Manager
+Sponsors
+Results
+Rankings
+Competitions
+Timeline
+Social accounts
+Social follower counts
+Awards
+National representation
+
+For every incorrect field explain:
+
+Current value
+Correct value
+Source used
+Better source (if available)
+Root cause
+
+Do not guess.
+
+Objective 3 – Source Quality Audit
+
+For every data category identify the source hierarchy.
+
+For example:
+
+Results
+
+Official federation results
+Official event websites
+National governing bodies
+Trusted timing providers
+Reputable media
+AI extraction
+
+The platform should always prefer the highest-authority source available.
+
+Produce the source hierarchy currently being used and recommend improvements.
+
+Objective 4 – Data Freshness
+
+Explain why stale information exists.
+
+Investigate:
+
+Crawl frequency
+Cache invalidation
+Failed refreshes
+Skipped athletes
+Scheduler behaviour
+Prompt wording
+Search queries
+API limitations
+
+Determine why examples such as:
+
+February competitions
+Old results
+Outdated photos
+Old rankings
+
+are still appearing.
+
+Objective 5 – Photo Retrieval
+
+Investigate why athlete photos are often old or incorrect.
+
+Explain:
+
+Current image source
+Selection algorithm
+Refresh strategy
+Confidence strategy
+Why better images are not replacing older ones
+
+Recommend a better approach if required.
+
+Objective 6 – Intelligence Quality Score
+
+Create an internal quality score for every athlete.
+
+Example:
+
+Profile completeness
+Freshness
+Source diversity
+Evidence quality
+Timeline completeness
+Results completeness
+Photo quality
+Confidence
+
+Produce an overall Intelligence Quality score out of 100.
+
+Objective 7 – Root Cause Report
+
+After tracing the complete pipeline, identify the five biggest causes of inaccurate intelligence.
+
+Rank them by impact.
+
+For each issue include:
+
+Root cause
+User impact
+Recommended solution
+Estimated implementation effort
+Objective 8 – Improvement Plan
+
+Based on the investigation, produce a prioritised roadmap for improving intelligence quality.
+
+Prioritise changes that will have the greatest impact on accuracy before adding new functionality.
+
+Do not implement these recommendations yet.
+
+Wait for approval.
+
+Deliverables
+
+Provide:
+
+1. Pipeline Trace
+
+A complete end-to-end trace for all sampled athletes.
+
+2. Accuracy Report
+
+Every incorrect field identified.
+
+3. Source Audit
+
+Current source hierarchy and recommendations.
+
+4. Freshness Report
+
+Why stale information is occurring.
+
+5. Photo Audit
+
+Current image retrieval strategy and recommendations.
+
+6. Intelligence Quality Score
+
+Score each athlete and explain deductions.
+
+7. Root Cause Analysis
+
+Top five issues ranked by impact.
+
+8. Recommended Roadmap
+
+Prioritised improvements to maximise intelligence quality.
+
+Important
+
+Do not assume the AI model is the problem.
+
+The issue may lie in:
+
+search query generation,
+source selection,
+source prioritisation,
+validation,
+evidence handling,
+caching,
+refresh scheduling,
+database writes,
+display logic,
+or a combination of these.
+
+Trace the evidence before proposing solutions.
