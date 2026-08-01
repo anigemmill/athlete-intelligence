@@ -1,0 +1,288 @@
+What I'd approve
+
+✅ tokens.ts
+
+This is the biggest improvement.
+
+Everything should eventually come from this file.
+
+✅ Reusable DS components
+
+Having:
+
+DsCard
+DsBadge
+DsMetric
+DsEmptyState
+DsLoadingSkeleton
+
+is exactly how I'd want the project structured.
+
+✅ Dashboard rewrite
+
+This was needed.
+
+The dashboard is the most important page in the product.
+
+✅ Confidence bars
+
+This is much better than a plain percentage.
+
+Eventually I'd even animate these slightly when new intelligence arrives.
+
+The Globe
+
+This is where I think Replit has misunderstood your ambition slightly.
+
+It says:
+
+richer ocean material
+
+continent grid
+
+atmosphere
+
+glowing pin
+
+Those are visual improvements.
+
+What I actually want is an intelligence visualisation.
+
+Very different.
+
+Instead of:
+
+🌍
+
+↓
+
+pretty globe
+
+I want
+
+🌍
+
+↓
+
+live intelligence map
+
+Imagine opening Athlete Intelligence and immediately seeing:
+
+🟢 4 athletes updated today
+
+🟡 2 competitions this week
+
+🔵 New sponsor announcement
+
+🟣 National selection
+
+All happening on the globe.
+
+That's the difference between decoration and intelligence.
+
+I actually wouldn't do Task #16 next.
+
+Task #16 says:
+
+Apply tokens everywhere.
+
+That's worthwhile...
+
+...but it's mostly cleanup.
+
+I'd reorder them.
+
+Next priority
+Task #17
+
+Absolutely.
+
+But I'd expand it massively.
+
+Instead of
+
+Better globe
+
+I'd say
+
+Global Intelligence Map
+
+It should show:
+
+athlete home nations
+competition locations
+live intelligence events
+federation locations
+organisations
+recent crawls
+alerts
+activity
+Then Task #18
+
+This is the feature I'm most excited about.
+
+Not because of confidence...
+
+Because of trust.
+
+Imagine every dossier showing:
+
+Intelligence Health
+
+Overall Confidence
+93%
+
+Evidence Sources
+42
+
+Source Diversity
+8
+
+Last Crawl
+2 hours ago
+
+Freshness
+Excellent
+
+Image Verified
+Yesterday
+
+Results Updated
+Today
+
+Timeline Completeness
+96%
+
+Known Gaps
+
+• Missing coach
+• Missing agent
+• Missing federation ID
+
+Now you're giving users confidence in the information they're looking at.
+
+One thing I think Replit is still missing
+
+I don't think it's thinking enough like an intelligence analyst.
+
+Everything is still page-based.
+
+I'd like it to start thinking in terms of intelligence objects.
+
+For example:
+
+Athlete
+
+↓
+
+Evidence
+
+↓
+
+Confidence
+
+↓
+
+Relationships
+
+↓
+
+Monitoring
+
+↓
+
+Insights
+
+rather than
+
+Athlete Page
+
+↓
+
+Timeline Tab
+
+↓
+
+Social Tab
+
+↓
+
+Evidence Tab
+
+It's a subtle shift, but an important one.
+
+If I were writing Task #19...
+
+It wouldn't be another page.
+
+It would be:
+
+Intelligence Graph
+
+Not a chart.
+
+A living graph.
+
+Click an athlete.
+
+See:
+
+Coach
+
+↓
+
+Manager
+
+↓
+
+Sponsors
+
+↓
+
+National Team
+
+↓
+
+Federation
+
+↓
+
+Competitions
+
+↓
+
+Teammates
+
+↓
+
+Media
+
+↓
+
+Brands
+
+↓
+
+Family (where publicly relevant)
+
+↓
+
+Education
+
+↓
+
+Previous Teams
+
+↓
+
+Current Team
+
+↓
+
+Relationships
+
+↓
+
+Evidence
+
+Each connection should be backed by evidence, not AI guesses.
