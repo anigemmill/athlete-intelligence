@@ -104,19 +104,19 @@ export default function DossierPage() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: athleteData, isLoading: athleteLoading, refetch: refetchAthlete } = useGetAthlete(athleteId, {
-    query: { enabled: !!athleteId },
+    query: { enabled: !!athleteId } as any,
   });
   const { data: intelData, refetch: refetchIntel } = useListAthleteIntelligence(athleteId, {
-    query: { enabled: !!athleteId },
+    query: { enabled: !!athleteId } as any,
   });
   const { data: contactsData, refetch: refetchContacts } = useListAthleteContacts(athleteId, {
-    query: { enabled: !!athleteId },
+    query: { enabled: !!athleteId } as any,
   });
   const { data: timelineData, refetch: refetchTimeline } = useListAthleteTimeline(athleteId, {
-    query: { enabled: !!athleteId },
+    query: { enabled: !!athleteId } as any,
   });
   const { data: competitionsData, refetch: refetchCompetitions } = useListAthleteCompetitions(athleteId, {
-    query: { enabled: !!athleteId },
+    query: { enabled: !!athleteId } as any,
   });
 
   const authFetch = useAuthFetch();

@@ -34,7 +34,7 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction): Pr
   try {
     // Use getAuth() — works correctly with both session cookies and Bearer tokens
     const auth = getAuth(req);
-    const userId = auth?.sessionClaims?.userId || auth?.userId;
+    const userId = (auth?.sessionClaims?.userId as string | undefined) || auth?.userId;
     if (!userId) {
       res.status(401).json({ error: "Authentication required" });
       return;
