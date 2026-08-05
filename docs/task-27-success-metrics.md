@@ -54,6 +54,8 @@ Milestone 0 builds `confidence.ts` and `validation.ts` as pure functions (per th
 
 ## Milestone 0 — Pipeline Foundations
 
+**Status: ✅ `docs/metrics/m0.json` exists.** Its `dataProvenance` field records that this first run was a local reconstruction (the production database was not reachable from the implementing session) — seeded only from facts already documented in `docs/technical-debt.md`. Re-running `scripts/audit-iqs.ts` against the real production database, once reachable, is expected to produce different absolute numbers; the methodology and sub-score structure will not change.
+
 **Measurable improvement expected:** None in IQS — this milestone changes no data. The improvement is that a real, reproducible IQS number exists for the first time, for all 5 golden athletes, replacing the informal estimate.
 
 **How we'll know it worked:** The audit script runs against the current (unmodified) state of the 5 golden athletes and produces `docs/metrics/m0.json`. This file *is* the deliverable's evidence — its existence and internal consistency (scores between 0–100, sub-scores summing correctly) is the pass condition, not any particular value.

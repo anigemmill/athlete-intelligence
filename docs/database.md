@@ -202,6 +202,48 @@ Persistent chat history for the AI analyst feature.
 
 ---
 
+### `agent_runs`
+
+Added in Task #27 Milestone 0 (see `docs/task-27-agentic-pipeline.md` §3.5, §10). Append-only execution log for the agentic pipeline — one row per agent invocation, per athlete, per pipeline run.
+
+| Column | Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| `id` | serial | no | auto | Primary key |
+| `athlete_id` | integer | no | — | FK → `athletes.id` CASCADE |
+| `agent` | text | no | — | e.g. `identity` \| `results` \| `competitions` \| `legacy_monolith` |
+| `status` | text | no | — | `ok` \| `empty` \| `error` |
+| `ran_at` | timestamp(tz) | no | `now()` | |
+| `latency_ms` | integer | yes | — | |
+| `tokens_used` | integer | yes | — | |
+| `retries` | integer | no | `0` | |
+| `error_classification` | text | yes | — | `transient` \| `malformed_output` \| null |
+
+**Indexes:** `athlete_id`, `agent`, `ran_at`
+
+**Not yet written to.** The orchestrator introduced in Milestone 2 is the first caller — as of Milestone 0 this table exists, empty, ahead of any consumer.
+
+---
+
+### `evidence_log`
+
+Also added in Milestone 0 (see `docs/task-27-agentic-pipeline.md` §5). Append-only audit trail of raw agent output, deliberately separate from the clean, validated tables above — nothing filters or validates this table's contents. Exists so a value that looks wrong in a clean table can be traced back to exactly what the source model saw and said.
+
+| Column | Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| `id` | serial | no | auto | Primary key |
+| `athlete_id` | integer | no | — | FK → `athletes.id` CASCADE |
+| `agent` | text | no | — | |
+| `raw_research` | text | yes | — | Full research text as returned by the source model |
+| `raw_citations` | jsonb | yes | — | Array of citation URLs as returned |
+| `raw_extraction` | text | yes | — | Full extracted JSON string, before validation |
+| `created_at` | timestamp(tz) | no | `now()` | |
+
+**Indexes:** `athlete_id`, `agent`
+
+**Not yet written to**, for the same reason as `agent_runs`.
+
+---
+
 ### Stripe Schema (`stripe.*`)
 
 Managed automatically by `stripe-replit-sync`. Provisioned in a separate PostgreSQL schema via `runMigrations({ schema: "stripe" })` on server startup. Do not modify manually.
@@ -216,7 +258,9 @@ athletes (1)
   ├── competitions (many)         ON DELETE CASCADE
   ├── timeline_events (many)      ON DELETE CASCADE
   ├── contacts (many)             ON DELETE CASCADE
-  └── alert_configs (1:1)        ON DELETE CASCADE
+  ├── alert_configs (1:1)        ON DELETE CASCADE
+  ├── agent_runs (many)           ON DELETE CASCADE  [Task #27, unused until M2]
+  └── evidence_log (many)         ON DELETE CASCADE  [Task #27, unused until M2]
 
 contact_enquiries                 (standalone — no FK)
 conversations (1)

@@ -54,6 +54,8 @@ artifacts/api-server/src/lib/pipeline/
 
 ## Milestone 0 — Pipeline Foundations
 
+**Status: ✅ Implemented.** See `docs/metrics/m0.json` for the first real IQS baseline. Everything below reflects the plan as approved; the implementation matched it, with two narrow, documented deviations: (1) `pipeline/iqs.ts` was added beyond this milestone's original file list — required to fulfil `docs/task-27-success-metrics.md`'s commitment that Milestone 0 produce a real, computed baseline; (2) the meet-name quality gate's specification in `docs/task-27-agentic-pipeline.md` §4.2 was refined during implementation to actually reject its own worked bad example ("2024 Competition") — see `validation.ts`'s file header for the reasoning.
+
 ### Objectives
 Stand up every shared primitive the rest of the roadmap depends on, with **zero behavioural change** to the running product. Nothing created here is called by anything live yet. This milestone also introduces the project's first test runner, since no milestone after this one can satisfy "testing" without one.
 

@@ -1,0 +1,116 @@
+{
+  "milestone": "m0",
+  "generatedAt": "2026-08-05T10:32:38.566Z",
+  "dataProvenance": "Local reconstruction: seeded per docs/technical-debt.md documented facts only (item counts, contact counts, PB/SB values, citation-leak examples); production Replit-hosted DB not reachable from this session. Photo/social-handle presence and competition data were not documented per-athlete beyond Brook Macdonald's 2 null-result competitions, so presence and competition-completeness sub-scores reflect that gap, not a measured absence.",
+  "goldenAthleteNames": [
+    "Peter Bol",
+    "Zoe Hobbs",
+    "Nick Willis",
+    "Hamish Kerr",
+    "Brook Macdonald"
+  ],
+  "missingFromDatabase": [],
+  "averageIQS": 51,
+  "athletes": [
+    {
+      "athleteId": 1,
+      "name": "Peter Bol",
+      "total": 51,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.6,
+        "pbSbConsistency": 0,
+        "contactCoverage": 7.5,
+        "contentDensity": 3.6,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 6,
+        "validEvidenceRecords": 6,
+        "averageConfidence": 81.7,
+        "pbSbInverted": true
+      }
+    },
+    {
+      "athleteId": 2,
+      "name": "Zoe Hobbs",
+      "total": 58,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 7.9,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 12,
+        "validEvidenceRecords": 12,
+        "averageConfidence": 82.5,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 3,
+      "name": "Nick Willis",
+      "total": 44,
+      "subScores": {
+        "evidenceValidity": 12.5,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 6.6,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 10,
+        "validEvidenceRecords": 5,
+        "averageConfidence": 82.5,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 4,
+      "name": "Hamish Kerr",
+      "total": 48,
+      "subScores": {
+        "evidenceValidity": 11.9,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 11.3,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 21,
+        "validEvidenceRecords": 10,
+        "averageConfidence": 82.4,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 5,
+      "name": "Brook Macdonald",
+      "total": 56,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.8,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 6.2,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 9,
+        "validEvidenceRecords": 9,
+        "averageConfidence": 82.2,
+        "pbSbInverted": null
+      }
+    }
+  ]
+}

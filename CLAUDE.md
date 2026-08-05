@@ -38,6 +38,10 @@ artifacts/api-server/       Express 5 API + AI pipeline
   src/lib/result-backfill.ts Fill null competition results
   src/lib/social-extract.ts  Social handles + follower lookup
   src/lib/athlete-health.ts  IntelligenceHealthPanel metrics computation
+  src/lib/pipeline/         Task #27 agentic pipeline foundations (not yet wired
+                            into auto-populate.ts — see docs/task-27-*.md)
+  scripts/audit-iqs.ts      Computes the Intelligence Quality Score baseline
+                            for the golden athlete set (docs/metrics/m*.json)
 
 lib/db/                     Drizzle ORM schema + pg connection
   src/schema/               One file per table
