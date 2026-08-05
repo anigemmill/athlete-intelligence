@@ -319,7 +319,7 @@ The full list is in `docs/technical-debt.md`. The key structural issues:
 
 ### Proposed Architecture (Task #27)
 
-Replace the monolithic pipeline with 11 specialised retrieval agents, each responsible for one data domain. See `docs/roadmap.md` and the full task plan in `.local/tasks/agentic-pipeline-redesign.md`.
+Replace the monolithic pipeline with 11 specialised retrieval agents, each responsible for one data domain. See `docs/roadmap.md` and the full task plan in `docs/task-27-agentic-pipeline.md`.
 
 ```
 Orchestrator

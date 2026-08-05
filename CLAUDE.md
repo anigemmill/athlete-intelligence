@@ -73,7 +73,7 @@ Full setup instructions: `docs/setup.md`.
 
 ## Current priorities
 
-The single most important pending task is **Task #27 — Specialised Retrieval Agents** (plan: `.local/tasks/agentic-pipeline-redesign.md`). This redesigns the AI pipeline from a single monolithic prompt into 11 domain-specific agents. It directly addresses the 5 critical failures identified in the accuracy audit.
+The single most important pending task is **Task #27 — Specialised Retrieval Agents** (plan: `docs/task-27-agentic-pipeline.md`). This redesigns the AI pipeline from a single monolithic prompt into 11 domain-specific agents. It directly addresses the 5 critical failures identified in the accuracy audit.
 
 Current platform quality score: **59/100** across 5 sample athletes.  
 Expected after Task #27: **76–80/100**.
@@ -183,7 +183,7 @@ If you're picking up this project for the first time:
 1. Read `docs/architecture.md` for the full system picture
 2. Read `docs/ai-architecture.md` for the pipeline (the core IP of the platform)
 3. Read `docs/technical-debt.md` to understand what's broken and why
-4. The most impactful pending work is in `.local/tasks/agentic-pipeline-redesign.md` (Task #27)
+4. The most impactful pending work is in `docs/task-27-agentic-pipeline.md` (Task #27)
 5. All design work should start with `artifacts/web/src/lib/tokens.ts`
 
 If you're debugging a specific issue:

@@ -77,7 +77,7 @@ Orchestrator (Promise.allSettled)
 
 Expected outcome: platform quality score from 59/100 → 76–80/100.
 
-**Plan file:** `.local/tasks/agentic-pipeline-redesign.md`
+**Plan file:** `docs/task-27-agentic-pipeline.md`
 
 ---
 
