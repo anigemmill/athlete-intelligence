@@ -54,7 +54,7 @@ artifacts/api-server/src/lib/pipeline/
 
 ## Milestone 0 — Pipeline Foundations
 
-**Status: ✅ Implemented.** See `docs/metrics/m0.json` for the first real IQS baseline. Everything below reflects the plan as approved; the implementation matched it, with two narrow, documented deviations: (1) `pipeline/iqs.ts` was added beyond this milestone's original file list — required to fulfil `docs/task-27-success-metrics.md`'s commitment that Milestone 0 produce a real, computed baseline; (2) the meet-name quality gate's specification in `docs/task-27-agentic-pipeline.md` §4.2 was refined during implementation to actually reject its own worked bad example ("2024 Competition") — see `validation.ts`'s file header for the reasoning.
+**Status: ✅ Implemented.** See `docs/metrics/m0.json` (a development baseline — see its `dataProvenance` field) for the first real IQS numbers. Everything below reflects the plan as approved; the implementation matched it, with two narrow, documented deviations: (1) `pipeline/iqs.ts` was added beyond this milestone's original file list — required to fulfil `docs/task-27-success-metrics.md`'s commitment that Milestone 0 produce a real, computed baseline; (2) the meet-name quality gate's specification was refined during implementation to actually reject its own worked bad example ("2024 Competition") — `docs/task-27-agentic-pipeline.md` §4.2/§8 have since been updated to match what `validation.ts` implements, so the architecture doc and the code no longer disagree.
 
 ### Objectives
 Stand up every shared primitive the rest of the roadmap depends on, with **zero behavioural change** to the running product. Nothing created here is called by anything live yet. This milestone also introduces the project's first test runner, since no milestone after this one can satisfy "testing" without one.
@@ -93,6 +93,8 @@ Delete the new files; the two new tables remain in the schema, unused and harmle
 ---
 
 ## Milestone 1 — Confidence & Validation Retrofit Into the Current Pipeline
+
+**Status: ✅ Implemented.** See `docs/metrics/m1.json` (development baseline, diffed against `m0.json`) and the amended prediction note in `docs/task-27-success-metrics.md`'s Milestone 1 section — one of the two originally-predicted outcomes (Hamish Kerr's Evidence Validity) did not hold, for a structural reason discovered during implementation (domain is a `NOT NULL` column with no "unknown but honest" state equivalent to a nullable URL's), not a defect in the fix itself.
 
 ### Objectives
 Get real user-facing value out of Milestone 0's work immediately, without waiting for the agent split. Wire `confidence.ts` and `validation.ts` into the *existing* monolithic `auto-populate.ts` write path. This single milestone fixes three of the top five items in `docs/technical-debt.md` — Priority 1 (citation-index leak), Priority 2 (PB/SB inversion), and Priority 7 (URL format validation) — using code that already exists after Milestone 0, before a single agent has been split out.

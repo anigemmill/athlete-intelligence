@@ -6,14 +6,21 @@
  * DATABASE_URL currently points at, and writes the result to
  * docs/metrics/m<N>.json.
  *
- * Run: DATABASE_URL=... pnpm --filter @workspace/api-server exec tsx scripts/audit-iqs.ts <milestone-number>
+ * Run: DATABASE_URL=... tsx scripts/audit-iqs.ts <milestone-number> <provenance> [baselineType]
  *
  * This script does not fabricate anything — it reads whatever is actually
  * in the target database. Whether that database holds real production
  * data or a reconstruction, and what that reconstruction was built from,
  * is a fact about the environment the script is run in, not something the
- * script itself decides. See the run's accompanying commit/PR description
+ * script itself decides — the caller states it via the provenance/
+ * baselineType arguments. See the run's accompanying commit/PR description
  * for that context.
+ *
+ * baselineType defaults to "development" — a snapshot is only ever labelled
+ * "production" if the caller explicitly says so, never implicitly. Every
+ * "development" snapshot carries a todoBeforeProductionRelease note in its
+ * output: it must be regenerated against the live production database
+ * before the platform's first production release.
  */
 
 import { writeFileSync } from "node:fs";
@@ -42,6 +49,7 @@ const GOLDEN_ATHLETE_NAMES = [
 async function main() {
   const milestone = process.argv[2] ?? "0";
   const dataProvenance = process.argv[3] ?? "unspecified — pass a provenance string as the 2nd CLI argument";
+  const baselineType = process.argv[4] === "production" ? "production" : "development";
 
   const athletes = await db
     .select()
@@ -103,7 +111,14 @@ async function main() {
   const snapshot = {
     milestone: `m${milestone}`,
     generatedAt: new Date().toISOString(),
+    baselineType,
     dataProvenance,
+    ...(baselineType === "development"
+      ? {
+          todoBeforeProductionRelease:
+            "Regenerate this snapshot by running scripts/audit-iqs.ts against the live production database before the platform's first production release. Every number in this file is a development baseline, not a claim about production data quality.",
+        }
+      : {}),
     goldenAthleteNames: GOLDEN_ATHLETE_NAMES,
     missingFromDatabase: missing,
     averageIQS: Math.round(results.reduce((sum, r) => sum + r.total, 0) / results.length),

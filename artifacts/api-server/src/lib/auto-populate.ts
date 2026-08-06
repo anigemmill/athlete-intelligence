@@ -25,6 +25,14 @@ import {
   competitionsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import {
+  isValidDate,
+  isSeasonBestBetterThanPersonalBest,
+  sanitizeSourceDomain,
+  sanitizeSourceUrl,
+} from "./pipeline/validation.js";
+import { adjustForSourceTier } from "./pipeline/confidence.js";
+import { getSourceTier, type FactDomain } from "./pipeline/sourceHierarchy.js";
 
 interface AthleteStub {
   id: number;
@@ -273,17 +281,46 @@ Extract and structure the above into the following JSON object:
  */
 export const DISCOVERY_CONFIDENCE_THRESHOLD = 70;
 
+// isValidDate is now imported from ./pipeline/validation.js — see that
+// module's header for why it was ported rather than left duplicated.
+
 /**
- * Returns true if `value` is a string in YYYY-MM-DD format that represents a
- * calendar-valid date (e.g. "2019-13-45" is rejected even though it matches
- * the pattern).  Used to filter out unparseable or fabricated dates from GPT
- * responses before they reach the database.
+ * Milestone 1 (docs/task-27-implementation-roadmap.md) wires the centralised
+ * source-tier lookup (getSourceTier, ./pipeline/sourceHierarchy.js) into this
+ * still-monolithic pipeline. getSourceTier is keyed by FactDomain, but this
+ * pipeline stuffs four unrelated kinds of fact into one `intelligence_items`
+ * table and five into one `timeline_events` table via a single extraction
+ * call. These two mapping functions are a temporary adapter for that —
+ * once IntelligenceAgent, SponsorsAgent, and TimelineAgent (Milestones 6, 8,
+ * 9) each own their own single FactDomain, this adapter has no more callers
+ * and should be deleted along with the rest of this file's monolithic
+ * write path (see Milestone 10's monolith-retirement step).
  */
-function isValidDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const d = new Date(value);
-  return !isNaN(d.getTime());
+function mapIntelligenceCategoryToFactDomain(category: unknown): FactDomain {
+  switch (category) {
+    case "sponsorships":
+    case "media_interviews":
+      return "sponsorship_media";
+    case "career_changes":
+      return "identity_biography";
+    case "results_rankings":
+    default:
+      return "results_rankings";
+  }
+}
+
+function mapTimelineCategoryToFactDomain(category: unknown): FactDomain {
+  switch (category) {
+    case "media":
+    case "sponsorship":
+      return "sponsorship_media";
+    case "career":
+    case "personal":
+      return "identity_biography";
+    case "competition":
+    default:
+      return "results_rankings";
+  }
 }
 
 /**
@@ -396,14 +433,33 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         ? await fetchTwitterFollowers(aiTwitterHandle)
         : null;
 
+      // docs/technical-debt.md Priority 2 — personalBest and seasonBest are
+      // extracted independently from the same research text with no
+      // cross-check. A season best that is logically superior to the
+      // personal best (e.g. Peter Bol: PB "1:45.14", SB "1:43.64") means the
+      // personal-best field is stale, not that a new PB was silently set —
+      // correct it rather than storing an impossible pair.
+      let personalBest = typeof s.personalBest === "string" ? s.personalBest : null;
+      const seasonBest = typeof s.seasonBest === "string" ? s.seasonBest : null;
+      if (personalBest && seasonBest) {
+        const inverted = isSeasonBestBetterThanPersonalBest(personalBest, seasonBest);
+        if (inverted === true) {
+          logger.warn(
+            { athleteId: athlete.id, name: athlete.name, personalBest, seasonBest },
+            "auto-populate: season best is logically superior to personal best — correcting personalBest to match seasonBest (docs/technical-debt.md Priority 2)",
+          );
+          personalBest = seasonBest;
+        }
+      }
+
       await db
         .update(athletesTable)
         .set({
           worldRank: typeof s.worldRank === "number" ? s.worldRank : null,
           worldRankDelta: typeof s.worldRankDelta === "number" ? s.worldRankDelta : 0,
           nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
-          personalBest: typeof s.personalBest === "string" ? s.personalBest : null,
-          seasonBest: typeof s.seasonBest === "string" ? s.seasonBest : null,
+          personalBest,
+          seasonBest,
           // Handles and follower counts sourced from Perplexity web research
           instagramHandle: typeof s.instagramHandle === "string" ? s.instagramHandle : null,
           instagramFollowers: typeof s.instagramFollowers === "number" ? s.instagramFollowers : undefined,
@@ -429,17 +485,30 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 
     // ── 2. Intelligence items ────────────────────────────────────────────────
     if (Array.isArray(data.intelligence_items) && data.intelligence_items.length > 0) {
-      const rows = data.intelligence_items.map((item: any) => ({
-        athleteId: athlete.id,
-        athleteName: athlete.name,
-        category: item.category ?? "results_rankings",
-        title: String(item.title ?? ""),
-        summary: item.summary ? String(item.summary) : null,
-        sourceDomain: String(item.sourceDomain ?? "unknown"),
-        sourceUrl: item.sourceUrl ? String(item.sourceUrl) : null,
-        confidence: typeof item.confidence === "number" ? item.confidence : 80,
-        publishedAt: item.publishedAt ? new Date(item.publishedAt) : new Date(),
-      }));
+      const rows = data.intelligence_items.map((item: any) => {
+        // docs/technical-debt.md Priority 1 — sanitize before anything else
+        // touches these fields, so a citation-index leak like "[8]" or
+        // "source4" is nulled out rather than reaching the database.
+        const sourceDomain = sanitizeSourceDomain(item.sourceDomain) ?? "unknown";
+        const sourceUrl = sanitizeSourceUrl(item.sourceUrl);
+        const baseConfidence = typeof item.confidence === "number" ? item.confidence : 80;
+        const tier = getSourceTier(mapIntelligenceCategoryToFactDomain(item.category), sourceDomain);
+
+        return {
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          category: item.category ?? "results_rankings",
+          title: String(item.title ?? ""),
+          summary: item.summary ? String(item.summary) : null,
+          sourceDomain,
+          sourceUrl,
+          // docs/task-27-agentic-pipeline.md §7.2 — domain-authority
+          // adjustment, now actually applied (the previous
+          // adjustConfidenceByDomain existed but was never called).
+          confidence: adjustForSourceTier(baseConfidence, tier, sourceUrl !== null),
+          publishedAt: item.publishedAt ? new Date(item.publishedAt) : new Date(),
+        };
+      });
       await db.insert(intelligenceItemsTable).values(rows);
       await db
         .update(athletesTable)
@@ -458,18 +527,25 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         return false;
       });
       if (validEvents.length > 0) {
-        const rows = validEvents.map((ev: any) => ({
-          athleteId: athlete.id,
-          date: ev.date as string, // validated above — no fallback required
-          category: ev.category ?? "competition",
-          title: String(ev.title ?? ""),
-          description: ev.description ? String(ev.description) : null,
-          location: ev.location ? String(ev.location) : null,
-          sourceDomain: String(ev.sourceDomain ?? "unknown"),
-          sourceUrl: ev.sourceUrl ? String(ev.sourceUrl) : null,
-          confidence: typeof ev.confidence === "number" ? ev.confidence : 85,
-          significant: Boolean(ev.significant),
-        }));
+        const rows = validEvents.map((ev: any) => {
+          const sourceDomain = sanitizeSourceDomain(ev.sourceDomain) ?? "unknown";
+          const sourceUrl = sanitizeSourceUrl(ev.sourceUrl);
+          const baseConfidence = typeof ev.confidence === "number" ? ev.confidence : 85;
+          const tier = getSourceTier(mapTimelineCategoryToFactDomain(ev.category), sourceDomain);
+
+          return {
+            athleteId: athlete.id,
+            date: ev.date as string, // validated above — no fallback required
+            category: ev.category ?? "competition",
+            title: String(ev.title ?? ""),
+            description: ev.description ? String(ev.description) : null,
+            location: ev.location ? String(ev.location) : null,
+            sourceDomain,
+            sourceUrl,
+            confidence: adjustForSourceTier(baseConfidence, tier, sourceUrl !== null),
+            significant: Boolean(ev.significant),
+          };
+        });
         await db.insert(timelineEventsTable).values(rows);
       }
     }
@@ -477,23 +553,33 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     // ── 4. Contacts ──────────────────────────────────────────────────────────
     if (Array.isArray(data.contacts) && data.contacts.length > 0) {
       const today = new Date().toISOString().split("T")[0];
-      const rows = data.contacts.map((c: any) => ({
-        athleteId: athlete.id,
-        role: String(c.role ?? "Unknown"),
-        category: c.category ?? "management",
-        name: String(c.name ?? ""),
-        org: String(c.org ?? ""),
-        orgType: c.orgType ? String(c.orgType) : null,
-        status: c.status ?? "verified",
-        confidence: typeof c.confidence === "number" ? c.confidence : 80,
-        publicEmail: c.publicEmail ? String(c.publicEmail) : null,
-        website: c.website ? String(c.website) : null,
-        note: c.note ? String(c.note) : null,
-        lastVerified: String(c.lastVerified ?? today),
-        dateDiscovered: String(c.dateDiscovered ?? today),
-        sourceDomain: String(c.sourceDomain ?? "unknown"),
-        sourceExcerpt: c.sourceExcerpt ? String(c.sourceExcerpt) : null,
-      }));
+      const rows = data.contacts.map((c: any) => {
+        const sourceDomain = sanitizeSourceDomain(c.sourceDomain) ?? "unknown";
+        const baseConfidence = typeof c.confidence === "number" ? c.confidence : 80;
+        const tier = getSourceTier("contacts", sourceDomain);
+
+        return {
+          athleteId: athlete.id,
+          role: String(c.role ?? "Unknown"),
+          category: c.category ?? "management",
+          name: String(c.name ?? ""),
+          org: String(c.org ?? ""),
+          orgType: c.orgType ? String(c.orgType) : null,
+          status: c.status ?? "verified",
+          // The contacts table has no source_url column at all, so there is
+          // no "missing URL" penalty to apply here — pass hasSourceUrl=true
+          // to skip that adjustment rather than penalising a field that
+          // structurally doesn't exist for this table.
+          confidence: adjustForSourceTier(baseConfidence, tier, true),
+          publicEmail: c.publicEmail ? String(c.publicEmail) : null,
+          website: c.website ? String(c.website) : null,
+          note: c.note ? String(c.note) : null,
+          lastVerified: String(c.lastVerified ?? today),
+          dateDiscovered: String(c.dateDiscovered ?? today),
+          sourceDomain,
+          sourceExcerpt: c.sourceExcerpt ? String(c.sourceExcerpt) : null,
+        };
+      });
       await db.insert(contactsTable).values(rows);
     }
 
@@ -547,44 +633,14 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   }
 }
 
-// ── Domain-authority confidence adjuster ─────────────────────────────────────
-// Post-processes GPT-assigned confidence scores with a domain quality modifier.
-// Authoritative sports domains get a small boost; unknown/generic domains get a
-// small penalty. Applied to intelligence items before they are inserted.
-
-const HIGH_AUTHORITY_DOMAINS = new Set([
-  "worldathletics.org", "olympics.com", "uci.org", "fis-ski.com", "iaaf.org",
-  "worldrowing.com", "worldsailing.org", "fina.org", "worldarchery.org",
-  "redbull.com", "bbc.co.uk", "bbc.com", "reuters.com", "apnews.com",
-  "theguardian.com", "espn.com", "si.com", "athleticsweekly.com",
-  "insidethegames.biz", "cyclingnews.com", "velonews.com", "runnersworld.com",
-  "swimswam.com", "trackandfielddailynews.com", "lequipe.fr",
-]);
-
-const LOW_AUTHORITY_DOMAINS = new Set([
-  "unknown", "reddit.com", "twitter.com", "x.com", "facebook.com",
-  "instagram.com", "tiktok.com", "youtube.com", "wikipedia.org",
-]);
-
-export function adjustConfidenceByDomain(
-  confidence: number,
-  sourceDomain: string,
-  hasSourceUrl: boolean,
-): number {
-  const domain = sourceDomain.toLowerCase().replace(/^www\./, "");
-  let adjusted = confidence;
-
-  if (HIGH_AUTHORITY_DOMAINS.has(domain)) {
-    adjusted = Math.min(97, adjusted + 5); // authoritative source boost
-  } else if (LOW_AUTHORITY_DOMAINS.has(domain)) {
-    adjusted = Math.max(40, adjusted - 10); // low-authority penalty
-  }
-
-  // Items with no source URL lose 5 points — harder to verify
-  if (!hasSourceUrl) adjusted = Math.max(40, adjusted - 5);
-
-  return Math.round(adjusted);
-}
+// The domain-authority confidence adjuster that used to live here
+// (adjustConfidenceByDomain, plus its HIGH_AUTHORITY_DOMAINS/
+// LOW_AUTHORITY_DOMAINS sets) was exported but never called from the write
+// path above it — a rule that existed but wasn't wired in. Milestone 1
+// (docs/task-27-implementation-roadmap.md) replaces it with
+// getSourceTier + adjustForSourceTier from ./pipeline/, which the write
+// blocks above now call directly, and removes the dead code rather than
+// leaving two competing implementations in the same file.
 
 /**
  * Wipes all existing intelligence data for an athlete, resets their crawl

@@ -135,7 +135,7 @@ Each agent is defined by: purpose, primary query strategy, source hierarchy tier
 
 **Purpose:** Full competition history and upcoming calendar.
 **Source hierarchy tier:** Results/Rankings.
-**Validation:** Meet-name quality gate — a competition entry is rejected outright (not stored with a null result, just not stored) if `meetName` is under 8 characters or contains neither a 4-digit year nor a recognisable named event. This is a stricter version of the fix proposed in Priority 5: rather than trying to backfill a bad name later, refuse to write a bad name in the first place.
+**Validation:** Meet-name quality gate — a competition entry is rejected outright (not stored with a null result, just not stored) if `meetName` is under 8 characters, **or** if — after stripping any 4-digit year token — nothing remains but a generic filler word (`competition`, `event`, `meet`, `race`, `tournament`, `contest`, `match`, `games`). A year alone does not make a name specific: `"2024 Competition"` must be rejected even though it clears the length bar and contains a year, which is why the rule is phrased around what's left *after* the year is removed rather than "has a year or a named event." A name is accepted once it has a year, a recognisable named-event keyword (championship, cup, league, world, national, round, etc.), or at least two words of substance once the year is stripped — `"UCI Mountain Bike World Cup Round 2"` passes on all three counts. This is a stricter version of the fix proposed in Priority 5: rather than trying to backfill a bad name later, refuse to write a bad name in the first place. (Implemented in `artifacts/api-server/src/lib/pipeline/validation.ts`'s `isQualityMeetName`; refined during Milestone 0 implementation specifically to reject its own worked bad example, which an earlier, looser phrasing of this rule did not.)
 **Ownership:** Sole writer of the `competitions` table.
 
 ### 4.3 `ContactsAgent`
@@ -312,7 +312,7 @@ Validation happens at two points: **per-agent** (an agent should not even emit a
 | URL format | `sourceUrl` must match `^https?:\/\//` | Null the field |
 | Date validity | YYYY-MM-DD, calendar-valid (existing `isValidDate` logic, reused) | Drop the record |
 | PB/SB inversion | Sport-aware directional comparison (§4.1) | Correct (`personalBest = seasonBest`) and log |
-| Meet name quality | ≥ 8 characters, contains a year or a named event | Do not store the competition at all |
+| Meet name quality | ≥ 8 characters, **and** — after stripping any year token — not left with only a generic filler word (see §4.2) | Do not store the competition at all |
 | Social handle format | Per-platform regex | Null the field |
 | Confidence floor | < 65 at emission | Discard before Evidence Record is created |
 | Numeric plausibility | Sport/event-specific bounds (e.g. no 800m time under 90s) | Discard the value, flag `implausible` |
