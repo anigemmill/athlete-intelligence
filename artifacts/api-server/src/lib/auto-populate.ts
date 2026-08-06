@@ -32,7 +32,11 @@ import {
   sanitizeSourceUrl,
 } from "./pipeline/validation.js";
 import { adjustForSourceTier } from "./pipeline/confidence.js";
-import { getSourceTier, type FactDomain } from "./pipeline/sourceHierarchy.js";
+import {
+  getSourceTier,
+  mapIntelligenceCategoryToFactDomain,
+  mapTimelineCategoryToFactDomain,
+} from "./pipeline/sourceHierarchy.js";
 
 interface AthleteStub {
   id: number;
@@ -283,45 +287,13 @@ export const DISCOVERY_CONFIDENCE_THRESHOLD = 70;
 
 // isValidDate is now imported from ./pipeline/validation.js — see that
 // module's header for why it was ported rather than left duplicated.
-
-/**
- * Milestone 1 (docs/task-27-implementation-roadmap.md) wires the centralised
- * source-tier lookup (getSourceTier, ./pipeline/sourceHierarchy.js) into this
- * still-monolithic pipeline. getSourceTier is keyed by FactDomain, but this
- * pipeline stuffs four unrelated kinds of fact into one `intelligence_items`
- * table and five into one `timeline_events` table via a single extraction
- * call. These two mapping functions are a temporary adapter for that —
- * once IntelligenceAgent, SponsorsAgent, and TimelineAgent (Milestones 6, 8,
- * 9) each own their own single FactDomain, this adapter has no more callers
- * and should be deleted along with the rest of this file's monolithic
- * write path (see Milestone 10's monolith-retirement step).
- */
-function mapIntelligenceCategoryToFactDomain(category: unknown): FactDomain {
-  switch (category) {
-    case "sponsorships":
-    case "media_interviews":
-      return "sponsorship_media";
-    case "career_changes":
-      return "identity_biography";
-    case "results_rankings":
-    default:
-      return "results_rankings";
-  }
-}
-
-function mapTimelineCategoryToFactDomain(category: unknown): FactDomain {
-  switch (category) {
-    case "media":
-    case "sponsorship":
-      return "sponsorship_media";
-    case "career":
-    case "personal":
-      return "identity_biography";
-    case "competition":
-    default:
-      return "results_rankings";
-  }
-}
+//
+// mapIntelligenceCategoryToFactDomain / mapTimelineCategoryToFactDomain now
+// live in ./pipeline/sourceHierarchy.js — moved there so the Intelligence
+// Audit feature's confidence-explanation logic can reuse the exact same
+// mapping instead of maintaining a second copy that could drift from this
+// one. See that file for the full explanation of why this mapping exists
+// and when it should be deleted.
 
 /**
  * Given only an athlete's name, call OpenAI to identify their sport, event,
@@ -659,20 +631,20 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
  * a 404 check passes), the function logs and returns cleanly; the 202 was
  * already sent to the caller.
  */
-export async function repopulateAthlete(athleteId: number): Promise<void> {
-  // Fetch the full athlete row so the research pipeline has every field
-  // (event, age, etc.). This also guards against race-condition deletions.
+/**
+ * Shared by repopulateAthlete and repopulateAthleteAwaited below: fetches
+ * the athlete row, wipes all existing intelligence data, and resets the
+ * crawl marker. Extracted so both callers wipe identically — this is a
+ * pure refactor, repopulateAthlete's own external behaviour is unchanged.
+ */
+async function wipeAndResetAthlete(athleteId: number): Promise<AthleteStub | null> {
   const [athlete] = await db
     .select()
     .from(athletesTable)
     .where(eq(athletesTable.id, athleteId));
 
-  if (!athlete) {
-    logger.error({ athleteId }, "repopulate: athlete not found; skipping");
-    return;
-  }
+  if (!athlete) return null;
 
-  // Wipe all existing intelligence data in parallel
   await Promise.all([
     db.delete(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, athleteId)),
     db.delete(timelineEventsTable).where(eq(timelineEventsTable.athleteId, athleteId)),
@@ -680,21 +652,66 @@ export async function repopulateAthlete(athleteId: number): Promise<void> {
     db.delete(competitionsTable).where(eq(competitionsTable.athleteId, athleteId)),
   ]);
 
-  // Reset crawl marker so the dossier page shows "populating" state
   await db
     .update(athletesTable)
     .set({ intelligenceCount: 0, hasNewIntelligence: false, lastCrawledAt: null })
     .where(eq(athletesTable.id, athleteId));
 
-  // Fire the research pipeline in the background — do not await
-  autoPopulateAthlete({
-    id:          athlete.id,
-    name:        athlete.name,
-    sport:       athlete.sport       ?? "",
-    event:       athlete.event       ?? "",
+  return {
+    id: athlete.id,
+    name: athlete.name,
+    sport: athlete.sport ?? "",
+    event: athlete.event ?? "",
     nationality: athlete.nationality ?? "",
-    age:         athlete.age,
-  }).catch((err) =>
+    age: athlete.age,
+  };
+}
+
+export async function repopulateAthlete(athleteId: number): Promise<void> {
+  const athlete = await wipeAndResetAthlete(athleteId);
+  if (!athlete) {
+    logger.error({ athleteId }, "repopulate: athlete not found; skipping");
+    return;
+  }
+
+  // Fire the research pipeline in the background — do not await. Callers
+  // that need to know when the pipeline actually finishes (e.g. the
+  // Intelligence Audit feature) should use repopulateAthleteAwaited
+  // instead — this function's fire-and-forget contract is depended on by
+  // its existing callers (POST /athletes/:id/repopulate,
+  // POST /admin/repopulate/:id) and is not changed here.
+  autoPopulateAthlete(athlete).catch((err) =>
     logger.error({ err, athleteId }, "repopulate: background populate failed"),
   );
+}
+
+/**
+ * Same wipe-and-repopulate flow as repopulateAthlete, but awaits the
+ * pipeline run to completion instead of firing it in the background.
+ *
+ * autoPopulateAthlete never rejects — it catches every internal failure
+ * itself (see its own try/catch) and always resolves once it's done, one
+ * way or another. Awaiting it here is therefore safe: this function
+ * resolves only once the real pipeline run has genuinely finished,
+ * success or failure, which is exactly the completion signal the
+ * Intelligence Audit feature (pipeline/auditOrchestrator.ts) needs and
+ * which client-side polling of lastCrawledAt (the existing Admin "Crawl
+ * Tools" tab's approach) cannot reliably provide — lastCrawledAt never
+ * updates at all when Perplexity research fails, so that approach can only
+ * ever time out, not distinguish "still running" from "already failed".
+ *
+ * Returns false if the athlete doesn't exist (nothing to populate); true
+ * otherwise, regardless of whether the run internally succeeded or failed
+ * — callers that need to know which should inspect the athlete row after
+ * this resolves (e.g. lastCrawledAt).
+ */
+export async function repopulateAthleteAwaited(athleteId: number): Promise<boolean> {
+  const athlete = await wipeAndResetAthlete(athleteId);
+  if (!athlete) {
+    logger.error({ athleteId }, "repopulateAthleteAwaited: athlete not found; skipping");
+    return false;
+  }
+
+  await autoPopulateAthlete(athlete);
+  return true;
 }

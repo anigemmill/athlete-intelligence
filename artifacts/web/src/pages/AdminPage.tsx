@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuthFetch } from "@/lib/useAuthFetch";
+import { IntelligenceAuditTab } from "@/pages/IntelligenceAuditTab";
 import {
   Loader2,
   RefreshCw,
@@ -821,6 +822,7 @@ const TABS = [
   { id: "ai_usage",    label: "AI Usage" },
   { id: "crawl",       label: "Crawl Tools" },
   { id: "data_health", label: "Data Health" },
+  { id: "intelligence_audit", label: "Intelligence Audit" },
   { id: "health",      label: "System Health" },
   { id: "flags",       label: "Feature Flags" },
 ];
@@ -862,6 +864,7 @@ export default function AdminPage() {
           {activeTab === "ai_usage"    && <AiUsageTab />}
           {activeTab === "crawl"       && <CrawlTab       authFetch={authFetch} />}
           {activeTab === "data_health" && <DataHealthTab  authFetch={authFetch} />}
+          {activeTab === "intelligence_audit" && <IntelligenceAuditTab authFetch={authFetch} />}
           {activeTab === "health"      && <HealthTab      authFetch={authFetch} />}
           {activeTab === "flags"       && <FlagsTab       authFetch={authFetch} />}
         </div>

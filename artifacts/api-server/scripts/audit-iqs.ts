@@ -27,24 +27,11 @@ import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { db } from "@workspace/db";
-import {
-  athletesTable,
-  intelligenceItemsTable,
-  timelineEventsTable,
-  contactsTable,
-  competitionsTable,
-} from "@workspace/db";
-import { eq, inArray, lte } from "drizzle-orm";
-import { computeIQS, type IQSEvidenceRecord } from "../src/lib/pipeline/iqs.js";
-import { isValidHandle } from "../src/lib/pipeline/validation.js";
-
-const GOLDEN_ATHLETE_NAMES = [
-  "Peter Bol",
-  "Zoe Hobbs",
-  "Nick Willis",
-  "Hamish Kerr",
-  "Brook Macdonald",
-];
+import { athletesTable } from "@workspace/db";
+import { inArray } from "drizzle-orm";
+import { computeIQS, buildIQSInputFromRawData } from "../src/lib/pipeline/iqs.js";
+import { GOLDEN_ATHLETE_NAMES } from "../src/lib/pipeline/goldenSet.js";
+import { collectAthleteRawData } from "../src/lib/pipeline/collectAthleteData.js";
 
 async function main() {
   const milestone = process.argv[2] ?? "0";
@@ -66,44 +53,9 @@ async function main() {
   const results = [];
 
   for (const athlete of athletes) {
-    const [intelItems, timelineEvents, contacts, pastCompetitions] = await Promise.all([
-      db.select().from(intelligenceItemsTable).where(eq(intelligenceItemsTable.athleteId, athlete.id)),
-      db.select().from(timelineEventsTable).where(eq(timelineEventsTable.athleteId, athlete.id)),
-      db.select().from(contactsTable).where(eq(contactsTable.athleteId, athlete.id)),
-      db
-        .select()
-        .from(competitionsTable)
-        .where(eq(competitionsTable.athleteId, athlete.id))
-        .then((rows) => rows.filter((r) => r.date <= today)),
-    ]);
-
-    const evidenceRecords: IQSEvidenceRecord[] = [
-      ...intelItems.map((i) => ({ sourceDomain: i.sourceDomain, sourceUrl: i.sourceUrl, confidence: i.confidence })),
-      ...timelineEvents.map((t) => ({ sourceDomain: t.sourceDomain, sourceUrl: t.sourceUrl, confidence: t.confidence })),
-      ...contacts.map((c) => ({ sourceDomain: c.sourceDomain, sourceUrl: null, confidence: c.confidence })),
-    ];
-
-    const hasValidSocialHandle =
-      (!!athlete.instagramHandle && isValidHandle(athlete.instagramHandle, "instagram")) ||
-      (!!athlete.twitterHandle && isValidHandle(athlete.twitterHandle, "twitter")) ||
-      (!!athlete.tiktokHandle && isValidHandle(athlete.tiktokHandle, "tiktok"));
-
-    const result = computeIQS({
-      athleteId: athlete.id,
-      name: athlete.name,
-      evidenceRecords,
-      personalBest: athlete.personalBest,
-      seasonBest: athlete.seasonBest,
-      contactCategories: [...new Set(contacts.map((c) => c.category))],
-      intelItemCount: intelItems.length,
-      timelineEventCount: timelineEvents.length,
-      pastCompetitionsTotal: pastCompetitions.length,
-      pastCompetitionsWithResult: pastCompetitions.filter((c) => c.result !== null).length,
-      hasPhoto: !!athlete.avatarUrl,
-      hasValidSocialHandle,
-    });
-
-    results.push(result);
+    const raw = await collectAthleteRawData(athlete.id);
+    if (!raw) continue; // can't happen — athlete came from the query above
+    results.push(computeIQS(buildIQSInputFromRawData(raw, today)));
   }
 
   const missing = GOLDEN_ATHLETE_NAMES.filter((n) => !athletes.some((a) => a.name === n));

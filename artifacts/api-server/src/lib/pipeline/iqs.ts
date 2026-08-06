@@ -4,14 +4,15 @@
  * A single 0-100 score, computed per athlete, from 7 weighted components.
  * This is not a new invention disconnected from the roadmap — it is the
  * formula Milestone 7 (`qualityScore.ts`) will expose live via
- * `GET /admin/data-health`. This module lets the baseline audit script
+ * `GET /admin/data-health`. This module let the baseline audit script
  * (artifacts/api-server/scripts/audit-iqs.ts) compute it for real in
- * Milestone 0, before that dashboard exists.
- *
- * Deliberately not wired into any live route yet.
+ * Milestone 0, ahead of that dashboard, and is now also the engine behind
+ * the live Intelligence Audit admin feature (pipeline/auditReport.ts) — the
+ * same formula, computed identically from either entry point.
  */
 
-import { isSeasonBestBetterThanPersonalBest, sanitizeSourceDomain, sanitizeSourceUrl } from "./validation.js";
+import { isSeasonBestBetterThanPersonalBest, sanitizeSourceDomain, sanitizeSourceUrl, isValidHandle } from "./validation.js";
+import type { AthleteRawData } from "./collectAthleteData.js";
 
 export interface IQSEvidenceRecord {
   sourceDomain: string;
@@ -145,5 +146,42 @@ export function computeIQS(input: IQSInput): IQSResult {
       averageConfidence: averageConfidence !== null ? round1(averageConfidence) : null,
       pbSbInverted,
     },
+  };
+}
+
+/**
+ * Shapes one athlete's raw pipeline rows (collectAthleteData.ts) into the
+ * IQSInput this module expects. Shared by scripts/audit-iqs.ts and
+ * pipeline/auditReport.ts so both ever compute IQS the exact same way —
+ * previously this shaping logic was duplicated inline in audit-iqs.ts only.
+ */
+export function buildIQSInputFromRawData(raw: AthleteRawData, today: string): IQSInput {
+  const { athlete, intelItems, timelineEvents, contacts, competitions } = raw;
+  const pastCompetitions = competitions.filter((c) => c.date <= today);
+
+  const evidenceRecords: IQSEvidenceRecord[] = [
+    ...intelItems.map((i) => ({ sourceDomain: i.sourceDomain, sourceUrl: i.sourceUrl, confidence: i.confidence })),
+    ...timelineEvents.map((t) => ({ sourceDomain: t.sourceDomain, sourceUrl: t.sourceUrl, confidence: t.confidence })),
+    ...contacts.map((c) => ({ sourceDomain: c.sourceDomain, sourceUrl: null, confidence: c.confidence })),
+  ];
+
+  const hasValidSocialHandle =
+    (!!athlete.instagramHandle && isValidHandle(athlete.instagramHandle, "instagram")) ||
+    (!!athlete.twitterHandle && isValidHandle(athlete.twitterHandle, "twitter")) ||
+    (!!athlete.tiktokHandle && isValidHandle(athlete.tiktokHandle, "tiktok"));
+
+  return {
+    athleteId: athlete.id,
+    name: athlete.name,
+    evidenceRecords,
+    personalBest: athlete.personalBest,
+    seasonBest: athlete.seasonBest,
+    contactCategories: [...new Set(contacts.map((c) => c.category))],
+    intelItemCount: intelItems.length,
+    timelineEventCount: timelineEvents.length,
+    pastCompetitionsTotal: pastCompetitions.length,
+    pastCompetitionsWithResult: pastCompetitions.filter((c) => c.result !== null).length,
+    hasPhoto: !!athlete.avatarUrl,
+    hasValidSocialHandle,
   };
 }

@@ -244,6 +244,27 @@ Also added in Milestone 0 (see `docs/task-27-agentic-pipeline.md` §5). Append-o
 
 ---
 
+### `audit_runs`
+
+Added alongside the Intelligence Audit admin feature — **not** part of Task #27's pipeline redesign, and unlike `agent_runs`/`evidence_log` above, this table is live and written to from the moment the feature ships. One row per audit run.
+
+| Column | Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| `id` | serial | no | auto | Primary key |
+| `status` | text | no | `"running"` | `running` \| `completed` \| `failed` |
+| `athlete_ids` | jsonb | no | — | Array of athlete IDs included in this run |
+| `triggered_at` | timestamp(tz) | no | `now()` | |
+| `completed_at` | timestamp(tz) | yes | — | |
+| `progress_completed` | integer | no | `0` | Updated as each athlete finishes, for live polling |
+| `progress_total` | integer | no | — | |
+| `overall_iqs` | integer | yes | — | Set once `status` is `completed` |
+| `report` | jsonb | yes | — | The full `AuditRunReport` — see `artifacts/api-server/src/lib/pipeline/auditReport.ts` |
+| `error_message` | text | yes | — | Set only if `status` is `failed` |
+
+No foreign key to `athletes` — `athlete_ids` is a snapshot array, since an audit run should remain readable even if an audited athlete is later deleted.
+
+---
+
 ### Stripe Schema (`stripe.*`)
 
 Managed automatically by `stripe-replit-sync`. Provisioned in a separate PostgreSQL schema via `runMigrations({ schema: "stripe" })` on server startup. Do not modify manually.
@@ -262,6 +283,7 @@ athletes (1)
   ├── agent_runs (many)           ON DELETE CASCADE  [Task #27, unused until M2]
   └── evidence_log (many)         ON DELETE CASCADE  [Task #27, unused until M2]
 
+audit_runs                        (standalone — athlete_ids is a snapshot array, no FK)
 contact_enquiries                 (standalone — no FK)
 conversations (1)
   └── messages (many)            ON DELETE CASCADE

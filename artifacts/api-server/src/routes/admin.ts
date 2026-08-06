@@ -10,10 +10,10 @@
  */
 
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { desc, eq, isNull, sql, count } from "drizzle-orm";
+import { desc, eq, inArray, isNull, sql, count } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
-  contactEnquiriesTable, athletesTable,
+  contactEnquiriesTable, athletesTable, auditRunsTable,
   intelligenceItemsTable, timelineEventsTable, contactsTable, competitionsTable,
 } from "@workspace/db";
 import { repopulateAthlete } from "../lib/auto-populate.js";
@@ -23,6 +23,9 @@ import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
 import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
 import { lookupSocialData } from "../lib/social-extract.js";
+import { resolveGoldenSetAthleteIds } from "../lib/pipeline/goldenSet.js";
+import { runIntelligenceAudit } from "../lib/pipeline/auditOrchestrator.js";
+import { renderMarkdownReport, type AuditRunReport } from "../lib/pipeline/auditReport.js";
 
 const router: IRouter = Router();
 
@@ -387,6 +390,131 @@ router.get("/admin/flags", requireAdmin, (_req, res): void => {
 router.put("/admin/flags/:key", requireAdmin, (_req, res): void => {
   // Not yet persisted — acknowledge the save so the UI does not break.
   res.json({ ok: true });
+});
+
+// ── Intelligence Audit ──────────────────────────────────────────────────────
+// The permanent QA tool: runs the real production pipeline (never mocked,
+// never hand-corrected) against selected athletes — or the Golden Athlete
+// Set (docs/task-27-success-metrics.md §2) — and reports on the result.
+// See artifacts/api-server/src/lib/pipeline/auditReport.ts for what it can
+// and honestly cannot verify.
+
+// POST /api/admin/intelligence-audit — start a new run
+router.post("/admin/intelligence-audit", requireAdmin, async (req, res): Promise<void> => {
+  try {
+    const body = req.body ?? {};
+    let athleteIds: number[];
+
+    if (body.useGoldenSet || !Array.isArray(body.athleteIds) || body.athleteIds.length === 0) {
+      const { ids, missing } = await resolveGoldenSetAthleteIds();
+      if (ids.length === 0) {
+        res.status(400).json({ error: "Golden Athlete Set not found in this database", missing });
+        return;
+      }
+      athleteIds = ids;
+    } else {
+      athleteIds = body.athleteIds.map(Number).filter((n: number) => Number.isFinite(n));
+      const existing = await db.select({ id: athletesTable.id }).from(athletesTable).where(inArray(athletesTable.id, athleteIds));
+      athleteIds = existing.map((a) => a.id);
+      if (athleteIds.length === 0) {
+        res.status(400).json({ error: "None of the requested athlete IDs exist" });
+        return;
+      }
+    }
+
+    const [run] = await db
+      .insert(auditRunsTable)
+      .values({ status: "running", athleteIds, progressTotal: athleteIds.length, progressCompleted: 0 })
+      .returning({ id: auditRunsTable.id });
+
+    // Runs in the background — the admin polls GET /:id for progress. This
+    // genuinely takes minutes for a handful of athletes (real Perplexity +
+    // GPT-4o calls, sequentially) — not something an HTTP request should
+    // hold open for.
+    runIntelligenceAudit(run.id, athleteIds).catch((err) =>
+      logger.error({ err, auditRunId: run.id }, "intelligence-audit: unhandled orchestrator error"),
+    );
+
+    res.status(202).json({ auditRunId: run.id, athleteIds });
+  } catch (err) {
+    logger.error({ err }, "intelligence-audit: failed to start run");
+    res.status(500).json({ error: "Failed to start audit run" });
+  }
+});
+
+// GET /api/admin/intelligence-audit — list recent runs (no report payload — keep it light)
+router.get("/admin/intelligence-audit", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    const runs = await db
+      .select({
+        id: auditRunsTable.id,
+        status: auditRunsTable.status,
+        athleteIds: auditRunsTable.athleteIds,
+        triggeredAt: auditRunsTable.triggeredAt,
+        completedAt: auditRunsTable.completedAt,
+        progressCompleted: auditRunsTable.progressCompleted,
+        progressTotal: auditRunsTable.progressTotal,
+        overallIqs: auditRunsTable.overallIqs,
+        errorMessage: auditRunsTable.errorMessage,
+      })
+      .from(auditRunsTable)
+      .orderBy(desc(auditRunsTable.id))
+      .limit(20);
+
+    res.json({ runs });
+  } catch (err) {
+    logger.error({ err }, "intelligence-audit: failed to list runs");
+    res.status(500).json({ error: "Failed to list audit runs" });
+  }
+});
+
+// GET /api/admin/intelligence-audit/:id — full detail, including the report once completed
+router.get("/admin/intelligence-audit/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  try {
+    const [run] = await db.select().from(auditRunsTable).where(eq(auditRunsTable.id, id));
+    if (!run) { res.status(404).json({ error: "Audit run not found" }); return; }
+    res.json({ run });
+  } catch (err) {
+    logger.error({ err, auditRunId: id }, "intelligence-audit: failed to load run");
+    res.status(500).json({ error: "Failed to load audit run" });
+  }
+});
+
+// GET /api/admin/intelligence-audit/:id/report.json — downloadable JSON report
+router.get("/admin/intelligence-audit/:id/report.json", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [run] = await db.select().from(auditRunsTable).where(eq(auditRunsTable.id, id));
+  if (!run) { res.status(404).json({ error: "Audit run not found" }); return; }
+  if (run.status !== "completed" || !run.report) {
+    res.status(409).json({ error: `Audit run is ${run.status} — report is not available yet` });
+    return;
+  }
+
+  res.setHeader("Content-Disposition", `attachment; filename="intelligence-audit-${id}.json"`);
+  res.json(run.report);
+});
+
+// GET /api/admin/intelligence-audit/:id/report.md — downloadable Markdown report
+router.get("/admin/intelligence-audit/:id/report.md", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [run] = await db.select().from(auditRunsTable).where(eq(auditRunsTable.id, id));
+  if (!run) { res.status(404).json({ error: "Audit run not found" }); return; }
+  if (run.status !== "completed" || !run.report) {
+    res.status(409).json({ error: `Audit run is ${run.status} — report is not available yet` });
+    return;
+  }
+
+  const markdown = renderMarkdownReport(run.report as AuditRunReport, run.triggeredAt.toISOString());
+  res.setHeader("Content-Disposition", `attachment; filename="intelligence-audit-${id}.md"`);
+  res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+  res.send(markdown);
 });
 
 export default router;

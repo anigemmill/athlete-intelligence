@@ -122,3 +122,43 @@ export function getSourceTier(factDomain: FactDomain, sourceDomain: string): Sou
   if (tiers.tier4.has(domain)) return 4;
   return 3;
 }
+
+/**
+ * Milestone 1 (docs/task-27-implementation-roadmap.md) wires getSourceTier
+ * into auto-populate.ts, but that pipeline stuffs four unrelated kinds of
+ * fact into one `intelligence_items` table and five into one
+ * `timeline_events` table via a single extraction call. These two mapping
+ * functions are a temporary adapter for that, shared here (rather than
+ * duplicated in auto-populate.ts and the Intelligence Audit feature) so
+ * there is exactly one place that knows how a legacy category maps to a
+ * fact domain. Once IntelligenceAgent, SponsorsAgent, and TimelineAgent
+ * (Milestones 6, 8, 9) each own their own single FactDomain, this adapter
+ * has no more callers and should be deleted along with the rest of the
+ * monolithic write path (see Milestone 10's monolith-retirement step).
+ */
+export function mapIntelligenceCategoryToFactDomain(category: unknown): FactDomain {
+  switch (category) {
+    case "sponsorships":
+    case "media_interviews":
+      return "sponsorship_media";
+    case "career_changes":
+      return "identity_biography";
+    case "results_rankings":
+    default:
+      return "results_rankings";
+  }
+}
+
+export function mapTimelineCategoryToFactDomain(category: unknown): FactDomain {
+  switch (category) {
+    case "media":
+    case "sponsorship":
+      return "sponsorship_media";
+    case "career":
+    case "personal":
+      return "identity_biography";
+    case "competition":
+    default:
+      return "results_rankings";
+  }
+}

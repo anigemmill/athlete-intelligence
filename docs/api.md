@@ -390,6 +390,41 @@ Detailed system environment, DB connection, and API key status.
 
 ---
 
+### Intelligence Audit
+
+The permanent QA tool. Runs the real production pipeline against selected athletes (never mocked, never hand-edited) and reports on the resulting data. See `artifacts/api-server/src/lib/pipeline/auditReport.ts` for exactly what it can and cannot verify.
+
+### `POST /admin/intelligence-audit`
+Starts a new audit run in the background.
+
+**Request body:** `{ athleteIds?: number[], useGoldenSet?: boolean }` — omitting `athleteIds` (or setting `useGoldenSet: true`) audits the Golden Athlete Set.
+
+**Response:** `202 { auditRunId: number, athleteIds: number[] }`
+
+---
+
+### `GET /admin/intelligence-audit`
+Lists recent audit runs (no report payload — for the history list and IQS trend).
+
+**Response:** `200 { runs: [{ id, status, athleteIds, triggeredAt, completedAt, progressCompleted, progressTotal, overallIqs, errorMessage }] }`
+
+---
+
+### `GET /admin/intelligence-audit/:id`
+Full detail for one run, including the report once `status` is `"completed"`.
+
+**Response:** `200 { run: {...} }` or `404`
+
+---
+
+### `GET /admin/intelligence-audit/:id/report.json`
+Downloadable JSON report. `409` if the run hasn't completed yet.
+
+### `GET /admin/intelligence-audit/:id/report.md`
+Downloadable Markdown report. `409` if the run hasn't completed yet.
+
+---
+
 ## Error Responses
 
 All errors follow this shape:

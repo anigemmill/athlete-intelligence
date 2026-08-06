@@ -38,8 +38,15 @@ artifacts/api-server/       Express 5 API + AI pipeline
   src/lib/result-backfill.ts Fill null competition results
   src/lib/social-extract.ts  Social handles + follower lookup
   src/lib/athlete-health.ts  IntelligenceHealthPanel metrics computation
-  src/lib/pipeline/         Task #27 agentic pipeline foundations (not yet wired
-                            into auto-populate.ts — see docs/task-27-*.md)
+  src/lib/pipeline/         Task #27 agentic pipeline foundations (see docs/task-27-*.md).
+                            validation.ts + confidence.ts are wired into
+                            auto-populate.ts as of Milestone 1; the orchestrator
+                            and specialised agents are not, as of Milestone 1.
+                            Also home to the Intelligence Audit feature's engine
+                            (auditReport.ts, auditReportRunner.ts,
+                            auditOrchestrator.ts, deadLinkCheck.ts, imageCheck.ts,
+                            goldenSet.ts) — a separate, already-live admin
+                            feature, not part of the Task #27 redesign itself.
   scripts/audit-iqs.ts      Computes the Intelligence Quality Score baseline
                             for the golden athlete set (docs/metrics/m*.json)
 
