@@ -258,8 +258,18 @@ inspectable even though it is not sourced from the web. `confidenceBase` for thi
 fixed at the *lower* of the two `world_rank` observations' post-adjustment confidence — a delta
 cannot be more trustworthy than the least-trustworthy of the two numbers it's computed from.
 
-Every `EvidenceRecord` `ResultsAgent` emits is persisted to `evidence_log` unchanged from the
-schema already introduced in Milestone 0 — no schema migration is required for this milestone.
+**Correction made during review (see the architecture doc's new §5.1):** on closer reading of
+`evidence-log.ts`, `evidence_log` is not a per-claim structured table — it is an append-only log
+of raw blobs (`raw_research`, `raw_citations`, `raw_extraction`) keyed one row per agent
+invocation, and nothing in the codebase writes to it yet. `ResultsAgent`'s five owned fields are
+scalar columns on `athletes`, not rows in a fact table, so — unlike `ContactsAgent`'s or
+`TimelineAgent`'s future facts, which map onto rows that already carry their own
+`source_domain`/`confidence` columns — there is no existing row for a `personal_best` or
+`world_rank` Evidence Record to live as. This milestone resolves that by serialising the run's
+full `EvidenceRecord[]` as JSON into the existing `raw_extraction` text column: **no schema
+migration**, but also not yet queryable per-claim by a future UI. See
+`docs/task-27-agentic-pipeline.md` §5.1 for the full reasoning and the deferred, dedicated
+per-claim table (`fact_evidence`) that a later milestone would introduce to make this queryable.
 
 ---
 
@@ -419,6 +429,55 @@ Per `docs/task-27-success-metrics.md` Milestone 3 (already approved):
    production database. `m3.json` will be marked accordingly, exactly as `m0`–`m2` were.
 
 ---
+
+## 11. If We Were Designing This From Scratch Today
+
+The user asked directly: if `ResultsAgent` were designed today with no legacy constraints, would
+it be built exactly this way? No — honestly, not quite. Two things would be different, and the
+review that produced §5.1 above (the `evidence_log` gap) is exactly what surfaced them.
+
+**What I would change.** The current design keeps `athletes.world_rank` /
+`athletes.personal_best` / `athletes.season_best` etc. as the source of truth — a scalar column
+holding the single current value, with no structural home for *why* it's believed or *what else*
+was found and discarded to arrive at it. A from-scratch design, with no existing `athletes` table
+to stay compatible with, would instead make a per-claim fact ledger the source of truth: one row
+per (athlete, field, value) with every corroborating Evidence Record linked to it — not just the
+winning source — plus a `verificationStatus` and a stored confidence *breakdown* (base, tier
+adjustment, corroboration boost, recency decay), not just the final collapsed number. The scalar
+`athletes` columns would become a cached projection of "the ledger's current best answer for this
+field," read-optimised for the dashboard, rather than the thing agents write to directly. That
+shape is what actually makes Addition 1 (show the checkmarked source list) and Addition 2 (count
+facts by verification status) *cheap* — they become a query against the ledger, not a bespoke
+JSON-parsing exercise against an append-only debug log.
+
+**Why I am not changing it now.** Three reasons, not one:
+1. **Blast radius.** `athletes`'s scalar columns are read directly today by the frontend
+   dashboard, `athlete-health.ts`, the chat analyst's DB tool, the Intelligence Audit engine, and
+   Stripe-adjacent billing logic that is out of scope for this engagement entirely. Turning them
+   from source-of-truth into a cached projection is a change to *every one* of those readers'
+   contract, not a change scoped to `ResultsAgent`. Milestone 3, as approved, touches exactly one
+   new file and one existing agent's write path — a fact-ledger redesign is a different, much
+   larger unit of work than "ship the first specialised agent."
+2. **We don't yet know the right shape.** `ResultsAgent` is the *first* specialised agent with
+   real fields. Designing the fact-ledger's schema well requires seeing what `CompetitionsAgent`,
+   `ContactsAgent`, and `SponsorsAgent` actually need too (their facts aren't scalar columns —
+   they're table rows, which is a materially different shape to unify with rank/PB/SB). Building
+   the ledger now, based on one agent's needs, risks exactly the kind of premature abstraction
+   this project's own engineering standards warn against — guessing a general shape before enough
+   concrete cases exist to know it's the right one.
+3. **It duplicates a decision that's already pending, and shouldn't be made twice.**
+   `docs/truth-verification-layer.md` is explicitly "design only... nothing in this document
+   should be built without a separate, explicit decision to proceed." A fact ledger's schema is
+   inseparable from that document's `verificationStatus`/`contested`/unpublished-candidate
+   design — building storage for one without the other would mean redesigning the storage layer
+   twice. Better to make one decision, once, when both are ready to be implemented together.
+
+**Where these ideas belong.** A future, explicitly separate milestone — not a revision to
+Milestone 3, and not smuggled in as scope creep on this proposal. `docs/task-27-agentic-pipeline.md`
+§5.1 now names it tentatively as "Evidence Ledger & Verification Surfacing" and places it after
+enough retrieval agents exist to design the ledger's shape from real cases rather than one. This
+proposal's Milestone 3 scope is unchanged by this answer: it is the pragmatic, legacy-compatible
+version, not the ideal one, and that gap is now written down rather than left implicit.
 
 ## Approval
 

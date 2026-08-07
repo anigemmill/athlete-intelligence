@@ -120,6 +120,17 @@ If the source material itself expresses uncertainty — "reportedly," "according
 
 ---
 
+## 8a. Addendum — Customer-Facing "Needs Verification" Count (design-only, requested during Milestone 3 review)
+
+The user asked whether the architecture allows an `IntelligenceHealthPanel` line like "⚠ 3 facts awaiting confirmation," visible to the customer, not just admin/audit tooling. It does, but only for **part** of what this document tracks — the two verification states this document already defines land on different sides of the "who can see it" line drawn in §5, and that line is not being redrawn here:
+
+- **`single_source` (Tier 2) facts are already customer-visible** by this document's existing design — shown "at reduced confidence... labelled as single-source." Counting them for a health-panel badge is a pure aggregation over data already shown to the customer elsewhere; it needs no new visibility decision, only (per `docs/task-27-agentic-pipeline.md` §5.1) a queryable per-claim evidence store to count from, which does not exist yet.
+- **`unverified` (Tier 3 unpublished candidate) facts are not customer-visible** by this document's existing design ("never shown to any user... invisible everywhere a real user looks," §5). A count of these on a customer-facing panel — even without revealing the candidate values themselves — would be a visibility change to this document, not a free extension of it. This document does not make that change; if the product wants a customer-visible "N facts pending verification" count that includes Tier 3 candidates, that is a separate, explicit decision for a future implementation milestone to raise, not something to infer from this request.
+
+Practically, a future health-panel badge should be specified as counting `single_source` facts only, unless and until a separate decision extends it to Tier 3 candidate counts.
+
+---
+
 ## 8. Explicitly Out of Scope (Named, Not Silently Dropped)
 
 - **Cross-provider independence.** The strongest version of "independent source" uses two genuinely different retrieval providers (e.g. Perplexity plus a structured federation/registry API), not two differently-phrased queries against the same provider. Today's stack has one live search provider (Perplexity via OpenRouter); §4's definition of independence is the best achievable bar with the current architecture, not the ideal one. Adding a second, structurally different provider (a governing-body results API, for instance) is a future upgrade to *what counts as independent*, not a change to this document's tiering.
