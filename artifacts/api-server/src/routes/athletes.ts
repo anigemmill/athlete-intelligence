@@ -12,6 +12,7 @@ import {
   type Athlete,
 } from "@workspace/db";
 import { autoPopulateAthlete, discoverAthleteProfile, repopulateAthlete, DISCOVERY_CONFIDENCE_THRESHOLD } from "../lib/auto-populate.js";
+import { onCreate } from "../lib/pipeline/orchestrator.js";
 import { lookupSocialData } from "../lib/social-extract.js";
 import { computeAthleteHealth } from "../lib/athlete-health.js";
 import {
@@ -82,65 +83,32 @@ router.post("/athletes/discover", async (req, res): Promise<void> => {
     return;
   }
 
-  // Ask AI to identify the athlete's profile.
-  // Throws on OpenAI failure (surfaced as 500 by the unhandled rejection handler).
-  const profile = await discoverAthleteProfile(name);
+  // Milestone 2 (docs/task-27-implementation-roadmap.md): identity
+  // resolution, the confidence gate, athlete-row creation, and firing the
+  // background population pass all now live behind the orchestrator
+  // (pipeline/orchestrator.ts) instead of being called directly here.
+  // discoverAthleteProfile() and autoPopulateAthlete() are unchanged and
+  // still used by the bulk-create and plain POST /athletes routes below —
+  // only this handler was in scope for this milestone.
+  const result = await onCreate(name);
 
-  // Reject if the name cannot be uniquely and confidently mapped to a single
-  // individual, or if sport / nationality are missing (required by the research
-  // pipeline to produce a meaningful Perplexity query).
-  if (
-    profile.confidence < DISCOVERY_CONFIDENCE_THRESHOLD ||
-    !profile.sport ||
-    !profile.nationality
-  ) {
+  if (!result.accepted) {
     logger.warn(
-      { name, confidence: profile.confidence, ambiguous: profile.ambiguous, reason: profile.reason },
+      { name, confidence: result.confidence, ambiguous: result.ambiguous, reason: result.reason },
       "discover: rejected — athlete not identifiable",
     );
     res.status(422).json({
       error: "athlete_not_identifiable",
       message: `Cannot uniquely identify "${name}" as a specific athlete. Please provide their sport and nationality directly, or use a more specific name.`,
-      confidence: profile.confidence,
+      confidence: result.confidence,
       threshold: DISCOVERY_CONFIDENCE_THRESHOLD,
-      ambiguous: profile.ambiguous,
-      reason: profile.reason,
+      ambiguous: result.ambiguous,
+      reason: result.reason,
     });
     return;
   }
 
-  // At this point profile.sport and profile.nationality are guaranteed non-null
-  // by the 422 gate above; the non-null assertions (!!) make this explicit to TypeScript.
-  const sport = profile.sport!;
-  const nationality = profile.nationality!;
-  const event = profile.event ?? "";
-
-  const [athlete] = await db
-    .insert(athletesTable)
-    .values({
-      name,
-      sport,
-      event,
-      nationality,
-      age: profile.age,
-      squad: "",
-      agentStatus: "active",
-    })
-    .returning();
-
-  await db.insert(alertConfigsTable).values({ athleteId: athlete.id }).onConflictDoNothing();
-
-  // Fire-and-forget full population (errors logged, not surfaced)
-  autoPopulateAthlete({
-    id: athlete.id,
-    name: athlete.name,
-    sport,
-    event,
-    nationality,
-    age: profile.age,
-  }).catch((err) => logger.error({ err, athleteId: athlete.id }, "autoPopulateAthlete failed"));
-
-  res.status(201).json({ athlete: toApiAthlete(athlete), created: true });
+  res.status(201).json({ athlete: toApiAthlete(result.athlete), created: true });
 });
 
 // POST /athletes/bulk — must come BEFORE /:id

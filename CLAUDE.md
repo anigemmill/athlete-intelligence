@@ -39,9 +39,16 @@ artifacts/api-server/       Express 5 API + AI pipeline
   src/lib/social-extract.ts  Social handles + follower lookup
   src/lib/athlete-health.ts  IntelligenceHealthPanel metrics computation
   src/lib/pipeline/         Task #27 agentic pipeline foundations (see docs/task-27-*.md).
-                            validation.ts + confidence.ts are wired into
-                            auto-populate.ts as of Milestone 1; the orchestrator
-                            and specialised agents are not, as of Milestone 1.
+                            validation.ts + confidence.ts wired into
+                            auto-populate.ts as of Milestone 1. orchestrator.ts
+                            (onCreate/onRefresh) + agents/identityAgent.ts +
+                            agents/legacyMonolithAgent.ts wired into all three
+                            pipeline entry points (POST /athletes/discover,
+                            repopulateAthlete[Awaited], the scheduler) as of
+                            Milestone 2 — but with PIPELINE_AGENTS unset
+                            everywhere, Phase 1 fan-out still only ever runs
+                            LegacyMonolithAgent; real specialised agents
+                            start at Milestone 3.
                             Also home to the Intelligence Audit feature's engine
                             (auditReport.ts, auditReportRunner.ts,
                             auditOrchestrator.ts, deadLinkCheck.ts, imageCheck.ts,

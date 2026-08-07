@@ -37,6 +37,7 @@ import {
   mapIntelligenceCategoryToFactDomain,
   mapTimelineCategoryToFactDomain,
 } from "./pipeline/sourceHierarchy.js";
+import { onRefresh } from "./pipeline/orchestrator.js";
 
 interface AthleteStub {
   id: number;
@@ -615,29 +616,20 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 // leaving two competing implementations in the same file.
 
 /**
- * Wipes all existing intelligence data for an athlete, resets their crawl
- * marker, and fires a fresh auto-populate run in the background.
+ * Fetches the full athlete row, wipes all existing intelligence data, and
+ * resets the crawl marker. Shared by repopulateAthlete and
+ * repopulateAthleteAwaited below, and — since Milestone 2 — by the
+ * scheduler in index.ts, which needs the wipe step but calls the
+ * orchestrator's onRefresh directly rather than going through
+ * repopulateAthlete (docs/task-27-implementation-roadmap.md Milestone 2).
  *
- * This is the single authoritative implementation of the repopulate workflow.
- * Both POST /athletes/:id/repopulate and POST /admin/repopulate/:id delegate
- * here, ensuring identical behaviour regardless of which surface triggered
- * the crawl.
- *
- * The function always fetches the full athlete row itself so that every field
- * (including event and age) is available to the research pipeline — callers
- * should not need to pass athlete data.
- *
- * If the athlete no longer exists by the time this runs (race condition after
- * a 404 check passes), the function logs and returns cleanly; the 202 was
- * already sent to the caller.
+ * Always fetches the full athlete row itself so every field (including
+ * event and age) is available to the research pipeline — callers don't
+ * need to pass athlete data in. Returns null if the athlete no longer
+ * exists (e.g. a race condition after a 404 check passes) so callers can
+ * skip cleanly rather than operate on nothing.
  */
-/**
- * Shared by repopulateAthlete and repopulateAthleteAwaited below: fetches
- * the athlete row, wipes all existing intelligence data, and resets the
- * crawl marker. Extracted so both callers wipe identically — this is a
- * pure refactor, repopulateAthlete's own external behaviour is unchanged.
- */
-async function wipeAndResetAthlete(athleteId: number): Promise<AthleteStub | null> {
+export async function wipeAndResetAthlete(athleteId: number): Promise<AthleteStub | null> {
   const [athlete] = await db
     .select()
     .from(athletesTable)
@@ -674,31 +666,32 @@ export async function repopulateAthlete(athleteId: number): Promise<void> {
     return;
   }
 
-  // Fire the research pipeline in the background — do not await. Callers
-  // that need to know when the pipeline actually finishes (e.g. the
-  // Intelligence Audit feature) should use repopulateAthleteAwaited
-  // instead — this function's fire-and-forget contract is depended on by
+  // Milestone 2 (docs/task-27-implementation-roadmap.md): fires through the
+  // orchestrator's Phase 1 instead of calling autoPopulateAthlete directly —
+  // still fire-and-forget, preserving this function's existing contract for
   // its existing callers (POST /athletes/:id/repopulate,
-  // POST /admin/repopulate/:id) and is not changed here.
-  autoPopulateAthlete(athlete).catch((err) =>
+  // POST /admin/repopulate/:id). Callers that need to know when the
+  // pipeline actually finishes should use repopulateAthleteAwaited instead.
+  onRefresh(athleteId).catch((err) =>
     logger.error({ err, athleteId }, "repopulate: background populate failed"),
   );
 }
 
 /**
  * Same wipe-and-repopulate flow as repopulateAthlete, but awaits the
- * pipeline run to completion instead of firing it in the background.
+ * orchestrator's Phase 1 (onRefresh) to completion instead of firing it in
+ * the background.
  *
- * autoPopulateAthlete never rejects — it catches every internal failure
- * itself (see its own try/catch) and always resolves once it's done, one
- * way or another. Awaiting it here is therefore safe: this function
- * resolves only once the real pipeline run has genuinely finished,
- * success or failure, which is exactly the completion signal the
- * Intelligence Audit feature (pipeline/auditOrchestrator.ts) needs and
- * which client-side polling of lastCrawledAt (the existing Admin "Crawl
- * Tools" tab's approach) cannot reliably provide — lastCrawledAt never
- * updates at all when Perplexity research fails, so that approach can only
- * ever time out, not distinguish "still running" from "already failed".
+ * onRefresh never rejects — it inherits that contract from
+ * autoPopulateAthlete (see its own try/catch) — so awaiting it here is
+ * safe: this function resolves only once the real pipeline run has
+ * genuinely finished, success or failure, which is exactly the completion
+ * signal the Intelligence Audit feature (pipeline/auditOrchestrator.ts)
+ * needs and which client-side polling of lastCrawledAt (the existing Admin
+ * "Crawl Tools" tab's approach) cannot reliably provide — lastCrawledAt
+ * never updates at all when Perplexity research fails, so that approach
+ * can only ever time out, not distinguish "still running" from "already
+ * failed".
  *
  * Returns false if the athlete doesn't exist (nothing to populate); true
  * otherwise, regardless of whether the run internally succeeded or failed
@@ -712,6 +705,6 @@ export async function repopulateAthleteAwaited(athleteId: number): Promise<boole
     return false;
   }
 
-  await autoPopulateAthlete(athlete);
+  await onRefresh(athleteId);
   return true;
 }

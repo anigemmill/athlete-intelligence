@@ -130,6 +130,8 @@ Standard git revert of the single commit touching `auto-populate.ts`. Because th
 
 ## Milestone 2 — Orchestrator Skeleton + `IdentityAgent` + `LegacyMonolithAgent`
 
+**Status: ✅ Implemented.** See `docs/metrics/m2.json` — IQS delta is exactly 0 for all 5 golden athletes versus `m1.json`, directly confirming this milestone's core acceptance criterion. Two disclosed deviations from the plan as written, both explained in code comments at the point they occur: (1) `LegacyMonolithAgent` cannot get a real status from `autoPopulateAthlete()` (which was never designed to report success/failure to a caller), so its status is inferred from whether `lastCrawledAt` was stamped during the call window — a black-box heuristic, not a real return value, until a later milestone gives it one. (2) The scheduler (`index.ts`) now genuinely awaits population before running result-backfill, where it previously only awaited its own wipe step — a small, intentional behaviour improvement (backfill running before population finished was never correct), not a hidden regression.
+
 ### Objectives
 Introduce the orchestrator and exercise its full five-phase flow in production — Phase 0 through Phase 5 — before splitting a single real retrieval agent out. This is the highest-leverage risk-reduction step in the whole roadmap: it proves the orchestrator, the `PIPELINE_AGENTS` flag mechanism, and the `agent_runs`/monitoring wiring all work correctly while the actual data-fetching logic is still the same, already-trusted monolithic call — just wrapped as an agent instead of invoked directly.
 

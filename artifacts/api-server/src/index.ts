@@ -5,7 +5,8 @@ import { getStripeSync } from "./lib/stripeClient.js";
 import { db } from "@workspace/db";
 import { athletesTable } from "@workspace/db";
 import { lt, isNull, or, eq } from "drizzle-orm";
-import { repopulateAthlete } from "./lib/auto-populate.js";
+import { onRefresh } from "./lib/pipeline/orchestrator.js";
+import { wipeAndResetAthlete } from "./lib/auto-populate.js";
 
 // ── Stripe init ───────────────────────────────────────────────────────────────
 async function initStripe() {
@@ -72,7 +73,15 @@ async function runRefreshCycle() {
       }
 
       logger.info({ athleteId: target.id, name: target.name, slot: i + 1 }, "Auto-refresh: repopulating stale athlete");
-      await repopulateAthlete(target.id);
+      // Milestone 2 (docs/task-27-implementation-roadmap.md): wipe stays
+      // here (the scheduler always did a full wipe+redo, not an
+      // incremental refresh); the actual repopulation now runs through the
+      // orchestrator's Phase 1 instead of calling autoPopulateAthlete
+      // directly. Deliberately awaited — see the roadmap entry for why
+      // this is a disclosed, intentional behaviour change from today's
+      // repopulateAthlete(), which only awaits its own wipe step.
+      const wiped = await wipeAndResetAthlete(target.id);
+      if (wiped) await onRefresh(target.id);
 
       // After repopulate, backfill any competition results still missing
       try {

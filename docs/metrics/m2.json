@@ -1,0 +1,118 @@
+{
+  "milestone": "m2",
+  "generatedAt": "2026-08-07T02:07:26.363Z",
+  "baselineType": "development",
+  "dataProvenance": "Same local reconstruction as m1.json. Milestone 2 (orchestrator + IdentityAgent + LegacyMonolithAgent) is scaffolding by design and should change no data-quality output -- this snapshot exists to verify that acceptance criterion (IQS delta ~0 for every golden athlete), not to show improvement. The new 'Test Accepted/Rejected Athlete' rows created by orchestrator.test.ts's integration tests are outside the golden set and do not affect this snapshot.",
+  "todoBeforeProductionRelease": "Regenerate this snapshot by running scripts/audit-iqs.ts against the live production database before the platform's first production release. Every number in this file is a development baseline, not a claim about production data quality.",
+  "goldenAthleteNames": [
+    "Peter Bol",
+    "Zoe Hobbs",
+    "Nick Willis",
+    "Hamish Kerr",
+    "Brook Macdonald"
+  ],
+  "missingFromDatabase": [],
+  "averageIQS": 56,
+  "athletes": [
+    {
+      "athleteId": 5,
+      "name": "Brook Macdonald",
+      "total": 56,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.8,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 6.2,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 9,
+        "validEvidenceRecords": 9,
+        "averageConfidence": 82.2,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 4,
+      "name": "Hamish Kerr",
+      "total": 46,
+      "subScores": {
+        "evidenceValidity": 11.9,
+        "confidence": 13,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 11.3,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 21,
+        "validEvidenceRecords": 10,
+        "averageConfidence": 77.1,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 1,
+      "name": "Peter Bol",
+      "total": 61,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.6,
+        "pbSbConsistency": 10,
+        "contactCoverage": 7.5,
+        "contentDensity": 3.6,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 6,
+        "validEvidenceRecords": 6,
+        "averageConfidence": 81.7,
+        "pbSbInverted": false
+      }
+    },
+    {
+      "athleteId": 2,
+      "name": "Zoe Hobbs",
+      "total": 58,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 7.9,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 12,
+        "validEvidenceRecords": 12,
+        "averageConfidence": 82.5,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 3,
+      "name": "Nick Willis",
+      "total": 57,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 6.6,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 10,
+        "validEvidenceRecords": 10,
+        "averageConfidence": 82.5,
+        "pbSbInverted": null
+      }
+    }
+  ]
+}
