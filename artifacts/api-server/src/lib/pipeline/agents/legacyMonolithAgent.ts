@@ -33,20 +33,30 @@ import { autoPopulateAthlete } from "../../auto-populate.js";
 import { recordAgentRun } from "../agentRuns.js";
 import { logger } from "../../logger.js";
 import type { AgentContext, AgentResult } from "../types.js";
+import type { LegacyMonolithSkip } from "../agentOwnership.js";
 
 const AGENT_NAME = "legacy_monolith";
 
-export async function runLegacyMonolithAgent(context: AgentContext): Promise<AgentResult> {
+/**
+ * `skip` (docs/task-27-milestones-3-6-shared-architecture-review.md §1.2) is
+ * built by the orchestrator from REGISTERED_AGENTS and threaded straight
+ * through to autoPopulateAthlete — see that function's own doc comment for
+ * exactly which fields/blocks each flag omits.
+ */
+export async function runLegacyMonolithAgent(context: AgentContext, skip?: LegacyMonolithSkip): Promise<AgentResult> {
   const start = Date.now();
 
-  await autoPopulateAthlete({
-    id: context.athleteId,
-    name: context.name,
-    sport: context.sport,
-    event: context.event,
-    nationality: context.nationality,
-    age: context.age,
-  });
+  await autoPopulateAthlete(
+    {
+      id: context.athleteId,
+      name: context.name,
+      sport: context.sport,
+      event: context.event,
+      nationality: context.nationality,
+      age: context.age,
+    },
+    { skip },
+  );
 
   const latencyMs = Date.now() - start;
 

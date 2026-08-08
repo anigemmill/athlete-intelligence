@@ -64,6 +64,15 @@ export interface AgentResult {
     tokensUsed?: number;
     retries: number;
     model?: string;
+    /** Per-sub-query outcome, for agents that fan out into more than one
+     * independent query per invocation (e.g. Milestone 5's ContactsAgent:
+     * coaching + management; Milestone 6's IntelligenceAgent: three
+     * category queries). Added ahead of need in Milestone 3
+     * (docs/task-27-milestones-3-6-shared-architecture-review.md §1.4) so
+     * those milestones share one convention instead of each inventing
+     * their own. Unused by any single-query agent, including
+     * ResultsAgent. */
+    subQueries?: Record<string, AgentStatus>;
   };
   /** Present only when status is "error". */
   error?: {

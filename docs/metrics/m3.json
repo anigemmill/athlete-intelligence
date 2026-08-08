@@ -1,0 +1,118 @@
+{
+  "milestone": "m3",
+  "generatedAt": "2026-08-08T09:18:57.945Z",
+  "baselineType": "development",
+  "dataProvenance": "Same local reconstruction as m0-m2.json. Milestone 3 (ResultsAgent) is implemented and unit/integration-tested with mocked Perplexity/OpenAI responses, but this sandbox has no production DATABASE_URL or AI API keys (standing constraint, disclosed since Milestone 1's real-world-accuracy-audit request), so ResultsAgent has never been run against real Perplexity data for any golden athlete. This snapshot is therefore identical to m2.json by construction, not evidence of no improvement -- see the M3 status note in task-27-implementation-roadmap.md and the Actual outcome note in task-27-success-metrics.md for the full explanation, including a separately-disclosed gap: the IQS formula itself (iqs.ts, built in Milestone 0) does not currently score confidence/evidence-validity from athletes' scalar stat columns at all -- only pbSbConsistency reads them -- so even a live ResultsAgent run would not move this score today.",
+  "todoBeforeProductionRelease": "Regenerate this snapshot by running scripts/audit-iqs.ts against the live production database before the platform's first production release. Every number in this file is a development baseline, not a claim about production data quality.",
+  "goldenAthleteNames": [
+    "Peter Bol",
+    "Zoe Hobbs",
+    "Nick Willis",
+    "Hamish Kerr",
+    "Brook Macdonald"
+  ],
+  "missingFromDatabase": [],
+  "averageIQS": 56,
+  "athletes": [
+    {
+      "athleteId": 5,
+      "name": "Brook Macdonald",
+      "total": 56,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.8,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 6.2,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 9,
+        "validEvidenceRecords": 9,
+        "averageConfidence": 82.2,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 3,
+      "name": "Nick Willis",
+      "total": 57,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 6.6,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 10,
+        "validEvidenceRecords": 10,
+        "averageConfidence": 82.5,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 4,
+      "name": "Hamish Kerr",
+      "total": 46,
+      "subScores": {
+        "evidenceValidity": 11.9,
+        "confidence": 13,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 11.3,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 21,
+        "validEvidenceRecords": 10,
+        "averageConfidence": 77.1,
+        "pbSbInverted": null
+      }
+    },
+    {
+      "athleteId": 1,
+      "name": "Peter Bol",
+      "total": 61,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.6,
+        "pbSbConsistency": 10,
+        "contactCoverage": 7.5,
+        "contentDensity": 3.6,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 6,
+        "validEvidenceRecords": 6,
+        "averageConfidence": 81.7,
+        "pbSbInverted": false
+      }
+    },
+    {
+      "athleteId": 2,
+      "name": "Zoe Hobbs",
+      "total": 58,
+      "subScores": {
+        "evidenceValidity": 25,
+        "confidence": 14.9,
+        "pbSbConsistency": 10,
+        "contactCoverage": 0,
+        "contentDensity": 7.9,
+        "competitionCompleteness": 0,
+        "presence": 0
+      },
+      "detail": {
+        "totalEvidenceRecords": 12,
+        "validEvidenceRecords": 12,
+        "averageConfidence": 82.5,
+        "pbSbInverted": null
+      }
+    }
+  ]
+}

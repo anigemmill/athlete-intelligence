@@ -27,17 +27,24 @@ import { logger } from "../logger.js";
 import { recordAgentRun } from "./agentRuns.js";
 import { runIdentityAgent } from "./agents/identityAgent.js";
 import { runLegacyMonolithAgent } from "./agents/legacyMonolithAgent.js";
+import { REGISTERED_AGENTS } from "./agents/registry.js";
+import { assertNoOwnershipOverlap, type LegacyMonolithSkip } from "./agentOwnership.js";
 import { reconcileFanOutResults } from "./fanOutReconciliation.js";
 import type { AgentContext, AgentResult } from "./types.js";
 
 export { reconcileFanOutResults };
 
+// Fails fast at module load if two registry entries ever claim the same
+// column/table (docs/task-27-milestones-3-6-shared-architecture-review.md
+// §1.5) — a misconfigured registry is a startup error, not a runtime race.
+assertNoOwnershipOverlap(REGISTERED_AGENTS);
+
 /**
  * Comma-separated agent names, e.g. "results,competitions". Unset (or
- * empty) in every environment as of Milestone 2 — no real retrieval agent
- * exists yet, so Phase 1 always falls back to LegacyMonolithAgent
- * regardless of what this contains until Milestone 3 gives it something
- * real to select between.
+ * empty) in every environment as of Milestone 3 — the "results" entry now
+ * exists in REGISTERED_AGENTS, but no environment has opted into it yet, so
+ * Phase 1 still falls back to LegacyMonolithAgent for every domain until an
+ * operator adds a flag.
  */
 function getEnabledAgentNames(): Set<string> {
   return new Set(
@@ -50,21 +57,27 @@ function getEnabledAgentNames(): Set<string> {
 
 /**
  * Phase 1: fan-out. Always Promise.allSettled, never Promise.all — one
- * agent throwing must never cancel the others (§3.2). As of Milestone 2
- * there is exactly one agent to fan out to; reconcileFanOutResults (see
- * ./fanOutReconciliation.ts, imported above and unit-tested there with
- * synthetic fake agents) is written as if there were several, so the
- * partial-failure contract is already correct before Milestone 3 actually
- * adds a second real agent.
+ * agent throwing must never cancel the others (§3.2).
+ *
+ * Generalised in Milestone 3
+ * (docs/task-27-milestones-3-6-shared-architecture-review.md §1.1): any
+ * REGISTERED_AGENTS entry whose flag is enabled runs instead of the legacy
+ * monolith for that domain; the monolith always still runs, told (via
+ * `skip`) which domains it should no longer touch. Milestones 4-6 add one
+ * array entry each in registry.ts — this function does not change again.
  */
 async function runFanOut(context: AgentContext): Promise<AgentResult[]> {
-  // Milestone 3+ will select real agents here based on getEnabledAgentNames().
-  // For now the fallback is unconditional: every fact domain currently has
-  // exactly one possible agent.
-  void getEnabledAgentNames();
+  const enabled = getEnabledAgentNames();
+  const activeSpecialised = REGISTERED_AGENTS.filter((a) => enabled.has(a.flagName));
 
-  const agentNames = ["legacy_monolith"];
-  const settled = await Promise.allSettled([runLegacyMonolithAgent(context)]);
+  const skip: LegacyMonolithSkip = {};
+  for (const a of activeSpecialised) skip[a.legacySkipKey] = true;
+
+  const agentNames = [...activeSpecialised.map((a) => a.flagName), "legacy_monolith"];
+  const settled = await Promise.allSettled([
+    ...activeSpecialised.map((a) => a.run(context)),
+    runLegacyMonolithAgent(context, skip),
+  ]);
   return reconcileFanOutResults(agentNames, settled, context.athleteId);
 }
 

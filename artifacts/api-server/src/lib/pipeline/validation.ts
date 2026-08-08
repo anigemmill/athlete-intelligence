@@ -163,6 +163,37 @@ export function isSeasonBestBetterThanPersonalBest(
     : sb.comparableValue > pb.comparableValue;
 }
 
+// ── Event/mark direction consistency (Milestone 3, ResultsAgent) ────────────
+
+const HIGHER_BETTER_EVENT_KEYWORDS =
+  /(jump|throw|vault|weightlift|snatch|clean\s*and\s*jerk|discus|javelin|shot\s*put|hammer)/i;
+
+const LOWER_BETTER_EVENT_KEYWORDS =
+  /(\d+\s*m\b|metre|meter|sprint|dash|marathon|hurdles|steeplechase|relay|freestyle|backstroke|breaststroke|butterfly|road\s*race|time\s*trial|downhill|slalom|\bdh\b)/i;
+
+/**
+ * Returns whether `direction` (a parsed mark's implied direction — see
+ * parseMark) is consistent with `event`'s declared event/discipline string.
+ * Returns null — never guesses — when `event` doesn't contain a recognisable
+ * keyword for either direction, e.g. a generic "Athletics" with no specific
+ * event. This is intentionally a light keyword heuristic, not a sport
+ * taxonomy: it exists to catch a mark whose unit direction is flatly
+ * incompatible with the declared event (a metres mark for a "800m" runner),
+ * not to validate every possible event name.
+ */
+export function isEventDirectionConsistent(event: string, direction: MarkDirection): boolean | null {
+  const trimmed = event.trim();
+  if (!trimmed) return null;
+
+  const matchesHigher = HIGHER_BETTER_EVENT_KEYWORDS.test(trimmed);
+  const matchesLower = LOWER_BETTER_EVENT_KEYWORDS.test(trimmed);
+
+  // Ambiguous (matches both, or matches neither) — skip rather than guess.
+  if (matchesHigher === matchesLower) return null;
+
+  return matchesHigher ? direction === "higher-better" : direction === "lower-better";
+}
+
 // ── Meet-name quality gate (Priority 5) ──────────────────────────────────────
 
 const GENERIC_MEET_NAME_ONLY = /^(the\s+)?(competition|event|meet|race|tournament|contest|match|games?)$/i;

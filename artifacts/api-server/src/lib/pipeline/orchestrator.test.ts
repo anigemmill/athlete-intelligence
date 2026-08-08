@@ -202,3 +202,110 @@ describe("orchestrator.onCreate / onRefresh (integration)", () => {
     expect(runs[0].status).toBe("error");
   });
 });
+
+describe("orchestrator.onRefresh — Milestone 3 results-agent flag (integration)", () => {
+  // One combined mock response satisfies both LegacyMonolithAgent's
+  // extraction shape (athlete_stats/intelligence_items/...) and
+  // ResultsAgent's extraction shape (worldRank/nationalRank/...) — both
+  // agents JSON.parse the same content string and read only their own keys.
+  // athlete_stats.worldRank is deliberately a different value (999) from
+  // the results-shaped worldRank.value (7) so a test can tell which agent's
+  // write actually won.
+  function combinedMockContent() {
+    return JSON.stringify({
+      athlete_stats: { worldRank: 999, worldRankDelta: 0, nationalRank: 999, personalBest: null, seasonBest: null },
+      intelligence_items: [],
+      timeline_events: [],
+      contacts: [],
+      competitions: [],
+      worldRank: { value: 7, sourceDomain: "worldathletics.org", sourceUrl: "https://worldathletics.org/rankings", confidence: 90, publishedAt: null, rawExcerpt: "ranked 7th" },
+      nationalRank: null,
+      personalBest: null,
+      seasonBest: null,
+    });
+  }
+
+  function mockOpenAiAndOpenRouter() {
+    vi.doMock("@workspace/integrations-openai-ai-server", () => ({
+      openai: { chat: { completions: { create: vi.fn().mockResolvedValue({ choices: [{ message: { content: combinedMockContent() } }] }) } } },
+    }));
+    vi.doMock("@workspace/integrations-openrouter-ai", () => ({
+      openrouter: { chat: { completions: { create: vi.fn().mockResolvedValue({ choices: [{ message: { content: "Placeholder research." } }], citations: [] }) } } },
+    }));
+    vi.doMock("../photo-lookup.js", () => ({ fetchWikipediaPhoto: vi.fn().mockResolvedValue(null) }));
+  }
+
+  // These tests create their own disposable athlete rather than reusing a
+  // golden-set athlete (Zoe Hobbs etc.) — unlike the read-mostly checks
+  // above, these deliberately write into world_rank/national_rank, and the
+  // golden set must stay pristine for docs/metrics/m<N>.json's audit
+  // baseline.
+  async function createDisposableAthlete(name: string) {
+    const { db, athletesTable } = await import("@workspace/db");
+    const [athlete] = await db
+      .insert(athletesTable)
+      .values({ name, sport: "Athletics", event: "800m", nationality: "Australia", squad: "", agentStatus: "active" })
+      .returning();
+    return athlete;
+  }
+
+  it.skipIf(!hasDb)("with PIPELINE_AGENTS=results, ResultsAgent's value wins and legacy_monolith's would-be write is suppressed", async () => {
+    vi.resetModules();
+    mockOpenAiAndOpenRouter();
+    const previousFlag = process.env.PIPELINE_AGENTS;
+    process.env.PIPELINE_AGENTS = "results";
+
+    try {
+      const { onRefresh } = await import("./orchestrator.js");
+      const { db, athletesTable, agentRunsTable } = await import("@workspace/db");
+      const { eq, and, desc } = await import("drizzle-orm");
+
+      const athlete = await createDisposableAthlete(`Test Results-Flag Athlete ${Date.now()}`);
+
+      await onRefresh(athlete.id);
+
+      const [after] = await db.select().from(athletesTable).where(eq(athletesTable.id, athlete.id));
+      // ResultsAgent's value (7), not the legacy monolith's would-be value
+      // (999) — proves the skip mechanism actually suppressed that write,
+      // not just that ResultsAgent ran.
+      expect(after.worldRank).toBe(7);
+
+      const resultsRuns = await db.select().from(agentRunsTable).where(and(eq(agentRunsTable.athleteId, athlete.id), eq(agentRunsTable.agent, "results"))).orderBy(desc(agentRunsTable.ranAt)).limit(1);
+      expect(resultsRuns).toHaveLength(1);
+      expect(resultsRuns[0].status).toBe("ok");
+
+      const legacyRuns = await db.select().from(agentRunsTable).where(and(eq(agentRunsTable.athleteId, athlete.id), eq(agentRunsTable.agent, "legacy_monolith"))).orderBy(desc(agentRunsTable.ranAt)).limit(1);
+      expect(legacyRuns).toHaveLength(1);
+      expect(legacyRuns[0].status).toBe("ok");
+    } finally {
+      if (previousFlag === undefined) delete process.env.PIPELINE_AGENTS;
+      else process.env.PIPELINE_AGENTS = previousFlag;
+    }
+  });
+
+  it.skipIf(!hasDb)("removing results from PIPELINE_AGENTS restores legacy-monolith-writes-everything behaviour (rollback proof)", async () => {
+    vi.resetModules();
+    mockOpenAiAndOpenRouter();
+    const previousFlag = process.env.PIPELINE_AGENTS;
+    delete process.env.PIPELINE_AGENTS; // rollback: no specialised agents enabled
+
+    try {
+      const { onRefresh } = await import("./orchestrator.js");
+      const { db, athletesTable } = await import("@workspace/db");
+      const { eq } = await import("drizzle-orm");
+
+      const athlete = await createDisposableAthlete(`Test Results-Rollback Athlete ${Date.now()}`);
+
+      await onRefresh(athlete.id);
+
+      const [after] = await db.select().from(athletesTable).where(eq(athletesTable.id, athlete.id));
+      // With the flag removed, the legacy monolith is once again the sole
+      // writer of the stats block — its value (999) must win, exactly the
+      // pre-Milestone-3 behaviour.
+      expect(after.worldRank).toBe(999);
+    } finally {
+      if (previousFlag === undefined) delete process.env.PIPELINE_AGENTS;
+      else process.env.PIPELINE_AGENTS = previousFlag;
+    }
+  });
+});

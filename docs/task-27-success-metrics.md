@@ -121,6 +121,31 @@ Milestone 0 builds `confidence.ts` and `validation.ts` as pure functions (per th
 - **R5** — no athlete has SB numerically superior to PB after a `ResultsAgent`-sourced crawl (re-affirms R3 under the new agent's write path, not the retrofitted monolith's)
 - Carries forward: R0–R4
 
+**Actual outcome (Milestone 3 implemented):** `docs/metrics/m3.json` is numerically identical to
+`m2.json` for all 5 golden athletes — this is expected, not a failure to improve, for two
+independent, disclosed reasons. First, this sandbox has no production `DATABASE_URL` or AI API
+keys (a standing constraint since the Milestone 1 real-world-accuracy-audit request), so
+`ResultsAgent` has never actually run against live Perplexity data for any golden athlete —
+correctness is demonstrated instead by `resultsAgentLogic.test.ts`'s 12 fixtures (each mapped to
+a specific documented defect: Peter Bol's PB/SB inversion, Nick Willis's citation-index URL leak,
+Hamish Kerr's citation-index domain leak, a bare unit-less mark, an event/direction mismatch, the
+emission-confidence floor, the Tier 3 new-PB gate, and the `worldRankDelta` sign correction) and a
+DB-gated integration test proving the single-writer/rollback mechanics with mocked responses.
+Second, and found only while implementing this milestone: **the IQS formula itself
+(`pipeline/iqs.ts`, built in Milestone 0) does not score confidence or evidence validity from
+`athletes`' scalar stat columns at all** — its `confidence`/`evidenceValidity` sub-scores are
+computed only from `intelligence_items`, `timeline_events`, and `contacts` rows; the only
+IQS component that reads `personalBest`/`seasonBest` is `pbSbConsistency` (already at its
+10/10 ceiling for every golden athlete with a non-null pair), and no component reads
+`worldRank`/`nationalRank` at all. **This means the "at least 2 of 5 must show a measurable
+increase" acceptance bar from this section is not measurable by IQS in its current form**,
+independent of the credentials constraint — a real live `ResultsAgent` run today would still not
+move this score. This is a gap in the IQS formula's coverage relative to what this milestone's
+target assumed, not a gap in `ResultsAgent` itself. Recommended follow-up: extend `iqs.ts` with a
+stat-field confidence/evidence component once real field data from a live run (or Milestone 4-6's
+own agents) exists to design it against — Milestone 7 ("Monitoring Dashboard & Golden-Athlete
+Regression Set") is the natural place, not a speculative change bundled into this milestone.
+
 ---
 
 ## Milestone 4 — CompetitionsAgent

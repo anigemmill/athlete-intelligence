@@ -45,10 +45,17 @@ artifacts/api-server/       Express 5 API + AI pipeline
                             agents/legacyMonolithAgent.ts wired into all three
                             pipeline entry points (POST /athletes/discover,
                             repopulateAthlete[Awaited], the scheduler) as of
-                            Milestone 2 — but with PIPELINE_AGENTS unset
-                            everywhere, Phase 1 fan-out still only ever runs
-                            LegacyMonolithAgent; real specialised agents
-                            start at Milestone 3.
+                            Milestone 2. agents/resultsAgent.ts (sole owner of
+                            athletes.world_rank/world_rank_delta/national_rank/
+                            personal_best/season_best) + the generic per-domain
+                            agents/registry.ts + agentOwnership.ts + evidenceLog.ts
+                            shipped in Milestone 3 — but PIPELINE_AGENTS is unset
+                            everywhere by default, so Phase 1 fan-out still runs
+                            LegacyMonolithAgent for every domain until an operator
+                            adds "results" to the flag. Milestones 4-6
+                            (CompetitionsAgent, ContactsAgent, IntelligenceAgent)
+                            each add one entry to registry.ts — see
+                            docs/task-27-milestones-3-6-shared-architecture-review.md.
                             Also home to the Intelligence Audit feature's engine
                             (auditReport.ts, auditReportRunner.ts,
                             auditOrchestrator.ts, deadLinkCheck.ts, imageCheck.ts,

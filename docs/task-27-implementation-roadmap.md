@@ -168,6 +168,46 @@ Revert `athletes.ts`, `auto-populate.ts`'s two call sites, and `index.ts` to cal
 
 ## Milestone 3 — `ResultsAgent`
 
+**Status: ✅ Implemented.** See `docs/task-27-milestone-3-resultsagent-proposal.md` for the approved
+design and `docs/metrics/m3.json` for the IQS snapshot. Disclosed deviations/additions, all
+explained in code comments at the point they occur:
+
+1. **Shared scaffolding built ahead of the other three milestones**, per
+   `docs/task-27-milestones-3-6-shared-architecture-review.md` §1: a generic per-domain agent
+   registry (`pipeline/agents/registry.ts`), a `LegacyMonolithSkip` mechanism threaded through
+   `autoPopulateAthlete` covering all four M3–M6 domains (not just `results`), an evidence-
+   persistence helper (`pipeline/evidenceLog.ts`), an ownership-overlap assertion
+   (`pipeline/agentOwnership.ts`), and an additive `meta.subQueries` field on `AgentResult`
+   (`types.ts`) for M5/M6's future multi-query agents. None of this changes M3's own scope or
+   acceptance criteria — it exists so M4–M6 each reduce to "add one registry entry."
+2. **PB/SB inversion is dropped, not corrected**, unlike the legacy monolith's Milestone 1
+   correction (which overwrites `personalBest` with `seasonBest`). `ResultsAgent` treats an
+   inverted pair as evidence it cannot vouch for either side of and withholds both, with one
+   retry of the extraction call first.
+3. **A Tier 3 new-PB corroboration gate is implemented** (`docs/truth-verification-layer.md`
+   §3): a numerically-superior-to-the-currently-stored-value PB is withheld this milestone,
+   since a single research pass can never produce independent corroboration. A first-ever
+   discovery (no currently-stored PB to compare against) is treated as a Tier 2 restatement
+   instead — a deliberate, documented judgement call, not an oversight.
+4. **`world_rank_delta`'s sign convention is corrected**, not merely implemented: the legacy
+   extraction prompt's comment says "negative = improved," but the frontend
+   (`DossierPage.tsx`) renders `worldRankDelta > 0` as improved (green, trending up) — a
+   pre-existing inconsistency found while implementing this milestone. `ResultsAgent` follows
+   the frontend's actual behaviour (positive = improved), not the legacy prompt's comment.
+5. **No live Perplexity/OpenAI credentials exist in this sandbox** (standing constraint,
+   disclosed since the Milestone 1 real-world-accuracy-audit request) — `ResultsAgent` is
+   verified via unit tests (`resultsAgentLogic.test.ts`, 12 fixtures covering every documented
+   defect this agent targets) and a DB-gated integration test proving the flag-on/flag-off
+   single-writer behaviour with mocked model responses, not a live crawl. `docs/metrics/m3.json`
+   is therefore numerically identical to `m2.json` by construction — see that file's
+   `dataProvenance` field, and the success-metrics doc's Milestone 3 "Actual outcome" note, for
+   why this is not evidence of no improvement.
+6. **The roadmap's "manual shadow-comparison script" step is folded into the DB-gated
+   integration test** (`orchestrator.test.ts`'s "Milestone 3 results-agent flag" suite) rather
+   than written as a separate CLI script — per the shared-architecture review's own §1.7
+   reasoning, a reusable parameterised script is worth building once there's a second real
+   agent to justify it (Milestone 4), not spoken for now.
+
 ### Objectives
 Ship the first real specialised agent. `ResultsAgent` takes over `athletes.world_rank`, `world_rank_delta`, `national_rank`, `personal_best`, `season_best` — with the sport-aware PB/SB comparator from Milestone 0 now driving an agent's own research query, not just retrofitted validation on the monolith's output.
 

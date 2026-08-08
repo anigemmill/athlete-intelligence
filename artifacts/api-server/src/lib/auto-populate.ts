@@ -38,6 +38,7 @@ import {
   mapTimelineCategoryToFactDomain,
 } from "./pipeline/sourceHierarchy.js";
 import { onRefresh } from "./pipeline/orchestrator.js";
+import type { LegacyMonolithSkip } from "./pipeline/agentOwnership.js";
 
 interface AthleteStub {
   id: number;
@@ -364,7 +365,25 @@ Return ONLY valid JSON, no markdown. Fields:
   };
 }
 
-export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
+/**
+ * `opts.skip` (docs/task-27-milestones-3-6-shared-architecture-review.md
+ * §1.2) lets the orchestrator tell this function which domains a
+ * specialised agent now owns, so the monolith stops writing them —
+ * enforcing the single-writer-per-column principle
+ * (docs/task-27-agentic-pipeline.md §11.1) without this function needing to
+ * know *why* a domain is skipped, only that it is. Every flag defaults to
+ * unset, so calling this with no `opts` (every existing call site until a
+ * milestone's registry entry opts in) is byte-for-byte unchanged from
+ * before this parameter existed.
+ *
+ * `skip.results` omits only the five ResultsAgent-owned fields from the
+ * stats block's `.set()` call below — that block also writes social
+ * handles, avatarUrl, hasNewIntelligence, and lastCrawledAt, none of which
+ * any agent has claimed yet, so those keep being written regardless of
+ * `skip.results`. `skip.competitions`/`skip.contacts`/`skip.intelligence`
+ * each gate their own whole (single-purpose) block.
+ */
+export async function autoPopulateAthlete(athlete: AthleteStub, opts?: { skip?: LegacyMonolithSkip }): Promise<void> {
   try {
     // Phase 1: Perplexity web research + Wikipedia photo run in parallel
     // Perplexity searches the live web; Wikipedia fetches the real profile photo.
@@ -425,14 +444,24 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         }
       }
 
+      // docs/task-27-milestones-3-6-shared-architecture-review.md §1.2 —
+      // once `results` is in PIPELINE_AGENTS, ResultsAgent is the sole
+      // writer of these five fields; omit them here rather than writing
+      // null/stale values over what that agent just wrote.
+      const resultsFields = opts?.skip?.results
+        ? {}
+        : {
+            worldRank: typeof s.worldRank === "number" ? s.worldRank : null,
+            worldRankDelta: typeof s.worldRankDelta === "number" ? s.worldRankDelta : 0,
+            nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
+            personalBest,
+            seasonBest,
+          };
+
       await db
         .update(athletesTable)
         .set({
-          worldRank: typeof s.worldRank === "number" ? s.worldRank : null,
-          worldRankDelta: typeof s.worldRankDelta === "number" ? s.worldRankDelta : 0,
-          nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
-          personalBest,
-          seasonBest,
+          ...resultsFields,
           // Handles and follower counts sourced from Perplexity web research
           instagramHandle: typeof s.instagramHandle === "string" ? s.instagramHandle : null,
           instagramFollowers: typeof s.instagramFollowers === "number" ? s.instagramFollowers : undefined,
@@ -457,7 +486,11 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     }
 
     // ── 2. Intelligence items ────────────────────────────────────────────────
-    if (Array.isArray(data.intelligence_items) && data.intelligence_items.length > 0) {
+    // Whole-block skip (Milestone 6, IntelligenceAgent) — this block is
+    // intelligence_items' sole other writer, so skipping means the block
+    // never runs, not just that its fields are omitted (contrast with the
+    // stats block above, which has mixed ownership).
+    if (!opts?.skip?.intelligence && Array.isArray(data.intelligence_items) && data.intelligence_items.length > 0) {
       const rows = data.intelligence_items.map((item: any) => {
         // docs/technical-debt.md Priority 1 — sanitize before anything else
         // touches these fields, so a citation-index leak like "[8]" or
@@ -524,7 +557,8 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     }
 
     // ── 4. Contacts ──────────────────────────────────────────────────────────
-    if (Array.isArray(data.contacts) && data.contacts.length > 0) {
+    // Whole-block skip (Milestone 5, ContactsAgent) — see the note on block 2.
+    if (!opts?.skip?.contacts && Array.isArray(data.contacts) && data.contacts.length > 0) {
       const today = new Date().toISOString().split("T")[0];
       const rows = data.contacts.map((c: any) => {
         const sourceDomain = sanitizeSourceDomain(c.sourceDomain) ?? "unknown";
@@ -557,7 +591,8 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     }
 
     // ── 5. Competitions ──────────────────────────────────────────────────────
-    if (Array.isArray(data.competitions) && data.competitions.length > 0) {
+    // Whole-block skip (Milestone 4, CompetitionsAgent) — see the note on block 2.
+    if (!opts?.skip?.competitions && Array.isArray(data.competitions) && data.competitions.length > 0) {
       const rows = data.competitions.map((comp: any) => ({
         athleteId: athlete.id,
         athleteName: athlete.name,
