@@ -188,3 +188,44 @@ Replit), and run it there instead of in this sandbox.
 I'm not choosing between these — it changes what "verified" will actually mean in the resulting
 report, and that's exactly the kind of call that should be made explicitly rather than defaulted
 into.
+
+---
+
+## 7. Attempt Log — Option A, First Attempt
+
+The user chose Option A (real credentials) and configured all four required environment
+variables (`AI_INTEGRATIONS_OPENAI_API_KEY`, `AI_INTEGRATIONS_OPENAI_BASE_URL`,
+`AI_INTEGRATIONS_OPENROUTER_API_KEY`, `AI_INTEGRATIONS_OPENROUTER_BASE_URL`) via this session's
+own environment settings — presence confirmed without reading values.
+
+**Method:** a temporary, uncommitted harness called the real `runResultsAgent()` for each of the
+5 golden athletes, with two temporary `logger.info` calls added to `resultsAgent.ts` to capture
+the raw research/extraction stages for the report (reverted immediately after, `git diff` clean).
+Each athlete's row was snapshotted before the run and restored immediately after, regardless of
+outcome — no golden-set data was left modified.
+
+**Result: 5/5 athletes failed at the network layer, before any research or extraction occurred.**
+Both external hosts `ResultsAgent` depends on are blocked by this session's network egress
+policy:
+
+```
+403 Host not in allowlist: openrouter.ai
+403 Host not in allowlist: api.openai.com
+```
+
+**Root cause, per §4's taxonomy: category 2 (API) — but at the network layer, not the API
+layer.** This is not a credentials problem (the request never reached OpenAI/OpenRouter's own
+servers to test the key at all — it was rejected by this session's outbound-proxy allowlist
+before that), not a code problem (`resultsAgent.ts`'s error handling behaved exactly as designed:
+`status: "error"`, `classification: "transient"`, one `agent_runs` row per athlete, zero database
+writes), and not a data-quality problem. Per this environment's own proxy documentation
+(`/root/.ccr/README.md`): "The destination host is not allowed by your organization's egress
+policy for this session. Do not retry or route around it — report the blocked host." That
+instruction was followed — no retries, no workaround attempted.
+
+**What this means for the milestone gate:** zero real live data was retrieved. This attempt
+cannot serve as the report the user asked to review before Milestone 4 — there is nothing to
+compare, because the live call never happened for any athlete, any field. The three ways forward
+from §6 still stand; (A) now additionally requires the network egress allowlist for this session/
+environment to include `api.openai.com` and `openrouter.ai` before a credentialed run can produce
+anything, which is a different configuration surface than the environment variables already set.
