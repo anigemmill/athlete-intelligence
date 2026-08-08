@@ -2,6 +2,13 @@
 
 This document is written specifically for Claude Code. It assumes you have never seen this project before and need to understand it, build it, and continue developing it from first principles.
 
+**Read `docs/founder-working-instructions.md` before doing anything else.** It is the founder's
+standing, canonical operating instruction for this project — product goal, engineering
+principles (the three questions: is this fact true / how sure are we / can we prove it),
+development process, communication style, safety rules, and the current standing priority (the
+Live Pipeline Verification must be reviewed before any further agent milestone proceeds). Do not
+ask the founder to re-explain anything that document already covers.
+
 ---
 
 ## What this project is
