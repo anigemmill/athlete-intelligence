@@ -73,10 +73,9 @@ Full setup instructions: `docs/setup.md`.
 
 ## Current priorities
 
-The single most important pending task is **Task #27 — Specialised Retrieval Agents** (plan: `.local/tasks/agentic-pipeline-redesign.md`). This redesigns the AI pipeline from a single monolithic prompt into 11 domain-specific agents. It directly addresses the 5 critical failures identified in the accuracy audit.
+**Task #27 — Specialised Retrieval Agents is complete** (plan: `.local/tasks/agentic-pipeline-redesign.md`). The AI pipeline was redesigned from a single monolithic prompt into 8 domain-specific agents (`artifacts/api-server/src/lib/*-agent.ts`), live-verified end to end against 5 golden athletes across milestones M3.1–M12. See `docs/ai-architecture.md` ("Retrieval Agents") for the current architecture and `docs/live-pipeline-verification-2026-08-09-m12-results.md` for the final verification report (links back through the full series).
 
-Current platform quality score: **59/100** across 5 sample athletes.  
-Expected after Task #27: **76–80/100**.
+The pre-redesign platform quality score was **59/100** across 5 sample athletes; a fresh quality audit against the new 8-agent pipeline has not yet been run and would be a reasonable next step to quantify the improvement.
 
 Other pending tasks (lower priority, see `docs/roadmap.md`):
 - Globe filter by sport/region (#21)
@@ -126,7 +125,7 @@ Other pending tasks (lower priority, see `docs/roadmap.md`):
 - **pnpm only** — the `preinstall` script blocks npm/yarn
 - **Pino logging** — use `logger.info/warn/error()` with structured objects, never `console.log` in production code
 - **No secrets in code** — all API keys via environment variables; never hardcode in source
-- **Error handling** — prefer explicit error types over generic `Error`; the `PerplexityResearchError` class in `auto-populate.ts` is a good pattern
+- **Error handling** — every intelligence-retrieval agent (`artifacts/api-server/src/lib/*-agent.ts`) catches its own research/extraction failures internally, logs via `logger.warn`/`logger.error` with structured context, and returns a safe empty/default result rather than throwing — one agent's failure never discards another agent's already-validated data. Reserve thrown errors for truly unrecoverable failures (e.g. a database write failing).
 
 ---
 

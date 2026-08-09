@@ -16,7 +16,6 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
 import { adjustConfidenceByDomain } from "./source-validation.js";
-import { crossValidatePerformanceMarks } from "./performance-marks.js";
 import { runCompetitionsAgent } from "./competitions-agent.js";
 import { runContactsAgent } from "./contacts-agent.js";
 import { runTimelineAgent } from "./timeline-agent.js";
@@ -26,7 +25,7 @@ import { runSocialMetricsAgent } from "./social-metrics-agent.js";
 import { runBiographyAgent } from "./biography-agent.js";
 import { runPhotoAgent } from "./photo-agent.js";
 import { runIntelligenceAgent } from "./intelligence-agent.js";
-import { callPerplexity } from "./perplexity-client.js";
+import { runResultsAgent } from "./results-agent.js";
 import { withAiConcurrencyLimit } from "./ai-concurrency.js";
 import { withRetry } from "./retry.js";
 import type { AthleteStub } from "./athlete-stub.js";
@@ -39,119 +38,12 @@ import {
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-/**
- * Thrown when the Perplexity research stage fails.
- * Caught separately in autoPopulateAthlete so we can distinguish
- * "no verified data available — nothing written" from other pipeline errors.
- */
-class PerplexityResearchError extends Error {
-  constructor(cause: unknown) {
-    super("Perplexity research failed — no verified data available");
-    this.name = "PerplexityResearchError";
-    this.cause = cause;
-  }
-}
-
 // Twitter/X real follower lookup moved to social-metrics-agent.ts (M9).
 // Photo lookup moved to photo-agent.ts (M10), which wraps the existing
 // Wikipedia-first hierarchy in ./photo-lookup.ts (still shared with admin
 // backfill) as its fallback after trying federation sources first.
-
-// ── Phase 1: Perplexity Sonar Pro — live web research ────────────────────────
-// Searches the web for real, current information about the athlete.
-// Returns a detailed research summary with cited sources.
-
-async function researchAthleteWithPerplexity(
-  athlete: AthleteStub,
-): Promise<{ research: string; citations: string[] }> {
-  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const currentYear = new Date().getFullYear();
-  try {
-    const { research, citations } = await callPerplexity({
-      label: "auto-populate research",
-      maxTokens: 4096,
-      systemPrompt: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is ${today}. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
-      userPrompt: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) comprehensively. Cover ALL of the following:
-
-1. CURRENT STATUS (as of ${today}): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
-2. RECENT RESULTS (${currentYear - 2}, ${currentYear - 1}, ${currentYear} seasons): List every race/competition result you can find with exact date, event name, location, and finishing position or time/score.
-3. HISTORICAL RESULTS (2016–2023): Major career results, championship medals, personal bests with dates.
-4. CAREER TIMELINE: Debut year, team changes, major sponsorship deals, injuries, major career milestones with exact dates.
-5. RANKINGS: Current world ranking, national ranking, and how these have changed over the past year.
-6. PERFORMANCE MARKS: Personal best and season best times/marks (with the date each was set). For DH MTB this is a race finishing time like "4:31.18", not a placement. Look for actual timed results.
-7. SOCIAL MEDIA: Their real Instagram handle, X/Twitter handle, TikTok handle. For each platform find the most recent follower count you can — from profile directories, sports media articles, influencer databases, or any web source. Give the number and the source/date it came from. Even a number from a 6-month-old article is better than nothing.
-8. KEY CONTACTS: Head coach (name and organisation), manager or agent (name and organisation), any known medical/physio staff.
-9. INTELLIGENCE: Recent interviews, media features, sponsorship announcements, controversy, career changes — anything newsworthy from the past 3 years.
-
-Cite your sources where possible. Be as specific and accurate as possible.`,
-    });
-    logger.info(
-      { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
-      "auto-populate: Perplexity research complete",
-    );
-    return { research, citations };
-  } catch (err) {
-    logger.warn(
-      { err, athleteId: athlete.id, name: athlete.name },
-      "auto-populate: Perplexity research failed — aborting pipeline to prevent fabricated data",
-    );
-    throw new PerplexityResearchError(err);
-  }
-}
-
-// ── Phase 2: Structured data extraction ──────────────────────────────────────
-// gpt-4o reads the Perplexity research and citation URLs and extracts structured JSON.
-// This stage is only reached when Perplexity succeeded; if research is empty the
-// pipeline aborts before this point (see PerplexityResearchError above).
-
-const SYSTEM_PROMPT = `You are a sports intelligence data engine for Athlete Intelligence, a B2B SaaS platform used by national sport organisations, professional clubs, and talent agencies.
-
-You will be given verified web research about an athlete. Extract and structure this into accurate JSON. Return ONLY valid JSON — no markdown, no explanation.
-
-Rules:
-- ACCURACY FIRST: Use the provided research as your primary source of truth. Do not contradict it.
-- If the research states a specific team, result, date, or fact — use it exactly as stated.
-- If the research does not cover something, use your own knowledge to fill gaps — but mark lower confidence (65–75) for inferred data.
-- sourceUrl MUST be chosen from the provided CITATION URLs list. If no citation is relevant, set sourceUrl to null. NEVER invent, guess, or construct a URL — fabricated URLs cause 404 errors for users.
-- sourceDomain must match the domain of the chosen sourceUrl, or be the most relevant real domain from the research if sourceUrl is null.
-- Dates must be ISO-8601 strings reflecting when events actually occurred.
-- Confidence scores: 85–97 for data from research, 65–80 for inferred data.`;
-
-const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
-  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  return `
-Athlete profile:
-- Name: ${a.name}
-- Sport: ${a.sport}
-- Event/Position: ${a.event}
-- Nationality: ${a.nationality}
-- Age: ${a.age ?? "unknown"}
-
-${citations.length > 0
-  ? `VERIFIED CITATION URLs — use ONLY these for sourceUrl fields. Pick the most topically relevant one per item, or set sourceUrl to null if none apply. Do NOT invent URLs.
-${citations.map((c, i) => `${i + 1}. ${c}`).join("\n")}
-
-`
-  : ""}${research
-  ? `VERIFIED WEB RESEARCH (use this as your primary source of truth — do not contradict it):
-\`\`\`
-${research}
-\`\`\``
-  : `ABORT: No verified research is available. Return an empty JSON object: {}. Do not generate, infer, or fabricate any athlete data.`}
-
-Extract and structure the above into the following JSON object:
-
-{
-  "athlete_stats": {
-    "worldRank": <integer or null>,
-    "worldRankDelta": <integer, negative = improved>,
-    "nationalRank": <integer or null>,
-    "personalBest": <string or null — CRITICAL: this must be an actual measured performance mark ONLY, never a race placement or event name. Format examples by sport: DH MTB = "4:31.18" (race time), Sprint = "9.87s", 800m = "1:43.22", Long jump = "8.95m", Weightlifting = "148kg snatch", Cycling power = "6.8 W/kg". If the athlete's sport uses times, give the time. If unknown, return null.>,
-    "seasonBest": <string or null — same format as personalBest. The athlete's best mark in the current season only, same short format. Null if unknown.>
-  }
-}
-`;
-};
+// General research + rank/PB/SB extraction moved to results-agent.ts (M12)
+// — the last content generated by the original monolithic prompt.
 
 /**
  * Minimum confidence score (0–100) required to accept a discovery result.
@@ -236,15 +128,15 @@ Return ONLY valid JSON, no markdown. Fields:
 
 export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
-    // Phase 1: general Perplexity web research, run alongside the
-    // standalone retrieval agents (CompetitionsAgent M4, ContactsAgent M5,
+    // Phase 1: every field is now sourced from its own dedicated retrieval
+    // agent (ResultsAgent M12, CompetitionsAgent M4, ContactsAgent M5,
     // TimelineAgent M6, SponsorsAgent M7, SocialProfilesAgent M8,
-    // BiographyAgent + PhotoAgent M10, IntelligenceAgent M11), each of
-    // which owns its own full research+extraction+validation cycle and
-    // overlaps with everything else here rather than running after the
-    // main extraction.
-    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles, biography, intelligenceRowsFromAgent] = await Promise.all([
-      researchAthleteWithPerplexity(athlete),
+    // BiographyAgent + PhotoAgent M10, IntelligenceAgent M11) — each owns
+    // its own full research+extraction+validation cycle and never throws,
+    // so one agent's research failing degrades only its own field rather
+    // than discarding every other agent's already-validated results.
+    const [results, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles, biography, intelligenceRowsFromAgent] = await Promise.all([
+      runResultsAgent(athlete),
       runPhotoAgent(athlete),
       runCompetitionsAgent(athlete),
       runContactsAgent(athlete),
@@ -255,79 +147,40 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       runIntelligenceAgent(athlete),
     ]);
 
-    // Phase 2: Structured JSON extraction — gpt-4o reads the real
-    // Perplexity research and citation URLs as its source of truth.
-    // SocialMetricsAgent (M9) runs alongside it — it needs socialHandles
-    // from Phase 1, not anything from this extraction, so there's no
-    // reason to serialize it after.
-    const [response, socialMetrics] = await Promise.all([
-      withAiConcurrencyLimit(() =>
-        withRetry(
-          () =>
-            openai.chat.completions.create({
-              model: "gpt-4o",
-              max_completion_tokens: 8192,
-              messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: USER_PROMPT(athlete, research, citations) },
-              ],
-              response_format: { type: "json_object" },
-            }),
-          { label: "main extraction" },
-        ),
-      ),
-      runSocialMetricsAgent(athlete, socialHandles),
-    ]);
-
-    const raw = response.choices[0]?.message?.content;
-    if (!raw) throw new Error("Empty OpenAI response");
-
-    const data = JSON.parse(raw) as {
-      athlete_stats?: Record<string, unknown>;
-    };
+    // Phase 2: SocialMetricsAgent (M9) needs socialHandles from Phase 1.
+    const socialMetrics = await runSocialMetricsAgent(athlete, socialHandles);
 
     // ── 1. Update athlete stats + verified photo ────────────────────────────
-    if (data.athlete_stats) {
-      const s = data.athlete_stats;
-
-      // Cross-validate personal-best/season-best rather than trusting GPT's
-      // two independently-extracted fields to already be consistent.
-      const { personalBest, seasonBest } = crossValidatePerformanceMarks(
-        typeof s.personalBest === "string" ? s.personalBest : null,
-        typeof s.seasonBest === "string" ? s.seasonBest : null,
-        { athleteId: athlete.id, name: athlete.name },
-      );
-
-      await db
-        .update(athletesTable)
-        .set({
-          worldRank: typeof s.worldRank === "number" ? s.worldRank : null,
-          worldRankDelta: typeof s.worldRankDelta === "number" ? s.worldRankDelta : 0,
-          nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
-          personalBest,
-          seasonBest,
-          // BiographyAgent (M10) — only overwrites age/nationality when
-          // confidently confirmed by fresh research; null means "no
-          // update", not "unknown" (see biography-agent.ts).
-          age: biography.age ?? undefined,
-          nationality: biography.nationality ?? undefined,
-          // Handles: SocialProfilesAgent (M8). Follower counts:
-          // SocialMetricsAgent (M9) — real X API for Twitter, handle-
-          // matched Perplexity fallback for Instagram/TikTok.
-          instagramHandle: socialHandles.instagramHandle,
-          instagramFollowers: socialMetrics.instagramFollowers ?? undefined,
-          twitterHandle: socialHandles.twitterHandle,
-          tiktokHandle: socialHandles.tiktokHandle,
-          tiktokFollowers: socialMetrics.tiktokFollowers ?? undefined,
-          twitterFollowers: socialMetrics.twitterFollowers ?? undefined,
-          // avatarUrl: PhotoAgent (M10) — federation-first, falls back to
-          // the existing Wikipedia hierarchy. Not AI-generated.
-          avatarUrl: avatarUrl ?? null,
-          hasNewIntelligence: true,
-          lastCrawledAt: new Date(),
-        })
-        .where(eq(athletesTable.id, athlete.id));
-    }
+    await db
+      .update(athletesTable)
+      .set({
+        // ResultsAgent (M12) — rank/PB/SB, already PB<=SB cross-validated.
+        worldRank: results.worldRank,
+        worldRankDelta: results.worldRankDelta,
+        nationalRank: results.nationalRank,
+        personalBest: results.personalBest,
+        seasonBest: results.seasonBest,
+        // BiographyAgent (M10) — only overwrites age/nationality when
+        // confidently confirmed by fresh research; null means "no
+        // update", not "unknown" (see biography-agent.ts).
+        age: biography.age ?? undefined,
+        nationality: biography.nationality ?? undefined,
+        // Handles: SocialProfilesAgent (M8). Follower counts:
+        // SocialMetricsAgent (M9) — real X API for Twitter, handle-
+        // matched Perplexity fallback for Instagram/TikTok.
+        instagramHandle: socialHandles.instagramHandle,
+        instagramFollowers: socialMetrics.instagramFollowers ?? undefined,
+        twitterHandle: socialHandles.twitterHandle,
+        tiktokHandle: socialHandles.tiktokHandle,
+        tiktokFollowers: socialMetrics.tiktokFollowers ?? undefined,
+        twitterFollowers: socialMetrics.twitterFollowers ?? undefined,
+        // avatarUrl: PhotoAgent (M10) — federation-first, falls back to
+        // the existing Wikipedia hierarchy. Not AI-generated.
+        avatarUrl: avatarUrl ?? null,
+        hasNewIntelligence: true,
+        lastCrawledAt: new Date(),
+      })
+      .where(eq(athletesTable.id, athlete.id));
 
     // ── 2. Intelligence items (IntelligenceAgent's general categories +
     //      SponsorsAgent's sponsorship items — both already fully
@@ -414,32 +267,25 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       "auto-populate: completed successfully",
     );
   } catch (err) {
-    if (err instanceof PerplexityResearchError) {
-      // Perplexity failed before any DB writes occurred.
-      // Athlete row exists (created by POST /athletes) but has no intelligence data.
-      // lastCrawledAt remains null — signals "never successfully populated, safe to retry".
-      logger.error(
-        { cause: err.cause, athleteId: athlete.id, name: athlete.name },
-        "auto-populate: aborted — Perplexity research failed; no intelligence data written to database",
-      );
-    } else {
-      // GPT extraction or database write failed after research succeeded.
-      // Partial data may have been written; admin retry will overwrite with fresh data.
-      // IMPORTANT: stamp lastCrawledAt so the scheduler doesn't immediately re-queue
-      // this athlete on the next cycle — give it 24 hours before retrying.
-      try {
-        await db
-          .update(athletesTable)
-          .set({ lastCrawledAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) }) // 6 days ago → retries in ~1 day
-          .where(eq(athletesTable.id, athlete.id));
-      } catch {
-        // ignore — best-effort
-      }
-      logger.error(
-        { err, athleteId: athlete.id, name: athlete.name },
-        "auto-populate: failed during extraction or database write",
-      );
+    // Every retrieval agent (ResultsAgent M12 onward) catches its own
+    // research/extraction failures internally and never throws — a
+    // rejection reaching here means a database write failed after the
+    // agents already produced their results. Partial data may have been
+    // written; admin retry will overwrite with fresh data. Stamp
+    // lastCrawledAt so the scheduler doesn't immediately re-queue this
+    // athlete on the next cycle — give it ~1 day before retrying.
+    try {
+      await db
+        .update(athletesTable)
+        .set({ lastCrawledAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000) }) // 6 days ago → retries in ~1 day
+        .where(eq(athletesTable.id, athlete.id));
+    } catch {
+      // ignore — best-effort
     }
+    logger.error(
+      { err, athleteId: athlete.id, name: athlete.name },
+      "auto-populate: failed during database write",
+    );
   }
 }
 

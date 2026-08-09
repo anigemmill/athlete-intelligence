@@ -30,20 +30,37 @@
 - **Global Intelligence Map** (Task #19) — WebGL globe with athlete location pins, live intelligence overlay
 - **Relationship Graph** (Task #20) — 3D force-directed graph of athlete relationships (coach, sponsor, federation, teammates)
 
+### Specialised Retrieval Agent Pipeline Redesign (Task #27, Q3 2026)
+
+Replaced the single monolithic Perplexity-research + GPT-4o-extraction prompt with 8 independent, dedicated retrieval agents, each owning its own research, extraction, and validation cycle and never throwing — one agent's failure no longer discards another agent's already-validated results:
+
+```
+Orchestrator
+├── ResultsAgent        — rank/PB/SB with PB<=SB cross-validation
+├── CompetitionsAgent   — career history, rejects generic meet names
+├── ContactsAgent       — 2-query strategy (coaching + representation separately)
+├── SponsorsAgent       — brand deal confidence decay
+├── SocialProfilesAgent — handle format validation
+├── SocialMetricsAgent  — X API v2 + handle-matched Perplexity fallback
+├── BiographyAgent      — age, nationality (only on explicit confirmation)
+├── PhotoAgent          — federation-first, falls back to WA/Wikipedia hierarchy
+├── TimelineAgent       — 20-30 events treated as investigative-depth benchmark, not a target
+└── IntelligenceAgent   — 3 category queries, 8-item benchmark, not a target
+```
+
+Live-verified end to end against 5 golden athletes at every milestone (M3.1–M12); see `docs/live-pipeline-verification-2026-08-09-m12-results.md` for the final report and links back through the series. Shared infrastructure (`callPerplexity`, `withRetry`, `withAiConcurrencyLimit`, `applyConfidenceFloor`, `AthleteStub`, `isValidDate`) built once (M6.1) and reused unmodified by every agent.
+
+**Plan file:** `.local/tasks/agentic-pipeline-redesign.md`
+
 ---
 
 ## Current Status (August 2026)
 
-The platform has a working end-to-end pipeline and a polished UI. The core value proposition — AI-sourced, evidence-attributed athlete intelligence — is functional.
+The platform has a working end-to-end pipeline and a polished UI. The core value proposition — AI-sourced, evidence-attributed athlete intelligence — is functional. The specialised retrieval agent redesign (Task #27, above) is complete and live-verified.
 
-**Known quality issues (see `docs/technical-debt.md`):**
-- Average intelligence quality score: 59/100
-- Citation index leak affecting source attribution for 2/5 athletes
-- Contact extraction failing for 4/5 athletes
-- Timeline and intelligence counts below target for most athletes
+**Remaining known issues (see `docs/technical-debt.md`):** the pre-M3.1 quality audit's 59/100 baseline predates this redesign; a fresh quality audit against the new 8-agent pipeline has not yet been run. PhotoAgent's federation-first strategy has a documented architectural limitation (LLM research surfaces page URLs, not direct image URLs — see the M10 report) rather than a code defect.
 
 **Active proposals (see task list):**
-- Task #27 — Specialised retrieval agent pipeline redesign (the primary quality investment)
 - Task #21 — Intelligence map filter by sport/region/freshness
 - Task #22 — Accurate globe pin placement for co-located athletes
 - Task #23 — Competition location parsing improvements
@@ -55,33 +72,7 @@ The platform has a working end-to-end pipeline and a polished UI. The core value
 
 ## Next Milestones
 
-### Milestone 1: Intelligence Accuracy (Immediate priority)
-
-**Task #27 — Specialised Retrieval Agents**
-
-Replace the monolithic pipeline with 11 domain-specific agents:
-
-```
-Orchestrator (Promise.allSettled)
-├── ResultsAgent        — rank/PB/SB with sport-aware cross-validation
-├── CompetitionsAgent   — career history, rejects generic meet names
-├── ContactsAgent       — 2-query strategy (coaching + management separately)
-├── SponsorsAgent       — brand deal confidence decay
-├── SocialProfilesAgent — handle format validation
-├── SocialMetricsAgent  — X API v2 + Perplexity fallback
-├── BiographyAgent      — birth date, nationality
-├── PhotoAgent          — WA → federation → Wikipedia hierarchy
-├── TimelineAgent       — supplementary pass if count < 12
-└── IntelligenceAgent   — 3 category queries, 8-item minimum
-```
-
-Expected outcome: platform quality score from 59/100 → 76–80/100.
-
-**Plan file:** `.local/tasks/agentic-pipeline-redesign.md`
-
----
-
-### Milestone 2: Visualisation Hardening
+### Milestone 1: Visualisation Hardening
 
 Fix the known issues with the globe and graph visualisations:
 - Task #21: Globe filter controls (sport, region, freshness)
