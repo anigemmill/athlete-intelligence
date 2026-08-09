@@ -23,6 +23,7 @@ import { runContactsAgent } from "./contacts-agent.js";
 import { runTimelineAgent } from "./timeline-agent.js";
 import { runSponsorsAgent } from "./sponsors-agent.js";
 import { runSocialProfilesAgent } from "./social-profiles-agent.js";
+import { runSocialMetricsAgent } from "./social-metrics-agent.js";
 import { callPerplexity } from "./perplexity-client.js";
 import { withAiConcurrencyLimit } from "./ai-concurrency.js";
 import { withRetry } from "./retry.js";
@@ -49,31 +50,7 @@ class PerplexityResearchError extends Error {
   }
 }
 
-// ── Twitter/X real follower lookup ──────────────────────────────────────────
-// Uses the X API v2 with a Bearer token to fetch real follower counts for any
-// public account. Requires TWITTER_BEARER_TOKEN environment secret.
-// Returns null silently if the token is missing or the request fails.
-
-async function fetchTwitterFollowers(handle: string): Promise<number | null> {
-  const token = process.env.TWITTER_BEARER_TOKEN;
-  if (!token) return null;
-  try {
-    const resp = await fetch(
-      `https://api.twitter.com/2/users/by/username/${encodeURIComponent(handle)}?user.fields=public_metrics`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(6000),
-      },
-    );
-    if (!resp.ok) return null;
-    const data = await resp.json() as any;
-    const count = data?.data?.public_metrics?.followers_count;
-    return typeof count === "number" ? count : null;
-  } catch {
-    return null;
-  }
-}
-
+// Twitter/X real follower lookup moved to social-metrics-agent.ts (M9).
 // Wikipedia photo lookup is now in ./photo-lookup.ts (shared with admin backfill)
 
 // ── Phase 1: Perplexity Sonar Pro — live web research ────────────────────────
@@ -168,9 +145,7 @@ Extract and structure the above into the following JSON object:
     "worldRankDelta": <integer, negative = improved>,
     "nationalRank": <integer or null>,
     "personalBest": <string or null — CRITICAL: this must be an actual measured performance mark ONLY, never a race placement or event name. Format examples by sport: DH MTB = "4:31.18" (race time), Sprint = "9.87s", 800m = "1:43.22", Long jump = "8.95m", Weightlifting = "148kg snatch", Cycling power = "6.8 W/kg". If the athlete's sport uses times, give the time. If unknown, return null.>,
-    "seasonBest": <string or null — same format as personalBest. The athlete's best mark in the current season only, same short format. Null if unknown.>,
-    "instagramFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>,
-    "tiktokFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>
+    "seasonBest": <string or null — same format as personalBest. The athlete's best mark in the current season only, same short format. Null if unknown.>
   },
   "intelligence_items": [
     {
@@ -292,21 +267,27 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
     // Perplexity research and citation URLs as its source of truth.
-    const response = await withAiConcurrencyLimit(() =>
-      withRetry(
-        () =>
-          openai.chat.completions.create({
-            model: "gpt-4o",
-            max_completion_tokens: 8192,
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: USER_PROMPT(athlete, research, citations) },
-            ],
-            response_format: { type: "json_object" },
-          }),
-        { label: "main extraction" },
+    // SocialMetricsAgent (M9) runs alongside it — it needs socialHandles
+    // from Phase 1, not anything from this extraction, so there's no
+    // reason to serialize it after.
+    const [response, socialMetrics] = await Promise.all([
+      withAiConcurrencyLimit(() =>
+        withRetry(
+          () =>
+            openai.chat.completions.create({
+              model: "gpt-4o",
+              max_completion_tokens: 8192,
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: USER_PROMPT(athlete, research, citations) },
+              ],
+              response_format: { type: "json_object" },
+            }),
+          { label: "main extraction" },
+        ),
       ),
-    );
+      runSocialMetricsAgent(athlete, socialHandles),
+    ]);
 
     const raw = response.choices[0]?.message?.content;
     if (!raw) throw new Error("Empty OpenAI response");
@@ -316,17 +297,9 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       intelligence_items?: any[];
     };
 
-    // ── 1. Update athlete stats + verified photo + real Twitter followers ────
+    // ── 1. Update athlete stats + verified photo ────────────────────────────
     if (data.athlete_stats) {
       const s = data.athlete_stats;
-      // Handles now come from SocialProfilesAgent (M8) — format-validated,
-      // not the general research's own (unvalidated) claim.
-      const aiTwitterHandle = socialHandles.twitterHandle;
-
-      // Fetch real Twitter follower count if we have a handle (runs in parallel with nothing else)
-      const realTwitterFollowers = aiTwitterHandle
-        ? await fetchTwitterFollowers(aiTwitterHandle)
-        : null;
 
       // Cross-validate personal-best/season-best rather than trusting GPT's
       // two independently-extracted fields to already be consistent.
@@ -344,28 +317,21 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
           nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
           personalBest,
           seasonBest,
-          // Handles: SocialProfilesAgent (M8). Follower counts: still the
-          // general research's numbers pending SocialMetricsAgent (M9).
+          // Handles: SocialProfilesAgent (M8). Follower counts:
+          // SocialMetricsAgent (M9) — real X API for Twitter, handle-
+          // matched Perplexity fallback for Instagram/TikTok.
           instagramHandle: socialHandles.instagramHandle,
-          instagramFollowers: typeof s.instagramFollowers === "number" ? s.instagramFollowers : undefined,
-          twitterHandle: aiTwitterHandle,
+          instagramFollowers: socialMetrics.instagramFollowers ?? undefined,
+          twitterHandle: socialHandles.twitterHandle,
           tiktokHandle: socialHandles.tiktokHandle,
-          tiktokFollowers: typeof s.tiktokFollowers === "number" ? s.tiktokFollowers : undefined,
-          // Twitter followers: X API v2 real-time count overrides Perplexity if available
-          twitterFollowers: realTwitterFollowers ?? (typeof s.twitterFollowers === "number" ? s.twitterFollowers : undefined),
+          tiktokFollowers: socialMetrics.tiktokFollowers ?? undefined,
+          twitterFollowers: socialMetrics.twitterFollowers ?? undefined,
           // avatarUrl: pulled from Wikipedia API — not AI-generated
           avatarUrl: avatarUrl ?? null,
           hasNewIntelligence: true,
           lastCrawledAt: new Date(),
         })
         .where(eq(athletesTable.id, athlete.id));
-
-      if (realTwitterFollowers !== null) {
-        logger.info(
-          { athleteId: athlete.id, handle: aiTwitterHandle, followers: realTwitterFollowers },
-          "auto-populate: fetched real Twitter follower count",
-        );
-      }
     }
 
     // ── 2. Intelligence items (general categories + SponsorsAgent's
