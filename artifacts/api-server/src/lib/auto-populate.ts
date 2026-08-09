@@ -17,6 +17,8 @@ import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
 import { fetchWikipediaPhoto } from "./photo-lookup.js";
+import { resolveSourceAttribution, sanitizeStandaloneDomain, isUsableContact } from "./source-validation.js";
+import { crossValidatePerformanceMarks } from "./performance-marks.js";
 import {
   athletesTable,
   intelligenceItemsTable,
@@ -111,9 +113,15 @@ Cite your sources where possible. Be as specific and accurate as possible.`,
         },
       ],
     });
-    const research = response.choices[0]?.message?.content ?? "";
-    // Perplexity returns real citation URLs at the top level of the response
-    const citations: string[] = (response as any).citations ?? [];
+    const message = response.choices[0]?.message as any;
+    const research = message?.content ?? "";
+    // Perplexity's real citation URLs live under message.annotations[].url_citation.url —
+    // NOT a top-level `citations` field, which OpenRouter never populates for this model.
+    const citations: string[] = Array.isArray(message?.annotations)
+      ? message.annotations
+          .filter((a: any) => a?.type === "url_citation" && typeof a?.url_citation?.url === "string")
+          .map((a: any) => a.url_citation.url as string)
+      : [];
     logger.info(
       { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
       "auto-populate: Perplexity research complete",
@@ -146,7 +154,6 @@ Rules:
 - Dates must be ISO-8601 strings reflecting when events actually occurred.
 - Confidence scores: 85–97 for data from research, 65–80 for inferred data.
 - Categories: intelligence_items use one of: results_rankings | media_interviews | sponsorships | career_changes
-- Timeline categories: competition | media | sponsorship | career | personal
 - Contact categories: management | coaching | medical | media | sponsorship
 - Competition tiers: A | B | C. Status: upcoming | completed`;
 
@@ -203,25 +210,6 @@ Extract and structure the above into the following JSON object:
     // 3-4 items from ${currentYear - 6}–${currentYear - 4} (mid career), 3-5 items from ${currentYear - 3}–${currentYear} (recent).
     // Include a genuine mix: results, media coverage, sponsorships, career moves.
   ],
-  "timeline_events": [
-    {
-      "date": <YYYY-MM-DD>,
-      "category": "competition",
-      "title": <string>,
-      "description": <string>,
-      "location": <string or null>,
-      "sourceDomain": <string>,
-      "sourceUrl": <string or null — MUST be from the citation list above, or null>,
-      "confidence": <integer>,
-      "significant": <boolean>
-    }
-    // IMPORTANT: Generate 20-30 events spanning the athlete's FULL career — from their earliest
-    // known season (junior career, debut, or first senior season) right up to ${today}.
-    // Events must be in chronological order, oldest first.
-    // Include: debut/first competition, major milestone seasons, podiums, personal bests, sponsorships,
-    // coaching changes, injuries, and recent events. Mark truly pivotal moments as significant: true.
-    // Cover all career phases: junior → emerging → peak → current (up to ${today}).
-  ],
   "contacts": [
     {
       "role": <string, e.g. "Head Coach">,
@@ -265,6 +253,142 @@ Extract and structure the above into the following JSON object:
 }
 `;
 };
+
+// ── Phase 1b: Dedicated career-timeline research ──────────────────────────────
+// The general research pass + general extraction call were only producing
+// 3-10 timeline events against a 20-30 target — timeline_events was one of
+// five arrays competing for a single ~8K-token extraction budget, sourced
+// from research that was never asked to be chronologically exhaustive. This
+// is a retrieval-strategy fix, not a bigger number in a prompt: a second,
+// focused Perplexity query plus a dedicated extraction call with its own
+// budget. A failure here does not abort the pipeline — it only means no
+// timeline events get added this run; core intelligence/competitions/
+// contacts data (already fetched) is still worth keeping.
+
+async function researchCareerTimeline(
+  athlete: AthleteStub,
+): Promise<{ research: string; citations: string[] }> {
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  try {
+    const response = await openrouter.chat.completions.create({
+      model: "perplexity/sonar",
+      max_tokens: 4096,
+      messages: [
+        {
+          role: "system",
+          content: `You are a sports historian building a complete competitive career timeline. Today's date is ${today}. Be exhaustive and chronological. Never fabricate information.`,
+        },
+        {
+          role: "user",
+          content: `Build a complete, chronological career history for ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}), from their EARLIEST known competitive results (junior career, youth championships, or first senior season — whichever is earliest) all the way to ${today}.
+
+For EACH season or career phase, list: the year, what happened (results, team changes, injuries, sponsorship deals, coaching changes, milestone competitions), and where you found it. Do not skip years just because they were quiet. Try to find at least one dated event per year of their competitive career. Elite careers typically have 20-30+ notable dated moments — aim for as many distinct, real, dated events as the record genuinely supports.
+
+Cite your sources.`,
+        },
+      ],
+    });
+    const message = response.choices[0]?.message as any;
+    const research = message?.content ?? "";
+    const citations: string[] = Array.isArray(message?.annotations)
+      ? message.annotations
+          .filter((a: any) => a?.type === "url_citation" && typeof a?.url_citation?.url === "string")
+          .map((a: any) => a.url_citation.url as string)
+      : [];
+    logger.info(
+      { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
+      "auto-populate: career timeline research complete",
+    );
+    return { research, citations };
+  } catch (err) {
+    logger.warn(
+      { err, athleteId: athlete.id, name: athlete.name },
+      "auto-populate: career timeline research failed — skipping timeline events this run",
+    );
+    return { research: "", citations: [] };
+  }
+}
+
+const TIMELINE_SYSTEM_PROMPT = `You are a sports intelligence data engine for Athlete Intelligence. You will be given verified chronological career research about an athlete. Extract it into accurate JSON. Return ONLY valid JSON — no markdown, no explanation.
+
+Rules:
+- ACCURACY FIRST: use the provided research as your primary source of truth.
+- sourceUrl MUST be chosen from the provided CITATION URLs list. If no citation is relevant, set sourceUrl to null. NEVER invent, guess, or construct a URL.
+- sourceDomain must match the domain of the chosen sourceUrl, or be the most relevant real domain from the research if sourceUrl is null.
+- Dates must be ISO-8601 strings reflecting when events actually occurred.
+- Confidence scores: 85–97 for data from research, 65–80 for inferred data.
+- Categories: competition | media | sponsorship | career | personal`;
+
+const TIMELINE_USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
+  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return `
+Athlete: ${a.name} (${a.sport} — ${a.event}, ${a.nationality})
+
+${citations.length > 0
+  ? `VERIFIED CITATION URLs — use ONLY these for sourceUrl fields. Do NOT invent URLs.
+${citations.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+
+`
+  : ""}${research
+  ? `VERIFIED CAREER RESEARCH:
+\`\`\`
+${research}
+\`\`\``
+  : `ABORT: No verified research is available. Return { "timeline_events": [] }.`}
+
+Extract a full career timeline as JSON:
+
+{
+  "timeline_events": [
+    {
+      "date": <YYYY-MM-DD>,
+      "category": "competition",
+      "title": <string>,
+      "description": <string>,
+      "location": <string or null>,
+      "sourceDomain": <string>,
+      "sourceUrl": <string or null — MUST be from the citation list above, or null>,
+      "confidence": <integer>,
+      "significant": <boolean>
+    }
+    // Generate as many distinct, dated events as the research genuinely supports —
+    // target 20-30 for a full career, spanning the athlete's earliest known season
+    // through ${today}, in chronological order, oldest first. Do not pad with
+    // duplicate or vague entries just to hit a count; every event needs a real
+    // date and a real claim grounded in the research above.
+  ]
+}
+`;
+};
+
+async function extractCareerTimeline(
+  athlete: AthleteStub,
+  research: string,
+  citations: string[],
+): Promise<any[]> {
+  if (!research) return [];
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      max_completion_tokens: 8192,
+      messages: [
+        { role: "system", content: TIMELINE_SYSTEM_PROMPT },
+        { role: "user", content: TIMELINE_USER_PROMPT(athlete, research, citations) },
+      ],
+      response_format: { type: "json_object" },
+    });
+    const raw = response.choices[0]?.message?.content;
+    if (!raw) return [];
+    const data = JSON.parse(raw) as { timeline_events?: any[] };
+    return Array.isArray(data.timeline_events) ? data.timeline_events : [];
+  } catch (err) {
+    logger.warn(
+      { err, athleteId: athlete.id, name: athlete.name },
+      "auto-populate: career timeline extraction failed — skipping timeline events this run",
+    );
+    return [];
+  }
+}
 
 /**
  * Minimum confidence score (0–100) required to accept a discovery result.
@@ -356,15 +480,18 @@ Return ONLY valid JSON, no markdown. Fields:
 
 export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
-    // Phase 1: Perplexity web research + Wikipedia photo run in parallel
-    // Perplexity searches the live web; Wikipedia fetches the real profile photo.
-    const [{ research, citations }, avatarUrl] = await Promise.all([
+    // Phase 1: Perplexity web research (general + dedicated career-timeline
+    // query) + Wikipedia photo all run in parallel.
+    const [{ research, citations }, timelineResearch, avatarUrl] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
+      researchCareerTimeline(athlete),
       fetchWikipediaPhoto(athlete.name, athlete.sport),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
     // Perplexity research and citation URLs as its source of truth.
+    // Timeline events are extracted separately (see Phase 2b below) so they
+    // get their own token budget instead of competing with everything else.
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       max_completion_tokens: 8192,
@@ -381,10 +508,16 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     const data = JSON.parse(raw) as {
       athlete_stats?: Record<string, unknown>;
       intelligence_items?: any[];
-      timeline_events?: any[];
       contacts?: any[];
       competitions?: any[];
     };
+
+    // Phase 2b: dedicated career-timeline extraction, with its own citations.
+    const timelineEventsRaw = await extractCareerTimeline(
+      athlete,
+      timelineResearch.research,
+      timelineResearch.citations,
+    );
 
     // ── 1. Update athlete stats + verified photo + real Twitter followers ────
     if (data.athlete_stats) {
@@ -396,14 +529,22 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         ? await fetchTwitterFollowers(aiTwitterHandle)
         : null;
 
+      // Cross-validate personal-best/season-best rather than trusting GPT's
+      // two independently-extracted fields to already be consistent.
+      const { personalBest, seasonBest } = crossValidatePerformanceMarks(
+        typeof s.personalBest === "string" ? s.personalBest : null,
+        typeof s.seasonBest === "string" ? s.seasonBest : null,
+        { athleteId: athlete.id, name: athlete.name },
+      );
+
       await db
         .update(athletesTable)
         .set({
           worldRank: typeof s.worldRank === "number" ? s.worldRank : null,
           worldRankDelta: typeof s.worldRankDelta === "number" ? s.worldRankDelta : 0,
           nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
-          personalBest: typeof s.personalBest === "string" ? s.personalBest : null,
-          seasonBest: typeof s.seasonBest === "string" ? s.seasonBest : null,
+          personalBest,
+          seasonBest,
           // Handles and follower counts sourced from Perplexity web research
           instagramHandle: typeof s.instagramHandle === "string" ? s.instagramHandle : null,
           instagramFollowers: typeof s.instagramFollowers === "number" ? s.instagramFollowers : undefined,
@@ -429,17 +570,24 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 
     // ── 2. Intelligence items ────────────────────────────────────────────────
     if (Array.isArray(data.intelligence_items) && data.intelligence_items.length > 0) {
-      const rows = data.intelligence_items.map((item: any) => ({
-        athleteId: athlete.id,
-        athleteName: athlete.name,
-        category: item.category ?? "results_rankings",
-        title: String(item.title ?? ""),
-        summary: item.summary ? String(item.summary) : null,
-        sourceDomain: String(item.sourceDomain ?? "unknown"),
-        sourceUrl: item.sourceUrl ? String(item.sourceUrl) : null,
-        confidence: typeof item.confidence === "number" ? item.confidence : 80,
-        publishedAt: item.publishedAt ? new Date(item.publishedAt) : new Date(),
-      }));
+      const rows = data.intelligence_items.map((item: any) => {
+        // sourceUrl is only trusted if it exactly matches a real Perplexity
+        // citation; sourceDomain is derived from that match, never from
+        // GPT's own (potentially fabricated) claim.
+        const { sourceDomain, sourceUrl } = resolveSourceAttribution(item.sourceUrl, citations);
+        const baseConfidence = typeof item.confidence === "number" ? item.confidence : 80;
+        return {
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          category: item.category ?? "results_rankings",
+          title: String(item.title ?? ""),
+          summary: item.summary ? String(item.summary) : null,
+          sourceDomain,
+          sourceUrl,
+          confidence: adjustConfidenceByDomain(baseConfidence, sourceDomain, sourceUrl !== null),
+          publishedAt: item.publishedAt ? new Date(item.publishedAt) : new Date(),
+        };
+      });
       await db.insert(intelligenceItemsTable).values(rows);
       await db
         .update(athletesTable)
@@ -447,9 +595,9 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         .where(eq(athletesTable.id, athlete.id));
     }
 
-    // ── 3. Timeline events ───────────────────────────────────────────────────
-    if (Array.isArray(data.timeline_events) && data.timeline_events.length > 0) {
-      const validEvents = data.timeline_events.filter((ev: any) => {
+    // ── 3. Timeline events (from the dedicated career-timeline pass) ─────────
+    if (Array.isArray(timelineEventsRaw) && timelineEventsRaw.length > 0) {
+      const validEvents = timelineEventsRaw.filter((ev: any) => {
         if (isValidDate(ev.date)) return true;
         logger.warn(
           { athleteId: athlete.id, title: ev.title, date: ev.date },
@@ -458,18 +606,22 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         return false;
       });
       if (validEvents.length > 0) {
-        const rows = validEvents.map((ev: any) => ({
-          athleteId: athlete.id,
-          date: ev.date as string, // validated above — no fallback required
-          category: ev.category ?? "competition",
-          title: String(ev.title ?? ""),
-          description: ev.description ? String(ev.description) : null,
-          location: ev.location ? String(ev.location) : null,
-          sourceDomain: String(ev.sourceDomain ?? "unknown"),
-          sourceUrl: ev.sourceUrl ? String(ev.sourceUrl) : null,
-          confidence: typeof ev.confidence === "number" ? ev.confidence : 85,
-          significant: Boolean(ev.significant),
-        }));
+        const rows = validEvents.map((ev: any) => {
+          const { sourceDomain, sourceUrl } = resolveSourceAttribution(ev.sourceUrl, timelineResearch.citations);
+          const baseConfidence = typeof ev.confidence === "number" ? ev.confidence : 85;
+          return {
+            athleteId: athlete.id,
+            date: ev.date as string, // validated above — no fallback required
+            category: ev.category ?? "competition",
+            title: String(ev.title ?? ""),
+            description: ev.description ? String(ev.description) : null,
+            location: ev.location ? String(ev.location) : null,
+            sourceDomain,
+            sourceUrl,
+            confidence: adjustConfidenceByDomain(baseConfidence, sourceDomain, sourceUrl !== null),
+            significant: Boolean(ev.significant),
+          };
+        });
         await db.insert(timelineEventsTable).values(rows);
       }
     }
@@ -477,24 +629,41 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     // ── 4. Contacts ──────────────────────────────────────────────────────────
     if (Array.isArray(data.contacts) && data.contacts.length > 0) {
       const today = new Date().toISOString().split("T")[0];
-      const rows = data.contacts.map((c: any) => ({
-        athleteId: athlete.id,
-        role: String(c.role ?? "Unknown"),
-        category: c.category ?? "management",
-        name: String(c.name ?? ""),
-        org: String(c.org ?? ""),
-        orgType: c.orgType ? String(c.orgType) : null,
-        status: c.status ?? "verified",
-        confidence: typeof c.confidence === "number" ? c.confidence : 80,
-        publicEmail: c.publicEmail ? String(c.publicEmail) : null,
-        website: c.website ? String(c.website) : null,
-        note: c.note ? String(c.note) : null,
-        lastVerified: String(c.lastVerified ?? today),
-        dateDiscovered: String(c.dateDiscovered ?? today),
-        sourceDomain: String(c.sourceDomain ?? "unknown"),
-        sourceExcerpt: c.sourceExcerpt ? String(c.sourceExcerpt) : null,
-      }));
-      await db.insert(contactsTable).values(rows);
+      // Drop contacts with no real identifying information — a category
+      // label with a blank or literal "Unknown" name/org is worse than no
+      // contact at all, since it renders as an empty-looking card in the UI.
+      const usableContacts = data.contacts.filter((c: any) => isUsableContact(c.name, c.org));
+      const droppedCount = data.contacts.length - usableContacts.length;
+      if (droppedCount > 0) {
+        logger.warn(
+          { athleteId: athlete.id, name: athlete.name, droppedCount },
+          "auto-populate: dropped contacts with blank or Unknown name/org",
+        );
+      }
+      const rows = usableContacts.map((c: any) => {
+        const sourceDomain = sanitizeStandaloneDomain(c.sourceDomain);
+        const baseConfidence = typeof c.confidence === "number" ? c.confidence : 80;
+        return {
+          athleteId: athlete.id,
+          role: String(c.role ?? "Unknown"),
+          category: c.category ?? "management",
+          name: String(c.name).trim(),
+          org: String(c.org).trim(),
+          orgType: c.orgType ? String(c.orgType) : null,
+          status: c.status ?? "verified",
+          confidence: adjustConfidenceByDomain(baseConfidence, sourceDomain, false),
+          publicEmail: c.publicEmail ? String(c.publicEmail) : null,
+          website: c.website ? String(c.website) : null,
+          note: c.note ? String(c.note) : null,
+          lastVerified: String(c.lastVerified ?? today),
+          dateDiscovered: String(c.dateDiscovered ?? today),
+          sourceDomain,
+          sourceExcerpt: c.sourceExcerpt ? String(c.sourceExcerpt) : null,
+        };
+      });
+      if (rows.length > 0) {
+        await db.insert(contactsTable).values(rows);
+      }
     }
 
     // ── 5. Competitions ──────────────────────────────────────────────────────
