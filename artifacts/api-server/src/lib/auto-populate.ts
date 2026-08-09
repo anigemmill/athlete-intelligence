@@ -15,7 +15,6 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
-import { fetchWikipediaPhoto } from "./photo-lookup.js";
 import { resolveSourceAttribution, adjustConfidenceByDomain } from "./source-validation.js";
 import { crossValidatePerformanceMarks } from "./performance-marks.js";
 import { runCompetitionsAgent } from "./competitions-agent.js";
@@ -24,6 +23,8 @@ import { runTimelineAgent } from "./timeline-agent.js";
 import { runSponsorsAgent } from "./sponsors-agent.js";
 import { runSocialProfilesAgent } from "./social-profiles-agent.js";
 import { runSocialMetricsAgent } from "./social-metrics-agent.js";
+import { runBiographyAgent } from "./biography-agent.js";
+import { runPhotoAgent } from "./photo-agent.js";
 import { callPerplexity } from "./perplexity-client.js";
 import { withAiConcurrencyLimit } from "./ai-concurrency.js";
 import { withRetry } from "./retry.js";
@@ -51,7 +52,9 @@ class PerplexityResearchError extends Error {
 }
 
 // Twitter/X real follower lookup moved to social-metrics-agent.ts (M9).
-// Wikipedia photo lookup is now in ./photo-lookup.ts (shared with admin backfill)
+// Photo lookup moved to photo-agent.ts (M10), which wraps the existing
+// Wikipedia-first hierarchy in ./photo-lookup.ts (still shared with admin
+// backfill) as its fallback after trying federation sources first.
 
 // ── Phase 1: Perplexity Sonar Pro — live web research ────────────────────────
 // Searches the web for real, current information about the athlete.
@@ -249,20 +252,21 @@ Return ONLY valid JSON, no markdown. Fields:
 
 export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
-    // Phase 1: general Perplexity web research + Wikipedia photo, run
-    // alongside the standalone retrieval agents (CompetitionsAgent M4,
-    // ContactsAgent M5, TimelineAgent M6, SponsorsAgent M7,
-    // SocialProfilesAgent M8), each of which owns its own full
+    // Phase 1: general Perplexity web research, run alongside the
+    // standalone retrieval agents (CompetitionsAgent M4, ContactsAgent M5,
+    // TimelineAgent M6, SponsorsAgent M7, SocialProfilesAgent M8,
+    // BiographyAgent + PhotoAgent M10), each of which owns its own full
     // research+extraction+validation cycle and overlaps with everything
     // else here rather than running after the main extraction.
-    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles] = await Promise.all([
+    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles, biography] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
-      fetchWikipediaPhoto(athlete.name, athlete.sport),
+      runPhotoAgent(athlete),
       runCompetitionsAgent(athlete),
       runContactsAgent(athlete),
       runTimelineAgent(athlete),
       runSponsorsAgent(athlete),
       runSocialProfilesAgent(athlete),
+      runBiographyAgent(athlete),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
@@ -317,6 +321,11 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
           nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
           personalBest,
           seasonBest,
+          // BiographyAgent (M10) — only overwrites age/nationality when
+          // confidently confirmed by fresh research; null means "no
+          // update", not "unknown" (see biography-agent.ts).
+          age: biography.age ?? undefined,
+          nationality: biography.nationality ?? undefined,
           // Handles: SocialProfilesAgent (M8). Follower counts:
           // SocialMetricsAgent (M9) — real X API for Twitter, handle-
           // matched Perplexity fallback for Instagram/TikTok.
@@ -326,7 +335,8 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
           tiktokHandle: socialHandles.tiktokHandle,
           tiktokFollowers: socialMetrics.tiktokFollowers ?? undefined,
           twitterFollowers: socialMetrics.twitterFollowers ?? undefined,
-          // avatarUrl: pulled from Wikipedia API — not AI-generated
+          // avatarUrl: PhotoAgent (M10) — federation-first, falls back to
+          // the existing Wikipedia hierarchy. Not AI-generated.
           avatarUrl: avatarUrl ?? null,
           hasNewIntelligence: true,
           lastCrawledAt: new Date(),
