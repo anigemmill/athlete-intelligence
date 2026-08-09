@@ -22,6 +22,7 @@ import { runCompetitionsAgent } from "./competitions-agent.js";
 import { runContactsAgent } from "./contacts-agent.js";
 import { runTimelineAgent } from "./timeline-agent.js";
 import { runSponsorsAgent } from "./sponsors-agent.js";
+import { runSocialProfilesAgent } from "./social-profiles-agent.js";
 import { callPerplexity } from "./perplexity-client.js";
 import { withAiConcurrencyLimit } from "./ai-concurrency.js";
 import { withRetry } from "./retry.js";
@@ -168,10 +169,7 @@ Extract and structure the above into the following JSON object:
     "nationalRank": <integer or null>,
     "personalBest": <string or null — CRITICAL: this must be an actual measured performance mark ONLY, never a race placement or event name. Format examples by sport: DH MTB = "4:31.18" (race time), Sprint = "9.87s", 800m = "1:43.22", Long jump = "8.95m", Weightlifting = "148kg snatch", Cycling power = "6.8 W/kg". If the athlete's sport uses times, give the time. If unknown, return null.>,
     "seasonBest": <string or null — same format as personalBest. The athlete's best mark in the current season only, same short format. Null if unknown.>,
-    "instagramHandle": <string or null — real username without @, null if not found in research>,
     "instagramFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>,
-    "twitterHandle": <string or null — real username without @, null if not found in research>,
-    "tiktokHandle": <string or null — real username without @, null if not found in research>,
     "tiktokFollowers": <integer or null — ONLY if research mentions a specific number, otherwise null. Never guess.>
   },
   "intelligence_items": [
@@ -278,17 +276,18 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
     // Phase 1: general Perplexity web research + Wikipedia photo, run
     // alongside the standalone retrieval agents (CompetitionsAgent M4,
-    // ContactsAgent M5, TimelineAgent M6, SponsorsAgent M7), each of which
-    // owns its own full research+extraction+validation cycle and overlaps
-    // with everything else here rather than running after the main
-    // extraction.
-    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows] = await Promise.all([
+    // ContactsAgent M5, TimelineAgent M6, SponsorsAgent M7,
+    // SocialProfilesAgent M8), each of which owns its own full
+    // research+extraction+validation cycle and overlaps with everything
+    // else here rather than running after the main extraction.
+    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
       fetchWikipediaPhoto(athlete.name, athlete.sport),
       runCompetitionsAgent(athlete),
       runContactsAgent(athlete),
       runTimelineAgent(athlete),
       runSponsorsAgent(athlete),
+      runSocialProfilesAgent(athlete),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
@@ -320,7 +319,9 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     // ── 1. Update athlete stats + verified photo + real Twitter followers ────
     if (data.athlete_stats) {
       const s = data.athlete_stats;
-      const aiTwitterHandle = typeof s.twitterHandle === "string" ? s.twitterHandle : null;
+      // Handles now come from SocialProfilesAgent (M8) — format-validated,
+      // not the general research's own (unvalidated) claim.
+      const aiTwitterHandle = socialHandles.twitterHandle;
 
       // Fetch real Twitter follower count if we have a handle (runs in parallel with nothing else)
       const realTwitterFollowers = aiTwitterHandle
@@ -343,11 +344,12 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
           nationalRank: typeof s.nationalRank === "number" ? s.nationalRank : null,
           personalBest,
           seasonBest,
-          // Handles and follower counts sourced from Perplexity web research
-          instagramHandle: typeof s.instagramHandle === "string" ? s.instagramHandle : null,
+          // Handles: SocialProfilesAgent (M8). Follower counts: still the
+          // general research's numbers pending SocialMetricsAgent (M9).
+          instagramHandle: socialHandles.instagramHandle,
           instagramFollowers: typeof s.instagramFollowers === "number" ? s.instagramFollowers : undefined,
           twitterHandle: aiTwitterHandle,
-          tiktokHandle: typeof s.tiktokHandle === "string" ? s.tiktokHandle : null,
+          tiktokHandle: socialHandles.tiktokHandle,
           tiktokFollowers: typeof s.tiktokFollowers === "number" ? s.tiktokFollowers : undefined,
           // Twitter followers: X API v2 real-time count overrides Perplexity if available
           twitterFollowers: realTwitterFollowers ?? (typeof s.twitterFollowers === "number" ? s.twitterFollowers : undefined),
