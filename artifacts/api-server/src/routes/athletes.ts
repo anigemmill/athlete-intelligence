@@ -14,6 +14,7 @@ import {
 import { autoPopulateAthlete, discoverAthleteProfile, repopulateAthlete, DISCOVERY_CONFIDENCE_THRESHOLD } from "../lib/auto-populate.js";
 import { lookupSocialData } from "../lib/social-extract.js";
 import { computeAthleteHealth } from "../lib/athlete-health.js";
+import { aiRateLimits } from "../middleware/aiRateLimit.js";
 import {
   GetAthleteParams,
   UpdateAthleteParams,
@@ -64,7 +65,7 @@ function toApiAthlete(a: Athlete) {
 }
 
 // POST /athletes/discover — create an athlete by name only; AI identifies sport/event/nationality
-router.post("/athletes/discover", async (req, res): Promise<void> => {
+router.post("/athletes/discover", aiRateLimits.discover, async (req, res): Promise<void> => {
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   if (!name) {
     res.status(400).json({ error: "name is required" });
@@ -144,7 +145,7 @@ router.post("/athletes/discover", async (req, res): Promise<void> => {
 });
 
 // POST /athletes/bulk — must come BEFORE /:id
-router.post("/athletes/bulk", async (req, res): Promise<void> => {
+router.post("/athletes/bulk", aiRateLimits.bulk, async (req, res): Promise<void> => {
   if (!Array.isArray(req.body?.athletes)) {
     res.status(400).json({ error: "Expected { athletes: [...] }" });
     return;
@@ -228,7 +229,7 @@ router.get("/athletes", async (_req, res): Promise<void> => {
 });
 
 // POST /athletes
-router.post("/athletes", async (req, res): Promise<void> => {
+router.post("/athletes", aiRateLimits.create, async (req, res): Promise<void> => {
   const parsed = CreateAthleteBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -329,7 +330,7 @@ router.patch("/athletes/:id", async (req, res): Promise<void> => {
 });
 
 // POST /athletes/:id/repopulate — wipes all intelligence data and re-runs auto-populate
-router.post("/athletes/:id/repopulate", async (req, res): Promise<void> => {
+router.post("/athletes/:id/repopulate", aiRateLimits.repopulate, async (req, res): Promise<void> => {
   const params = GetAthleteParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
@@ -348,7 +349,7 @@ router.post("/athletes/:id/repopulate", async (req, res): Promise<void> => {
 });
 
 // POST /athletes/:id/refresh-social — live Perplexity lookup for one athlete's social accounts
-router.post("/athletes/:id/refresh-social", async (req, res): Promise<void> => {
+router.post("/athletes/:id/refresh-social", aiRateLimits.refreshSocial, async (req, res): Promise<void> => {
   const params = GetAthleteParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 

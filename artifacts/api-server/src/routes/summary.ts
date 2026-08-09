@@ -22,6 +22,7 @@ import {
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger.js";
 import { deriveCompetitionStatus } from "../lib/competition-status.js";
+import { aiRateLimits } from "../middleware/aiRateLimit.js";
 
 const router: IRouter = Router();
 
@@ -40,8 +41,8 @@ router.get("/athletes/:id/summary", async (req, res): Promise<void> => {
 });
 
 // POST /api/athletes/:id/summary  — generates and streams, then caches
-router.post("/athletes/:id/summary", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+router.post("/athletes/:id/summary", aiRateLimits.summary, async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
   if (!id) { res.status(400).json({ error: "Invalid athlete ID" }); return; }
 
   // Load all athlete data in parallel

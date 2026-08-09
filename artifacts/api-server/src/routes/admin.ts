@@ -23,6 +23,7 @@ import { getUncachableStripeClient } from "../lib/stripeClient.js";
 import { logger } from "../lib/logger.js";
 import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
 import { lookupSocialData } from "../lib/social-extract.js";
+import { aiRateLimits } from "../middleware/aiRateLimit.js";
 
 const router: IRouter = Router();
 
@@ -59,7 +60,7 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction): Pr
 
 // ── POST /api/admin/repopulate/:id — trigger intelligence refresh for one athlete ──
 
-router.post("/admin/repopulate/:id", requireAdmin, async (req, res): Promise<void> => {
+router.post("/admin/repopulate/:id", requireAdmin, aiRateLimits.adminBackfill, async (req, res): Promise<void> => {
   const id = Number(req.params.id);
   if (!id || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
@@ -176,7 +177,7 @@ router.put("/admin/enquiries/:id", requireAdmin, async (req, res): Promise<void>
 // Runs Wikipedia photo lookup on all athletes missing an avatar URL.
 // Safe to run multiple times — skips athletes that already have a photo.
 
-router.post("/admin/backfill-photos", requireAdmin, async (_req, res): Promise<void> => {
+router.post("/admin/backfill-photos", requireAdmin, aiRateLimits.adminBackfill, async (_req, res): Promise<void> => {
   try {
     const athletes = await db
       .select({ id: athletesTable.id, name: athletesTable.name, sport: athletesTable.sport })
@@ -215,7 +216,7 @@ router.post("/admin/backfill-photos", requireAdmin, async (_req, res): Promise<v
 // media handles and follower counts, then extracts structured JSON via OpenAI.
 // Updates instagram/twitter/tiktok handle + follower fields in the DB.
 
-router.post("/admin/backfill-social", requireAdmin, async (_req, res): Promise<void> => {
+router.post("/admin/backfill-social", requireAdmin, aiRateLimits.adminBackfill, async (_req, res): Promise<void> => {
   // Disable the global 30-second timeout — this job processes all athletes in parallel
   // and legitimately takes longer than the default.
   res.setTimeout(0);
@@ -353,7 +354,7 @@ router.get("/admin/data-health", requireAdmin, async (_req, res): Promise<void> 
 // Fetches real competition results for all past competitions that still have
 // result = NULL. Runs per-athlete via the result-backfill module.
 
-router.post("/admin/backfill-results", requireAdmin, async (_req, res): Promise<void> => {
+router.post("/admin/backfill-results", requireAdmin, aiRateLimits.adminBackfill, async (_req, res): Promise<void> => {
   try {
     // First flush all stale "upcoming" statuses to "completed" in the DB
     const flushed = await flushStaleCompetitionStatuses();
