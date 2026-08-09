@@ -4,17 +4,18 @@
  * GET /api/user/me — returns the caller's resolved email and admin flag.
  *
  * Admin status is determined server-side by comparing the Clerk primary email
- * (case-insensitive) against the FOUNDER_EMAIL constant. This is the single
- * source of truth for admin detection — the frontend must not repeat this logic.
+ * (case-insensitive) against the FOUNDER_EMAIL environment variable, via the
+ * shared isFounderEmail() in lib/founderAccess.ts — the single source of
+ * truth for admin detection, also used by routes/admin.ts's requireAdmin.
+ * The frontend must not repeat this logic.
  */
 
 import { Router, type IRouter } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
 import { logger } from "../lib/logger.js";
+import { isFounderEmail } from "../lib/founderAccess.js";
 
 const router: IRouter = Router();
-
-const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
 
 // GET /api/user/me
 router.get("/user/me", async (req, res): Promise<void> => {
@@ -39,7 +40,7 @@ router.get("/user/me", async (req, res): Promise<void> => {
       user.emailAddresses[0]?.emailAddress ??
       null;
 
-    const isAdmin = !!primaryEmail && primaryEmail.toLowerCase() === FOUNDER_EMAIL;
+    const isAdmin = isFounderEmail(primaryEmail);
 
     res.json({ isAdmin, email: primaryEmail ?? null });
   } catch (err) {

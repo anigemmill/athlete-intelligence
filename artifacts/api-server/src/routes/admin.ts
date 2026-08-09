@@ -24,10 +24,9 @@ import { logger } from "../lib/logger.js";
 import { fetchWikipediaPhoto } from "../lib/photo-lookup.js";
 import { lookupSocialData } from "../lib/social-extract.js";
 import { aiRateLimits } from "../middleware/aiRateLimit.js";
+import { isFounderEmail } from "../lib/founderAccess.js";
 
 const router: IRouter = Router();
-
-const FOUNDER_EMAIL = "anigemmill@theoutsidein.nz";
 
 // ── Admin gate middleware ─────────────────────────────────────────────────────
 
@@ -46,7 +45,7 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction): Pr
       (e) => e.id === user.primaryEmailAddressId,
     )?.emailAddress;
 
-    if (primaryEmail?.toLowerCase() !== FOUNDER_EMAIL) {
+    if (!isFounderEmail(primaryEmail)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { useListAthletes } from "@workspace/api-client-react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import type { ActivePage } from "./AppLayout";
 
 interface SidebarProps {
@@ -134,6 +135,7 @@ const BOTTOM_NAV = [
 export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { isAdmin } = useIsAdmin();
   const [athleteSearch, setAthleteSearch] = useState("");
 
   const { data: athletesData } = useListAthletes();
@@ -275,10 +277,7 @@ export function Sidebar({ activePage = "dashboard" }: SidebarProps) {
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.09)", flexShrink: 0 }}>
         <div style={{ padding: "8px 8px 4px" }}>
           {BOTTOM_NAV.filter((item) => {
-            if (item.id === "admin") {
-              const email = user?.primaryEmailAddress?.emailAddress ?? "";
-              return email.toLowerCase() === "anigemmill@theoutsidein.nz";
-            }
+            if (item.id === "admin") return isAdmin;
             return true;
           }).map((item) => {
             const isActive = activePage === item.id;
