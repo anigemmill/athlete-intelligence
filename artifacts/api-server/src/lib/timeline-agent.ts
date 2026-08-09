@@ -26,18 +26,13 @@
  */
 
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { logger } from "./logger.js";
-import { resolveSourceAttribution, adjustConfidenceByDomain } from "./source-validation.js";
-
-interface AthleteStub {
-  id: number;
-  name: string;
-  sport: string;
-  event: string;
-  nationality: string;
-  age?: number | null;
-}
+import { resolveSourceAttribution, applyConfidenceFloor } from "./source-validation.js";
+import { callPerplexity } from "./perplexity-client.js";
+import { withAiConcurrencyLimit } from "./ai-concurrency.js";
+import { withRetry } from "./retry.js";
+import { isValidDate } from "./validation.js";
+import type { AthleteStub } from "./athlete-stub.js";
 
 export interface TimelineRow {
   date: string;
@@ -61,13 +56,6 @@ const MIN_TIMELINE_CONFIDENCE = 70;
  */
 const INVESTIGATIVE_DEPTH_BENCHMARK = 12;
 
-function isValidDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const d = new Date(value);
-  return !isNaN(d.getTime());
-}
-
 function normalizeTitle(title: string): string {
   return title.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -77,31 +65,16 @@ async function researchCareerTimeline(
 ): Promise<{ research: string; citations: string[] }> {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   try {
-    const response = await openrouter.chat.completions.create({
-      model: "perplexity/sonar",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "system",
-          content: `You are a sports historian building an accurate career timeline. Today's date is ${today}. Cover the athlete's actual career length — do not assume every career is the same length or shape. Never fabricate information.`,
-        },
-        {
-          role: "user",
-          content: `Research the career of ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) from their earliest known involvement in the sport (junior/youth level, or first senior season — whichever is genuinely earliest and documented) through to ${today}.
+    const { research, citations } = await callPerplexity({
+      label: "timeline-agent research",
+      maxTokens: 4096,
+      systemPrompt: `You are a sports historian building an accurate career timeline. Today's date is ${today}. Cover the athlete's actual career length — do not assume every career is the same length or shape. Never fabricate information.`,
+      userPrompt: `Research the career of ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) from their earliest known involvement in the sport (junior/youth level, or first senior season — whichever is genuinely earliest and documented) through to ${today}.
 
 Cover their progression through career phases as they actually happened: junior/development years, breakthrough into senior competition, peak years, and current status. For each phase, report what's actually documented — major competitions and results, significant career changes (team, coach, or sponsor changes), injuries and returns ONLY where explicitly reported (do not speculate about undisclosed injuries), and major individual achievements or milestones. If a period of their career has no documented events, say so rather than inventing filler.
 
 Give exact dates where known, and cite your sources for each claim.`,
-        },
-      ],
     });
-    const message = response.choices[0]?.message as any;
-    const research = message?.content ?? "";
-    const citations: string[] = Array.isArray(message?.annotations)
-      ? message.annotations
-          .filter((a: any) => a?.type === "url_citation" && typeof a?.url_citation?.url === "string")
-          .map((a: any) => a.url_citation.url as string)
-      : [];
     logger.info(
       { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
       "timeline-agent: research complete",
@@ -181,15 +154,21 @@ async function extractCareerTimeline(
 ): Promise<any[]> {
   if (!research) return [];
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_completion_tokens: 8192,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: USER_PROMPT(athlete, research, citations) },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const response = await withAiConcurrencyLimit(() =>
+      withRetry(
+        () =>
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            max_completion_tokens: 8192,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: USER_PROMPT(athlete, research, citations) },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        { label: "timeline-agent extraction" },
+      ),
+    );
     const raw = response.choices[0]?.message?.content;
     if (!raw) return [];
     const data = JSON.parse(raw) as { timeline_events?: any[] };
@@ -236,10 +215,9 @@ export async function runTimelineAgent(athlete: AthleteStub): Promise<TimelineRo
     }
 
     const { sourceDomain, sourceUrl } = resolveSourceAttribution(ev.sourceUrl, citations);
-    const baseConfidence = typeof ev.confidence === "number" ? Math.max(70, ev.confidence) : 70;
-    const confidence = adjustConfidenceByDomain(baseConfidence, sourceDomain, sourceUrl !== null);
+    const { confidence, passesFloor } = applyConfidenceFloor(ev.confidence, sourceDomain, sourceUrl !== null, MIN_TIMELINE_CONFIDENCE);
 
-    if (confidence < MIN_TIMELINE_CONFIDENCE) {
+    if (!passesFloor) {
       droppedLowConfidence++;
       continue;
     }

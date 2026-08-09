@@ -153,3 +153,25 @@ export function adjustConfidenceByDomain(
 
   return Math.round(adjusted);
 }
+
+/**
+ * Applies the minimum-confidence-floor pattern ContactsAgent (M5) and
+ * TimelineAgent (M6) previously each hand-rolled separately with the same
+ * floor (70): clamp the model's raw confidence up to at least `floor`
+ * before domain adjustment (so a missing or unusually low value doesn't
+ * get an unfairly harsh adjustment baseline), adjust by domain authority,
+ * then report whether the result still clears the floor. Callers still
+ * own their own named floor constant (e.g. MIN_CONTACT_CONFIDENCE) for
+ * readability at the call site — this centralises the *rule*, not the
+ * naming.
+ */
+export function applyConfidenceFloor(
+  rawConfidence: unknown,
+  sourceDomain: string,
+  hasSourceUrl: boolean,
+  floor: number,
+): { confidence: number; passesFloor: boolean } {
+  const base = typeof rawConfidence === "number" ? Math.max(floor, rawConfidence) : floor;
+  const confidence = adjustConfidenceByDomain(base, sourceDomain, hasSourceUrl);
+  return { confidence, passesFloor: confidence >= floor };
+}

@@ -18,17 +18,12 @@
  */
 
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { logger } from "./logger.js";
-
-interface AthleteStub {
-  id: number;
-  name: string;
-  sport: string;
-  event: string;
-  nationality: string;
-  age?: number | null;
-}
+import { callPerplexity } from "./perplexity-client.js";
+import { withAiConcurrencyLimit } from "./ai-concurrency.js";
+import { withRetry } from "./retry.js";
+import { isValidDate } from "./validation.js";
+import type { AthleteStub } from "./athlete-stub.js";
 
 export interface CompetitionRow {
   meetName: string;
@@ -65,43 +60,21 @@ export function isGenericMeetName(rawName: unknown): boolean {
   return words.length > 0 && words.every((w) => GENERIC_MEET_WORDS.has(w));
 }
 
-function isValidDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const d = new Date(value);
-  return !isNaN(d.getTime());
-}
-
 async function researchCompetitionHistory(
   athlete: AthleteStub,
 ): Promise<{ research: string; citations: string[] }> {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   try {
-    const response = await openrouter.chat.completions.create({
-      model: "perplexity/sonar",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "system",
-          content: `You are a sports results researcher. Find the SPECIFIC, NAMED competitions an athlete has competed in — never a generic placeholder like "2024 Competition". Today's date is ${today}. Never fabricate information.`,
-        },
-        {
-          role: "user",
-          content: `List every specific, named competition ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) has competed in across their career, from their earliest notable result to ${today}.
+    const { research, citations } = await callPerplexity({
+      label: "competitions-agent research",
+      maxTokens: 4096,
+      systemPrompt: `You are a sports results researcher. Find the SPECIFIC, NAMED competitions an athlete has competed in — never a generic placeholder like "2024 Competition". Today's date is ${today}. Never fabricate information.`,
+      userPrompt: `List every specific, named competition ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) has competed in across their career, from their earliest notable result to ${today}.
 
 For EACH competition give: the exact, specific event name (e.g. "UCI Mountain Bike World Cup — Fort William", "Perth Diamond League", "World Athletics Indoor Championships" — never a vague label like "Competition" or "Event"), the date, the location, the tier (Olympics/World Championships/Diamond League final = top tier; continental/national championships = mid tier; domestic/club meets = lower tier), and the result (finishing position and/or time/mark, or DNF/DNS if applicable).
 
 Include major championships, continental/national championships, and notable domestic meets. Cite your sources.`,
-        },
-      ],
     });
-    const message = response.choices[0]?.message as any;
-    const research = message?.content ?? "";
-    const citations: string[] = Array.isArray(message?.annotations)
-      ? message.annotations
-          .filter((a: any) => a?.type === "url_citation" && typeof a?.url_citation?.url === "string")
-          .map((a: any) => a.url_citation.url as string)
-      : [];
     logger.info(
       { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
       "competitions-agent: research complete",
@@ -174,15 +147,21 @@ export async function runCompetitionsAgent(athlete: AthleteStub): Promise<Compet
   if (!research) return [];
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_completion_tokens: 8192,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: USER_PROMPT(athlete, research, citations) },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const response = await withAiConcurrencyLimit(() =>
+      withRetry(
+        () =>
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            max_completion_tokens: 8192,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: USER_PROMPT(athlete, research, citations) },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        { label: "competitions-agent extraction" },
+      ),
+    );
     const raw = response.choices[0]?.message?.content;
     if (!raw) return [];
 

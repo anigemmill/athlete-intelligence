@@ -13,7 +13,6 @@
  */
 
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
 import { fetchWikipediaPhoto } from "./photo-lookup.js";
@@ -22,6 +21,10 @@ import { crossValidatePerformanceMarks } from "./performance-marks.js";
 import { runCompetitionsAgent } from "./competitions-agent.js";
 import { runContactsAgent } from "./contacts-agent.js";
 import { runTimelineAgent } from "./timeline-agent.js";
+import { callPerplexity } from "./perplexity-client.js";
+import { withAiConcurrencyLimit } from "./ai-concurrency.js";
+import { withRetry } from "./retry.js";
+import type { AthleteStub } from "./athlete-stub.js";
 import {
   athletesTable,
   intelligenceItemsTable,
@@ -30,15 +33,6 @@ import {
   competitionsTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
-
-interface AthleteStub {
-  id: number;
-  name: string;
-  sport: string;
-  event: string;
-  nationality: string;
-  age?: number | null;
-}
 
 /**
  * Thrown when the Perplexity research stage fails.
@@ -90,17 +84,11 @@ async function researchAthleteWithPerplexity(
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const currentYear = new Date().getFullYear();
   try {
-    const response = await openrouter.chat.completions.create({
-      model: "perplexity/sonar",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "system",
-          content: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is ${today}. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
-        },
-        {
-          role: "user",
-          content: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) comprehensively. Cover ALL of the following:
+    const { research, citations } = await callPerplexity({
+      label: "auto-populate research",
+      maxTokens: 4096,
+      systemPrompt: `You are an elite sports intelligence researcher. Search the web thoroughly and return accurate, current, cited information. Today's date is ${today}. Be specific — include exact dates, exact results, exact team names. Never fabricate information.`,
+      userPrompt: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}) comprehensively. Cover ALL of the following:
 
 1. CURRENT STATUS (as of ${today}): What team/squad are they on RIGHT NOW? Current sponsors? Are they still actively competing?
 2. RECENT RESULTS (${currentYear - 2}, ${currentYear - 1}, ${currentYear} seasons): List every race/competition result you can find with exact date, event name, location, and finishing position or time/score.
@@ -113,18 +101,7 @@ async function researchAthleteWithPerplexity(
 9. INTELLIGENCE: Recent interviews, media features, sponsorship announcements, controversy, career changes — anything newsworthy from the past 3 years.
 
 Cite your sources where possible. Be as specific and accurate as possible.`,
-        },
-      ],
     });
-    const message = response.choices[0]?.message as any;
-    const research = message?.content ?? "";
-    // Perplexity's real citation URLs live under message.annotations[].url_citation.url —
-    // NOT a top-level `citations` field, which OpenRouter never populates for this model.
-    const citations: string[] = Array.isArray(message?.annotations)
-      ? message.annotations
-          .filter((a: any) => a?.type === "url_citation" && typeof a?.url_citation?.url === "string")
-          .map((a: any) => a.url_citation.url as string)
-      : [];
     logger.info(
       { athleteId: athlete.id, name: athlete.name, length: research.length, citationCount: citations.length },
       "auto-populate: Perplexity research complete",
@@ -246,13 +223,16 @@ export async function discoverAthleteProfile(name: string): Promise<{
   ambiguous: boolean;
   reason: string;
 }> {
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    max_completion_tokens: 512,
-    messages: [
-      {
-        role: "system",
-        content: `You are a sports data assistant. Given an athlete's name, identify the specific individual and return a JSON object.
+  const response = await withAiConcurrencyLimit(() =>
+    withRetry(
+      () =>
+        openai.chat.completions.create({
+          model: "gpt-4o",
+          max_completion_tokens: 512,
+          messages: [
+            {
+              role: "system",
+              content: `You are a sports data assistant. Given an athlete's name, identify the specific individual and return a JSON object.
 
 Return ONLY valid JSON, no markdown. Fields:
 - sport: their primary sport as a string, or null if you cannot determine it
@@ -266,14 +246,17 @@ Return ONLY valid JSON, no markdown. Fields:
     0-49:   cannot identify, very common name or no sports association found
 - ambiguous: boolean — true if multiple athletes share this name across different sports or countries
 - reason: one sentence explaining your confidence assessment`,
-      },
-      {
-        role: "user",
-        content: `Athlete name: "${name}"\n\nReturn: { "sport": string|null, "event": string|null, "nationality": string|null, "age": integer|null, "confidence": integer, "ambiguous": boolean, "reason": string }`,
-      },
-    ],
-    response_format: { type: "json_object" },
-  });
+            },
+            {
+              role: "user",
+              content: `Athlete name: "${name}"\n\nReturn: { "sport": string|null, "event": string|null, "nationality": string|null, "age": integer|null, "confidence": integer, "ambiguous": boolean, "reason": string }`,
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      { label: "discoverAthleteProfile" },
+    ),
+  );
 
   const raw = response.choices[0]?.message?.content;
   if (!raw) throw new Error("Empty response from OpenAI");
@@ -307,15 +290,21 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
     // Perplexity research and citation URLs as its source of truth.
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_completion_tokens: 8192,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: USER_PROMPT(athlete, research, citations) },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const response = await withAiConcurrencyLimit(() =>
+      withRetry(
+        () =>
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            max_completion_tokens: 8192,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: USER_PROMPT(athlete, research, citations) },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        { label: "main extraction" },
+      ),
+    );
 
     const raw = response.choices[0]?.message?.content;
     if (!raw) throw new Error("Empty OpenAI response");

@@ -29,18 +29,12 @@
  */
 
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { logger } from "./logger.js";
-import { resolveStandaloneDomain, isUsableContact, adjustConfidenceByDomain } from "./source-validation.js";
-
-interface AthleteStub {
-  id: number;
-  name: string;
-  sport: string;
-  event: string;
-  nationality: string;
-  age?: number | null;
-}
+import { resolveStandaloneDomain, isUsableContact, applyConfidenceFloor } from "./source-validation.js";
+import { callPerplexity } from "./perplexity-client.js";
+import { withAiConcurrencyLimit } from "./ai-concurrency.js";
+import { withRetry } from "./retry.js";
+import type { AthleteStub } from "./athlete-stub.js";
 
 export interface ContactRow {
   role: string;
@@ -86,31 +80,16 @@ async function researchContacts(
 ): Promise<{ research: string; citations: string[] }> {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   try {
-    const response = await openrouter.chat.completions.create({
-      model: "perplexity/sonar",
-      max_tokens: 3072,
-      messages: [
-        {
-          role: "system",
-          content: `You are a sports intelligence researcher verifying named professional contacts for an athlete. Only report a name if it is explicitly stated in a real source — never guess or infer a name from context or typical team structures. If there is explicit evidence the athlete does NOT have this kind of representation, say so directly. Today's date is ${today}. Never fabricate information.`,
-        },
-        {
-          role: "user",
-          content: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}): ${SCOPE_FOCUS[scope]}
+    const { research, citations } = await callPerplexity({
+      label: `contacts-agent research (${scope})`,
+      maxTokens: 3072,
+      systemPrompt: `You are a sports intelligence researcher verifying named professional contacts for an athlete. Only report a name if it is explicitly stated in a real source — never guess or infer a name from context or typical team structures. If there is explicit evidence the athlete does NOT have this kind of representation, say so directly. Today's date is ${today}. Never fabricate information.`,
+      userPrompt: `Research ${athlete.name} (${athlete.sport} — ${athlete.event}, ${athlete.nationality}): ${SCOPE_FOCUS[scope]}
 
 For each person found, give: their full name, their exact role/title, the organisation they represent (team, agency, federation, brand), and a short quote or close paraphrase from the source that states this. If you find explicit evidence that ${athlete.name} does NOT have this kind of representation (e.g. reported as "self-coached", "not currently signed with an agency", "manages his own career"), state that explicitly and clearly. If you genuinely cannot find anything either way — no name, and no statement of absence — say that too. Do not guess a plausible name to fill the gap.
 
 Cite your sources.`,
-        },
-      ],
     });
-    const message = response.choices[0]?.message as any;
-    const research = message?.content ?? "";
-    const citations: string[] = Array.isArray(message?.annotations)
-      ? message.annotations
-          .filter((a: any) => a?.type === "url_citation" && typeof a?.url_citation?.url === "string")
-          .map((a: any) => a.url_citation.url as string)
-      : [];
     logger.info(
       { athleteId: athlete.id, name: athlete.name, scope, length: research.length, citationCount: citations.length },
       "contacts-agent: research complete",
@@ -192,15 +171,21 @@ async function extractContacts(
   if (!research) return { contacts: [], findings: [] };
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_completion_tokens: 2048,
-      messages: [
-        { role: "system", content: buildSystemPrompt(scope) },
-        { role: "user", content: buildUserPrompt(athlete, research, citations) },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const response = await withAiConcurrencyLimit(() =>
+      withRetry(
+        () =>
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            max_completion_tokens: 2048,
+            messages: [
+              { role: "system", content: buildSystemPrompt(scope) },
+              { role: "user", content: buildUserPrompt(athlete, research, citations) },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        { label: `contacts-agent extraction (${scope})` },
+      ),
+    );
     const raw = response.choices[0]?.message?.content;
     if (!raw) return { contacts: [], findings: [] };
 
@@ -219,10 +204,9 @@ async function extractContacts(
         continue;
       }
       const sourceDomain = resolveStandaloneDomain(c.sourceDomain, citations);
-      const baseConfidence = typeof c.confidence === "number" ? Math.max(70, c.confidence) : 70;
-      const confidence = adjustConfidenceByDomain(baseConfidence, sourceDomain, false);
+      const { confidence, passesFloor } = applyConfidenceFloor(c.confidence, sourceDomain, false, MIN_CONTACT_CONFIDENCE);
 
-      if (confidence < MIN_CONTACT_CONFIDENCE) {
+      if (!passesFloor) {
         droppedLowConfidence++;
         continue;
       }
