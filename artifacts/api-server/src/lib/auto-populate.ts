@@ -15,7 +15,7 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
-import { resolveSourceAttribution, adjustConfidenceByDomain } from "./source-validation.js";
+import { adjustConfidenceByDomain } from "./source-validation.js";
 import { crossValidatePerformanceMarks } from "./performance-marks.js";
 import { runCompetitionsAgent } from "./competitions-agent.js";
 import { runContactsAgent } from "./contacts-agent.js";
@@ -25,6 +25,7 @@ import { runSocialProfilesAgent } from "./social-profiles-agent.js";
 import { runSocialMetricsAgent } from "./social-metrics-agent.js";
 import { runBiographyAgent } from "./biography-agent.js";
 import { runPhotoAgent } from "./photo-agent.js";
+import { runIntelligenceAgent } from "./intelligence-agent.js";
 import { callPerplexity } from "./perplexity-client.js";
 import { withAiConcurrencyLimit } from "./ai-concurrency.js";
 import { withRetry } from "./retry.js";
@@ -114,12 +115,10 @@ Rules:
 - sourceUrl MUST be chosen from the provided CITATION URLs list. If no citation is relevant, set sourceUrl to null. NEVER invent, guess, or construct a URL — fabricated URLs cause 404 errors for users.
 - sourceDomain must match the domain of the chosen sourceUrl, or be the most relevant real domain from the research if sourceUrl is null.
 - Dates must be ISO-8601 strings reflecting when events actually occurred.
-- Confidence scores: 85–97 for data from research, 65–80 for inferred data.
-- Categories: intelligence_items use one of: results_rankings | media_interviews | career_changes (sponsorships are handled separately by SponsorsAgent — do not generate sponsorship items here)`;
+- Confidence scores: 85–97 for data from research, 65–80 for inferred data.`;
 
 const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const currentYear = new Date().getFullYear();
   return `
 Athlete profile:
 - Name: ${a.name}
@@ -149,22 +148,7 @@ Extract and structure the above into the following JSON object:
     "nationalRank": <integer or null>,
     "personalBest": <string or null — CRITICAL: this must be an actual measured performance mark ONLY, never a race placement or event name. Format examples by sport: DH MTB = "4:31.18" (race time), Sprint = "9.87s", 800m = "1:43.22", Long jump = "8.95m", Weightlifting = "148kg snatch", Cycling power = "6.8 W/kg". If the athlete's sport uses times, give the time. If unknown, return null.>,
     "seasonBest": <string or null — same format as personalBest. The athlete's best mark in the current season only, same short format. Null if unknown.>
-  },
-  "intelligence_items": [
-    {
-      "category": "results_rankings",
-      "title": <string>,
-      "summary": <string, 2-3 sentences with specific details>,
-      "sourceDomain": <string>,
-      "sourceUrl": <string or null — MUST be from the citation list above, or null>,
-      "confidence": <integer 65-97>,
-      "publishedAt": <ISO-8601 date string>
-    }
-    // 10-12 items total, mix of categories, spread across the last 10 years (${currentYear - 10}–${currentYear}).
-    // Distribute dates realistically: 2-3 items from ${currentYear - 10}–${currentYear - 7} (early career),
-    // 3-4 items from ${currentYear - 6}–${currentYear - 4} (mid career), 3-5 items from ${currentYear - 3}–${currentYear} (recent).
-    // Include a genuine mix: results, media coverage, career moves. Do NOT include sponsorship deals — SponsorsAgent handles those separately.
-  ]
+  }
 }
 `;
 };
@@ -255,10 +239,11 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     // Phase 1: general Perplexity web research, run alongside the
     // standalone retrieval agents (CompetitionsAgent M4, ContactsAgent M5,
     // TimelineAgent M6, SponsorsAgent M7, SocialProfilesAgent M8,
-    // BiographyAgent + PhotoAgent M10), each of which owns its own full
-    // research+extraction+validation cycle and overlaps with everything
-    // else here rather than running after the main extraction.
-    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles, biography] = await Promise.all([
+    // BiographyAgent + PhotoAgent M10, IntelligenceAgent M11), each of
+    // which owns its own full research+extraction+validation cycle and
+    // overlaps with everything else here rather than running after the
+    // main extraction.
+    const [{ research, citations }, avatarUrl, competitionRows, contactsResult, timelineRows, sponsorRows, socialHandles, biography, intelligenceRowsFromAgent] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
       runPhotoAgent(athlete),
       runCompetitionsAgent(athlete),
@@ -267,6 +252,7 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       runSponsorsAgent(athlete),
       runSocialProfilesAgent(athlete),
       runBiographyAgent(athlete),
+      runIntelligenceAgent(athlete),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
@@ -298,7 +284,6 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
 
     const data = JSON.parse(raw) as {
       athlete_stats?: Record<string, unknown>;
-      intelligence_items?: any[];
     };
 
     // ── 1. Update athlete stats + verified photo ────────────────────────────
@@ -344,42 +329,20 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         .where(eq(athletesTable.id, athlete.id));
     }
 
-    // ── 2. Intelligence items (general categories + SponsorsAgent's
-    //      sponsorship items, merged into one insert/count) ─────────────────
-    const generalItems = Array.isArray(data.intelligence_items) ? data.intelligence_items : [];
-    const intelligenceRows = [
-      ...generalItems.map((item: any) => {
-        // sourceUrl is only trusted if it exactly matches a real Perplexity
-        // citation; sourceDomain is derived from that match, never from
-        // GPT's own (potentially fabricated) claim.
-        const { sourceDomain, sourceUrl } = resolveSourceAttribution(item.sourceUrl, citations);
-        const baseConfidence = typeof item.confidence === "number" ? item.confidence : 80;
-        return {
-          athleteId: athlete.id,
-          athleteName: athlete.name,
-          category: item.category ?? "results_rankings",
-          title: String(item.title ?? ""),
-          summary: item.summary ? String(item.summary) : null,
-          sourceDomain,
-          sourceUrl,
-          confidence: adjustConfidenceByDomain(baseConfidence, sourceDomain, sourceUrl !== null),
-          publishedAt: item.publishedAt ? new Date(item.publishedAt) : new Date(),
-        };
-      }),
-      // SponsorsAgent rows are already fully validated (source, confidence
-      // floor, recency decay) — inserted as-is.
-      ...sponsorRows.map((s) => ({
-        athleteId: athlete.id,
-        athleteName: athlete.name,
-        category: s.category,
-        title: s.title,
-        summary: s.summary,
-        sourceDomain: s.sourceDomain,
-        sourceUrl: s.sourceUrl,
-        confidence: s.confidence,
-        publishedAt: s.publishedAt,
-      })),
-    ];
+    // ── 2. Intelligence items (IntelligenceAgent's general categories +
+    //      SponsorsAgent's sponsorship items — both already fully
+    //      validated by their own agents, merged into one insert/count) ────
+    const intelligenceRows = [...intelligenceRowsFromAgent, ...sponsorRows].map((row) => ({
+      athleteId: athlete.id,
+      athleteName: athlete.name,
+      category: row.category,
+      title: row.title,
+      summary: row.summary,
+      sourceDomain: row.sourceDomain,
+      sourceUrl: row.sourceUrl,
+      confidence: row.confidence,
+      publishedAt: row.publishedAt,
+    }));
     if (intelligenceRows.length > 0) {
       await db.insert(intelligenceItemsTable).values(intelligenceRows);
       await db
