@@ -15,6 +15,7 @@ import { autoPopulateAthlete, discoverAthleteProfile, repopulateAthlete, DISCOVE
 import { lookupSocialData } from "../lib/social-extract.js";
 import { computeAthleteHealth } from "../lib/athlete-health.js";
 import { aiRateLimits } from "../middleware/aiRateLimit.js";
+import { MAX_BULK_ATHLETES, exceedsBulkImportLimit } from "../lib/bulk-import-limit.js";
 import {
   GetAthleteParams,
   UpdateAthleteParams,
@@ -148,6 +149,15 @@ router.post("/athletes/discover", aiRateLimits.discover, async (req, res): Promi
 router.post("/athletes/bulk", aiRateLimits.bulk, async (req, res): Promise<void> => {
   if (!Array.isArray(req.body?.athletes)) {
     res.status(400).json({ error: "Expected { athletes: [...] }" });
+    return;
+  }
+
+  // Each row fires the full intelligence pipeline -- cap request size so
+  // one request can't multiply cost unboundedly. See bulk-import-limit.ts.
+  if (exceedsBulkImportLimit(req.body.athletes.length)) {
+    res.status(400).json({
+      error: `Bulk import is limited to ${MAX_BULK_ATHLETES} athletes per request during the private pilot. Received ${req.body.athletes.length} — please split this into smaller batches.`,
+    });
     return;
   }
 
