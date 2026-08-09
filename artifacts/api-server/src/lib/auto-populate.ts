@@ -17,9 +17,10 @@ import { openrouter } from "@workspace/integrations-openrouter-ai";
 import { db } from "@workspace/db";
 import { logger } from "./logger.js";
 import { fetchWikipediaPhoto } from "./photo-lookup.js";
-import { resolveSourceAttribution, sanitizeStandaloneDomain, isUsableContact } from "./source-validation.js";
+import { resolveSourceAttribution, adjustConfidenceByDomain } from "./source-validation.js";
 import { crossValidatePerformanceMarks } from "./performance-marks.js";
 import { runCompetitionsAgent } from "./competitions-agent.js";
+import { runContactsAgent } from "./contacts-agent.js";
 import {
   athletesTable,
   intelligenceItemsTable,
@@ -154,8 +155,7 @@ Rules:
 - sourceDomain must match the domain of the chosen sourceUrl, or be the most relevant real domain from the research if sourceUrl is null.
 - Dates must be ISO-8601 strings reflecting when events actually occurred.
 - Confidence scores: 85–97 for data from research, 65–80 for inferred data.
-- Categories: intelligence_items use one of: results_rankings | media_interviews | sponsorships | career_changes
-- Contact categories: management | coaching | medical | media | sponsorship`;
+- Categories: intelligence_items use one of: results_rankings | media_interviews | sponsorships | career_changes`;
 
 const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -209,25 +209,6 @@ Extract and structure the above into the following JSON object:
     // Distribute dates realistically: 2-3 items from ${currentYear - 10}–${currentYear - 7} (early career),
     // 3-4 items from ${currentYear - 6}–${currentYear - 4} (mid career), 3-5 items from ${currentYear - 3}–${currentYear} (recent).
     // Include a genuine mix: results, media coverage, sponsorships, career moves.
-  ],
-  "contacts": [
-    {
-      "role": <string, e.g. "Head Coach">,
-      "category": "coaching",
-      "name": <string>,
-      "org": <string>,
-      "orgType": <string or null>,
-      "status": "verified",
-      "confidence": <integer>,
-      "publicEmail": <string or null>,
-      "website": <string or null>,
-      "note": <string or null>,
-      "lastVerified": <YYYY-MM-DD>,
-      "dateDiscovered": <YYYY-MM-DD>,
-      "sourceDomain": <string>,
-      "sourceExcerpt": <string or null>
-    }
-    // 3-5 contacts: coach, manager/agent, and 1-2 others relevant to sport
   ]
 }
 `;
@@ -461,14 +442,16 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
     // Phase 1: Perplexity web research (general + dedicated career-timeline
     // query) + Wikipedia photo all run in parallel.
-    // CompetitionsAgent (M4) runs its own full research+extraction cycle
-    // independently — it's dispatched here so it overlaps with everything
-    // else rather than running after the main extraction call.
-    const [{ research, citations }, timelineResearch, avatarUrl, competitionRows] = await Promise.all([
+    // CompetitionsAgent (M4) and ContactsAgent (M5) each run their own full
+    // research+extraction cycle independently — dispatched here so they
+    // overlap with everything else rather than running after the main
+    // extraction call.
+    const [{ research, citations }, timelineResearch, avatarUrl, competitionRows, contactsResult] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
       researchCareerTimeline(athlete),
       fetchWikipediaPhoto(athlete.name, athlete.sport),
       runCompetitionsAgent(athlete),
+      runContactsAgent(athlete),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
@@ -491,7 +474,6 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
     const data = JSON.parse(raw) as {
       athlete_stats?: Record<string, unknown>;
       intelligence_items?: any[];
-      contacts?: any[];
     };
 
     // Phase 2b: dedicated career-timeline extraction, with its own citations.
@@ -608,44 +590,27 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       }
     }
 
-    // ── 4. Contacts ──────────────────────────────────────────────────────────
-    if (Array.isArray(data.contacts) && data.contacts.length > 0) {
-      const today = new Date().toISOString().split("T")[0];
-      // Drop contacts with no real identifying information — a category
-      // label with a blank or literal "Unknown" name/org is worse than no
-      // contact at all, since it renders as an empty-looking card in the UI.
-      const usableContacts = data.contacts.filter((c: any) => isUsableContact(c.name, c.org));
-      const droppedCount = data.contacts.length - usableContacts.length;
-      if (droppedCount > 0) {
-        logger.warn(
-          { athleteId: athlete.id, name: athlete.name, droppedCount },
-          "auto-populate: dropped contacts with blank or Unknown name/org",
-        );
-      }
-      const rows = usableContacts.map((c: any) => {
-        const sourceDomain = sanitizeStandaloneDomain(c.sourceDomain);
-        const baseConfidence = typeof c.confidence === "number" ? c.confidence : 80;
-        return {
-          athleteId: athlete.id,
-          role: String(c.role ?? "Unknown"),
-          category: c.category ?? "management",
-          name: String(c.name).trim(),
-          org: String(c.org).trim(),
-          orgType: c.orgType ? String(c.orgType) : null,
-          status: c.status ?? "verified",
-          confidence: adjustConfidenceByDomain(baseConfidence, sourceDomain, false),
-          publicEmail: c.publicEmail ? String(c.publicEmail) : null,
-          website: c.website ? String(c.website) : null,
-          note: c.note ? String(c.note) : null,
-          lastVerified: String(c.lastVerified ?? today),
-          dateDiscovered: String(c.dateDiscovered ?? today),
-          sourceDomain,
-          sourceExcerpt: c.sourceExcerpt ? String(c.sourceExcerpt) : null,
-        };
-      });
-      if (rows.length > 0) {
-        await db.insert(contactsTable).values(rows);
-      }
+    // ── 4. Contacts (from ContactsAgent — garbage already filtered, evidence
+    //      already cross-checked against real citations before this point) ──
+    if (contactsResult.contacts.length > 0) {
+      const rows = contactsResult.contacts.map((c) => ({
+        athleteId: athlete.id,
+        role: c.role,
+        category: c.category,
+        name: c.name,
+        org: c.org,
+        orgType: c.orgType,
+        status: c.status,
+        confidence: c.confidence,
+        publicEmail: c.publicEmail,
+        website: c.website,
+        note: c.note,
+        lastVerified: c.lastVerified,
+        dateDiscovered: c.dateDiscovered,
+        sourceDomain: c.sourceDomain,
+        sourceExcerpt: c.sourceExcerpt,
+      }));
+      await db.insert(contactsTable).values(rows);
     }
 
     // ── 5. Competitions (from CompetitionsAgent — generic meet names already
@@ -699,44 +664,10 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   }
 }
 
-// ── Domain-authority confidence adjuster ─────────────────────────────────────
-// Post-processes GPT-assigned confidence scores with a domain quality modifier.
-// Authoritative sports domains get a small boost; unknown/generic domains get a
-// small penalty. Applied to intelligence items before they are inserted.
-
-const HIGH_AUTHORITY_DOMAINS = new Set([
-  "worldathletics.org", "olympics.com", "uci.org", "fis-ski.com", "iaaf.org",
-  "worldrowing.com", "worldsailing.org", "fina.org", "worldarchery.org",
-  "redbull.com", "bbc.co.uk", "bbc.com", "reuters.com", "apnews.com",
-  "theguardian.com", "espn.com", "si.com", "athleticsweekly.com",
-  "insidethegames.biz", "cyclingnews.com", "velonews.com", "runnersworld.com",
-  "swimswam.com", "trackandfielddailynews.com", "lequipe.fr",
-]);
-
-const LOW_AUTHORITY_DOMAINS = new Set([
-  "unknown", "reddit.com", "twitter.com", "x.com", "facebook.com",
-  "instagram.com", "tiktok.com", "youtube.com", "wikipedia.org",
-]);
-
-export function adjustConfidenceByDomain(
-  confidence: number,
-  sourceDomain: string,
-  hasSourceUrl: boolean,
-): number {
-  const domain = sourceDomain.toLowerCase().replace(/^www\./, "");
-  let adjusted = confidence;
-
-  if (HIGH_AUTHORITY_DOMAINS.has(domain)) {
-    adjusted = Math.min(97, adjusted + 5); // authoritative source boost
-  } else if (LOW_AUTHORITY_DOMAINS.has(domain)) {
-    adjusted = Math.max(40, adjusted - 10); // low-authority penalty
-  }
-
-  // Items with no source URL lose 5 points — harder to verify
-  if (!hasSourceUrl) adjusted = Math.max(40, adjusted - 5);
-
-  return Math.round(adjusted);
-}
+// adjustConfidenceByDomain moved to source-validation.ts (M5) so agent
+// modules like contacts-agent.ts can use it without importing this file
+// and creating a circular dependency. Re-exported here for compatibility.
+export { adjustConfidenceByDomain };
 
 /**
  * Wipes all existing intelligence data for an athlete, resets their crawl

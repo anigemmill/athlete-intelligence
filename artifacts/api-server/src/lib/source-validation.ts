@@ -82,6 +82,29 @@ export function sanitizeStandaloneDomain(rawDomain: unknown): string {
   return domain;
 }
 
+/**
+ * Cross-checks a claimed domain against real citation hostnames for rows
+ * (like contacts) that have no URL field of their own to validate a
+ * sourceUrl against directly. Returns the sanitized domain only if it
+ * matches the hostname of one of the citations from that same research
+ * call; otherwise "unknown" — the same "no citation match, no source"
+ * posture as resolveSourceAttribution, adapted for domain-only evidence.
+ */
+export function resolveStandaloneDomain(
+  claimedDomain: unknown,
+  citations: readonly string[],
+): string {
+  const sanitized = sanitizeStandaloneDomain(claimedDomain);
+  if (sanitized === "unknown" || citations.length === 0) return "unknown";
+
+  const citationHosts = new Set(
+    citations
+      .map((c) => hostnameOf(c))
+      .filter((h): h is string => h !== null),
+  );
+  return citationHosts.has(sanitized) ? sanitized : "unknown";
+}
+
 /** True if a contact has enough real identifying information to be worth storing. */
 export function isUsableContact(name: unknown, org: unknown): boolean {
   const n = typeof name === "string" ? name.trim() : "";
@@ -89,4 +112,44 @@ export function isUsableContact(name: unknown, org: unknown): boolean {
   if (!n || /^unknown$/i.test(n)) return false;
   if (!o || /^unknown$/i.test(o)) return false;
   return true;
+}
+
+// ── Domain-authority confidence adjuster ─────────────────────────────────────
+// Post-processes GPT-assigned confidence scores with a domain quality modifier.
+// Authoritative sports domains get a small boost; unknown/generic domains get a
+// small penalty. Applied to intelligence items, timeline events, and contacts
+// before they are inserted.
+
+const HIGH_AUTHORITY_DOMAINS = new Set([
+  "worldathletics.org", "olympics.com", "uci.org", "fis-ski.com", "iaaf.org",
+  "worldrowing.com", "worldsailing.org", "fina.org", "worldarchery.org",
+  "redbull.com", "bbc.co.uk", "bbc.com", "reuters.com", "apnews.com",
+  "theguardian.com", "espn.com", "si.com", "athleticsweekly.com",
+  "insidethegames.biz", "cyclingnews.com", "velonews.com", "runnersworld.com",
+  "swimswam.com", "trackandfielddailynews.com", "lequipe.fr",
+]);
+
+const LOW_AUTHORITY_DOMAINS = new Set([
+  "unknown", "reddit.com", "twitter.com", "x.com", "facebook.com",
+  "instagram.com", "tiktok.com", "youtube.com", "wikipedia.org",
+]);
+
+export function adjustConfidenceByDomain(
+  confidence: number,
+  sourceDomain: string,
+  hasSourceUrl: boolean,
+): number {
+  const domain = sourceDomain.toLowerCase().replace(/^www\./, "");
+  let adjusted = confidence;
+
+  if (HIGH_AUTHORITY_DOMAINS.has(domain)) {
+    adjusted = Math.min(97, adjusted + 5); // authoritative source boost
+  } else if (LOW_AUTHORITY_DOMAINS.has(domain)) {
+    adjusted = Math.max(40, adjusted - 10); // low-authority penalty
+  }
+
+  // Items with no source URL lose 5 points — harder to verify
+  if (!hasSourceUrl) adjusted = Math.max(40, adjusted - 5);
+
+  return Math.round(adjusted);
 }
