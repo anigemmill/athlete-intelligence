@@ -19,6 +19,7 @@ import { logger } from "./logger.js";
 import { fetchWikipediaPhoto } from "./photo-lookup.js";
 import { resolveSourceAttribution, sanitizeStandaloneDomain, isUsableContact } from "./source-validation.js";
 import { crossValidatePerformanceMarks } from "./performance-marks.js";
+import { runCompetitionsAgent } from "./competitions-agent.js";
 import {
   athletesTable,
   intelligenceItemsTable,
@@ -154,8 +155,7 @@ Rules:
 - Dates must be ISO-8601 strings reflecting when events actually occurred.
 - Confidence scores: 85–97 for data from research, 65–80 for inferred data.
 - Categories: intelligence_items use one of: results_rankings | media_interviews | sponsorships | career_changes
-- Contact categories: management | coaching | medical | media | sponsorship
-- Competition tiers: A | B | C. Status: upcoming | completed`;
+- Contact categories: management | coaching | medical | media | sponsorship`;
 
 const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -228,27 +228,6 @@ Extract and structure the above into the following JSON object:
       "sourceExcerpt": <string or null>
     }
     // 3-5 contacts: coach, manager/agent, and 1-2 others relevant to sport
-  ],
-  "competitions": [
-    {
-      "meetName": <string>,
-      "event": <string>,
-      "location": <string or null>,
-      "date": <YYYY-MM-DD>,
-      "tier": "A",
-      "status": "completed",
-      "result": <string or null, e.g. "1st (9.87s)" or "3rd (147kg snatch)" or "DNF">
-    }
-    // IMPORTANT: Generate 20-30 competition entries spanning the athlete's FULL career.
-    // Start from their first notable season and work forward chronologically to ${today}.
-    // Include: early career meets, breakthrough competitions, major championships (Olympics, Worlds,
-    // continental championships), domestic competitions, and recent results up to ${today}.
-    // For completed competitions: always include a result string (position + performance, e.g. "2nd (1:44.81)").
-    // For upcoming (future dates only, i.e. after ${today}): set status "upcoming" and result null.
-    // Use realistic tiers: A = World Championships / Olympics / Diamond League finals,
-    //   B = Continental championships / national championships / major invitationals,
-    //   C = domestic / club / lower-tier meets.
-    // Spread results realistically: early career = lower placements, peak years = podiums/wins.
   ]
 }
 `;
@@ -482,10 +461,14 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
   try {
     // Phase 1: Perplexity web research (general + dedicated career-timeline
     // query) + Wikipedia photo all run in parallel.
-    const [{ research, citations }, timelineResearch, avatarUrl] = await Promise.all([
+    // CompetitionsAgent (M4) runs its own full research+extraction cycle
+    // independently — it's dispatched here so it overlaps with everything
+    // else rather than running after the main extraction call.
+    const [{ research, citations }, timelineResearch, avatarUrl, competitionRows] = await Promise.all([
       researchAthleteWithPerplexity(athlete),
       researchCareerTimeline(athlete),
       fetchWikipediaPhoto(athlete.name, athlete.sport),
+      runCompetitionsAgent(athlete),
     ]);
 
     // Phase 2: Structured JSON extraction — gpt-4o reads the real
@@ -509,7 +492,6 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       athlete_stats?: Record<string, unknown>;
       intelligence_items?: any[];
       contacts?: any[];
-      competitions?: any[];
     };
 
     // Phase 2b: dedicated career-timeline extraction, with its own citations.
@@ -666,18 +648,19 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
       }
     }
 
-    // ── 5. Competitions ──────────────────────────────────────────────────────
-    if (Array.isArray(data.competitions) && data.competitions.length > 0) {
-      const rows = data.competitions.map((comp: any) => ({
+    // ── 5. Competitions (from CompetitionsAgent — generic meet names already
+    //      filtered out before this point) ───────────────────────────────────
+    if (competitionRows.length > 0) {
+      const rows = competitionRows.map((comp) => ({
         athleteId: athlete.id,
         athleteName: athlete.name,
-        meetName: String(comp.meetName ?? ""),
-        event: String(comp.event ?? athlete.event ?? ""),
-        location: comp.location ? String(comp.location) : null,
-        date: String(comp.date ?? new Date().toISOString().split("T")[0]),
-        tier: comp.tier ?? "B",
-        status: comp.status ?? "upcoming",
-        result: comp.result ? String(comp.result) : null,
+        meetName: comp.meetName,
+        event: comp.event,
+        location: comp.location,
+        date: comp.date,
+        tier: comp.tier,
+        status: comp.status,
+        result: comp.result,
       }));
       await db.insert(competitionsTable).values(rows);
     }
