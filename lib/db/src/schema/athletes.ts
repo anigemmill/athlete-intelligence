@@ -24,12 +24,16 @@ export const athletesTable = pgTable("athletes", {
   personalBest: text("personal_best"),
   seasonBest: text("season_best"),
   instagramHandle: text("instagram_handle"),
-  instagramFollowers: integer("instagram_followers").notNull().default(0),
+  // Nullable: null means "not verified this run" (SocialMetricsAgent found
+  // no confirmed count), distinct from a genuine 0 followers. See M14 fix
+  // for the M13 audit's Problem #2 -- a NOT NULL DEFAULT 0 column cannot
+  // represent "unknown", so unverified counts were silently displayed as 0.
+  instagramFollowers: integer("instagram_followers"),
   instagramEngagement: real("instagram_engagement").notNull().default(0),
   twitterHandle: text("twitter_handle"),
-  twitterFollowers: integer("twitter_followers").notNull().default(0),
+  twitterFollowers: integer("twitter_followers"),
   tiktokHandle: text("tiktok_handle"),
-  tiktokFollowers: integer("tiktok_followers").notNull().default(0),
+  tiktokFollowers: integer("tiktok_followers"),
   followerGrowth30d: real("follower_growth_30d").notNull().default(0),
   avgEngagement: real("avg_engagement").notNull().default(0),
   agentStatus: text("agent_status").notNull().default("active"),

@@ -22,6 +22,7 @@ import {
 } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger.js";
+import { deriveCompetitionStatus } from "../lib/competition-status.js";
 
 const router: IRouter = Router();
 
@@ -244,7 +245,9 @@ async function executeTool(name: string, args: any): Promise<string> {
           .orderBy(desc(competitionsTable.date));
         return JSON.stringify(rows.map((r) => ({
           meetName: r.meetName, event: r.event, location: r.location,
-          date: r.date, tier: r.tier, status: r.status, result: r.result,
+          date: r.date, tier: r.tier,
+          status: r.status === "cancelled" ? r.status : deriveCompetitionStatus(r.date),
+          result: r.result,
         })));
       }
 

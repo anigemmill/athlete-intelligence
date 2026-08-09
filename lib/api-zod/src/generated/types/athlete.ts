@@ -26,14 +26,17 @@ export interface Athlete {
   seasonBest?: string | null;
   /** @nullable */
   instagramHandle?: string | null;
-  instagramFollowers?: number;
+  /** @nullable */
+  instagramFollowers?: number | null;
   instagramEngagement?: number;
   /** @nullable */
   twitterHandle?: string | null;
-  twitterFollowers?: number;
+  /** @nullable */
+  twitterFollowers?: number | null;
   /** @nullable */
   tiktokHandle?: string | null;
-  tiktokFollowers?: number;
+  /** @nullable */
+  tiktokFollowers?: number | null;
   followerGrowth30d?: number;
   avgEngagement?: number;
   agentStatus: string;

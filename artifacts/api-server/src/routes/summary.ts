@@ -21,6 +21,7 @@ import {
 } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger.js";
+import { deriveCompetitionStatus } from "../lib/competition-status.js";
 
 const router: IRouter = Router();
 
@@ -55,8 +56,13 @@ router.post("/athletes/:id/summary", async (req, res): Promise<void> => {
   const athlete = athleteRows[0];
   if (!athlete) { res.status(404).json({ error: "Athlete not found" }); return; }
 
-  const completedComps = compRows.filter((c) => c.status === "completed");
-  const upcomingComps = compRows.filter((c) => c.status === "upcoming");
+  // Derive effective status from each row's own date rather than trusting
+  // the stored value — see competition-status.ts. This route reads the raw
+  // table directly (not the /competitions API's toApiCompetition), so
+  // without this it could feed a stale "upcoming" label straight into the
+  // AI-generated narrative shown to users.
+  const completedComps = compRows.filter((c) => deriveCompetitionStatus(c.date) === "completed");
+  const upcomingComps = compRows.filter((c) => deriveCompetitionStatus(c.date) === "upcoming");
   const wins = completedComps.filter((c) => /^(1st|gold|win)/i.test(c.result ?? "")).length;
   const podiums = completedComps.filter((c) => /^(1st|2nd|3rd|gold|silver|bronze)/i.test(c.result ?? "")).length;
 

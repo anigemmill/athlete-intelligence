@@ -458,17 +458,17 @@ components:
         instagramHandle:
           type: ["string", "null"]
         instagramFollowers:
-          type: integer
+          type: ["integer", "null"]
         instagramEngagement:
           type: number
         twitterHandle:
           type: ["string", "null"]
         twitterFollowers:
-          type: integer
+          type: ["integer", "null"]
         tiktokHandle:
           type: ["string", "null"]
         tiktokFollowers:
-          type: integer
+          type: ["integer", "null"]
         followerGrowth30d:
           type: number
         avgEngagement:
@@ -512,6 +512,20 @@ components:
           type: string
         agentStatus:
           type: string
+        avatarUrl:
+          type: ["string", "null"]
+        instagramHandle:
+          type: ["string", "null"]
+        instagramFollowers:
+          type: ["integer", "null"]
+        twitterHandle:
+          type: ["string", "null"]
+        twitterFollowers:
+          type: ["integer", "null"]
+        tiktokHandle:
+          type: ["string", "null"]
+        tiktokFollowers:
+          type: ["integer", "null"]
 
     # ── Intelligence ──────────────────────────────────────────────────────────
 

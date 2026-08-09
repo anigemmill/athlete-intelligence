@@ -50,14 +50,17 @@ export interface Athlete {
   seasonBest?: string | null;
   /** @nullable */
   instagramHandle?: string | null;
-  instagramFollowers?: number;
+  /** @nullable */
+  instagramFollowers?: number | null;
   instagramEngagement?: number;
   /** @nullable */
   twitterHandle?: string | null;
-  twitterFollowers?: number;
+  /** @nullable */
+  twitterFollowers?: number | null;
   /** @nullable */
   tiktokHandle?: string | null;
-  tiktokFollowers?: number;
+  /** @nullable */
+  tiktokFollowers?: number | null;
   followerGrowth30d?: number;
   avgEngagement?: number;
   agentStatus: string;
@@ -94,6 +97,20 @@ export interface AthleteInput {
 export interface AthleteUpdate {
   squad?: string;
   agentStatus?: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  instagramHandle?: string | null;
+  /** @nullable */
+  instagramFollowers?: number | null;
+  /** @nullable */
+  twitterHandle?: string | null;
+  /** @nullable */
+  twitterFollowers?: number | null;
+  /** @nullable */
+  tiktokHandle?: string | null;
+  /** @nullable */
+  tiktokFollowers?: number | null;
 }
 
 export interface AlertConfig {

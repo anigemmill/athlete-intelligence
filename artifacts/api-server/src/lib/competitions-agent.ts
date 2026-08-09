@@ -23,6 +23,7 @@ import { callPerplexity } from "./perplexity-client.js";
 import { withAiConcurrencyLimit } from "./ai-concurrency.js";
 import { withRetry } from "./retry.js";
 import { isValidDate } from "./validation.js";
+import { deriveCompetitionStatus } from "./competition-status.js";
 import type { AthleteStub } from "./athlete-stub.js";
 
 export interface CompetitionRow {
@@ -96,8 +97,7 @@ Rules:
 - meetName MUST be the specific, real name of the competition — NEVER a generic placeholder like "Competition", "Event", "2024 Competition", or "Race". If you don't know the specific name, omit that entry entirely rather than inventing a vague one.
 - Dates must be ISO-8601 strings reflecting when the competition actually occurred (or will occur, for upcoming events).
 - Tier: A = World Championships / Olympics / Diamond League finals. B = continental/national championships / major invitationals. C = domestic/club/lower-tier meets.
-- Status: "upcoming" for future dates, "completed" for past dates.
-- For completed competitions, always include a result string when known (e.g. "2nd (1:44.81)", "DNF").`;
+- For any competition on or before today's date, always include a result string when known (e.g. "2nd (1:44.81)", "DNF"). Do not invent a result for a competition that is genuinely still in the future.`;
 
 const USER_PROMPT = (a: AthleteStub, research: string, citations: string[]): string => {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -126,7 +126,6 @@ Extract the competition history as JSON:
       "location": <string or null>,
       "date": <YYYY-MM-DD>,
       "tier": "A" | "B" | "C",
-      "status": "upcoming" | "completed",
       "result": <string or null>
     }
     // As many real, specific, dated competitions as the research genuinely supports,
@@ -186,7 +185,9 @@ export async function runCompetitionsAgent(athlete: AthleteStub): Promise<Compet
         location: comp.location ? String(comp.location) : null,
         date: comp.date,
         tier: comp.tier === "A" || comp.tier === "B" || comp.tier === "C" ? comp.tier : "B",
-        status: comp.status === "upcoming" ? "upcoming" : "completed",
+        // Deterministic from the date, never from the model's own claim —
+        // see competition-status.ts for why.
+        status: deriveCompetitionStatus(comp.date),
         result: comp.result ? String(comp.result) : null,
       });
     }

@@ -282,11 +282,11 @@ export default function DossierPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instagramHandle:   socialDraft.instagramHandle.trim() || null,
-          instagramFollowers: socialDraft.instagramFollowers ? Number(socialDraft.instagramFollowers.replace(/[^0-9]/g, "")) : 0,
+          instagramFollowers: socialDraft.instagramFollowers ? Number(socialDraft.instagramFollowers.replace(/[^0-9]/g, "")) : null,
           twitterHandle:     socialDraft.twitterHandle.trim() || null,
-          twitterFollowers:  socialDraft.twitterFollowers ? Number(socialDraft.twitterFollowers.replace(/[^0-9]/g, "")) : 0,
+          twitterFollowers:  socialDraft.twitterFollowers ? Number(socialDraft.twitterFollowers.replace(/[^0-9]/g, "")) : null,
           tiktokHandle:      socialDraft.tiktokHandle.trim() || null,
-          tiktokFollowers:   socialDraft.tiktokFollowers ? Number(socialDraft.tiktokFollowers.replace(/[^0-9]/g, "")) : 0,
+          tiktokFollowers:   socialDraft.tiktokFollowers ? Number(socialDraft.tiktokFollowers.replace(/[^0-9]/g, "")) : null,
         }),
       });
       setEditingSocial(false);
@@ -909,10 +909,12 @@ export default function DossierPage() {
                               <div key={p.label} className={i < platforms.length - 1 ? "pb-4" : ""} style={{ borderBottom: i < platforms.length - 1 ? `1px solid ${BDR_DIM}` : undefined }}>
                                 <div className="text-[12px] font-semibold mb-0.5" style={{ color: T92 }}>@{p.handle}</div>
                                 <div className="text-[11px] mb-1" style={{ color: T40 }}>{p.label}</div>
-                                {p.followers ? (
+                                {p.followers != null ? (
                                   <>
                                     <div className="text-[20px] font-bold" style={{ color: T92 }}>
-                                      {p.followers >= 1_000_000
+                                      {p.followers === 0
+                                        ? "0"
+                                        : p.followers >= 1_000_000
                                         ? `${(p.followers / 1_000_000).toFixed(1)}M`
                                         : `${(p.followers / 1000).toFixed(1)}K`}{" "}
                                       <span className="text-xs font-normal" style={{ color: T40 }}>followers</span>
@@ -920,7 +922,9 @@ export default function DossierPage() {
                                     <Sparkline data={p.sparkline} color={p.color} />
                                   </>
                                 ) : (
-                                  <button onClick={() => setEditingSocial(true)} className="text-[11px] transition-colors hover:text-white" style={{ color: T40 }}>Add follower count →</button>
+                                  <button onClick={() => setEditingSocial(true)} className="text-[11px] transition-colors hover:text-white" style={{ color: T40 }}>
+                                    Not verified — add follower count →
+                                  </button>
                                 )}
                               </div>
                             ))}

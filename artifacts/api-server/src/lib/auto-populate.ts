@@ -167,13 +167,16 @@ export async function autoPopulateAthlete(athlete: AthleteStub): Promise<void> {
         nationality: biography.nationality ?? undefined,
         // Handles: SocialProfilesAgent (M8). Follower counts:
         // SocialMetricsAgent (M9) — real X API for Twitter, handle-
-        // matched Perplexity fallback for Instagram/TikTok.
+        // matched Perplexity fallback for Instagram/TikTok. Written as
+        // whatever this run found -- a number if verified, null if not.
+        // Never coerced to 0: unknown must stay unknown (M14 fix for the
+        // M13 audit's Problem #2).
         instagramHandle: socialHandles.instagramHandle,
-        instagramFollowers: socialMetrics.instagramFollowers ?? undefined,
+        instagramFollowers: socialMetrics.instagramFollowers,
         twitterHandle: socialHandles.twitterHandle,
         tiktokHandle: socialHandles.tiktokHandle,
-        tiktokFollowers: socialMetrics.tiktokFollowers ?? undefined,
-        twitterFollowers: socialMetrics.twitterFollowers ?? undefined,
+        tiktokFollowers: socialMetrics.tiktokFollowers,
+        twitterFollowers: socialMetrics.twitterFollowers,
         // avatarUrl: PhotoAgent (M10) — federation-first, falls back to
         // the existing Wikipedia hierarchy. Not AI-generated.
         avatarUrl: avatarUrl ?? null,

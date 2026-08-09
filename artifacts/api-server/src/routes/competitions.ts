@@ -8,19 +8,20 @@ import {
   ListAthleteCompetitionsResponse,
 } from "@workspace/api-zod";
 import type { Competition } from "@workspace/db";
+import { deriveCompetitionStatus } from "../lib/competition-status.js";
 
 const router: IRouter = Router();
 
 function toApiCompetition(c: Competition) {
   const today = new Date().toISOString().split("T")[0];
 
-  // Auto-correct stale "upcoming" competitions: if the stored status is
-  // "upcoming" but the date is today or in the past, treat it as completed.
-  // This prevents February events (populated months ago) from still appearing
-  // in the upcoming schedule in August. The DB is not written to — this is a
-  // view-layer correction applied on every read.
+  // Auto-correct stale "upcoming" rows written before the competitions-agent.ts
+  // write-time fix (or that have simply aged past their date since the last
+  // crawl): the DB is not written to here — this is a view-layer correction
+  // applied on every read, using the same single source of truth every other
+  // consumer of competition status uses (competition-status.ts).
   const effectiveStatus =
-    c.status === "upcoming" && c.date <= today ? "completed" : c.status;
+    c.status === "cancelled" ? c.status : deriveCompetitionStatus(c.date, today);
 
   const daysAway =
     effectiveStatus === "upcoming"
