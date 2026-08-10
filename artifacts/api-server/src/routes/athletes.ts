@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { logger } from "../lib/logger.js";
@@ -31,6 +31,14 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// M7: every athlete must be attached to its creator's Clerk id at insert
+// time -- the foundation M8 scopes every read/write to. req.userId is
+// guaranteed set here: requireAuth runs ahead of this router for every
+// non-public route (routes/index.ts).
+function ownerIdOf(req: Request): string {
+  return (req as Request & { userId: string }).userId;
+}
 
 function toApiAthlete(a: Athlete) {
   return {
@@ -120,6 +128,7 @@ router.post("/athletes/discover", aiRateLimits.discover, async (req, res): Promi
   const [athlete] = await db
     .insert(athletesTable)
     .values({
+      ownerId: ownerIdOf(req),
       name,
       sport,
       event,
@@ -173,6 +182,7 @@ router.post("/athletes/bulk", aiRateLimits.bulk, async (req, res): Promise<void>
       const [athlete] = await db
         .insert(athletesTable)
         .values({
+          ownerId: ownerIdOf(req),
           name: parsed.data.name,
           sport: parsed.data.sport ?? "",
           event: parsed.data.event ?? "",
@@ -249,6 +259,7 @@ router.post("/athletes", aiRateLimits.create, async (req, res): Promise<void> =>
   const [athlete] = await db
     .insert(athletesTable)
     .values({
+      ownerId: ownerIdOf(req),
       name: parsed.data.name,
       sport: parsed.data.sport,
       event: parsed.data.event,

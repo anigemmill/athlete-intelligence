@@ -6,12 +6,20 @@ import {
   real,
   boolean,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const athletesTable = pgTable("athletes", {
   id: serial("id").primaryKey(),
+  // Clerk user id of the athlete's owner (creator). Not a local FK -- users
+  // live in Clerk, not in this database, matching how founderAccess.ts
+  // already treats Clerk identity as the source of truth. This is the M7
+  // multi-tenancy foundation: every athlete must belong to exactly one
+  // owner so M8 can scope every read/write to the caller. See
+  // docs/mvp-hardening-plan-m7-m12.md.
+  ownerId: text("owner_id").notNull(),
   name: text("name").notNull(),
   sport: text("sport").notNull(),
   event: text("event").notNull(),
@@ -50,7 +58,9 @@ export const athletesTable = pgTable("athletes", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("idx_athletes_owner_id").on(table.ownerId),
+]);
 
 export const insertAthleteSchema = createInsertSchema(athletesTable).omit({
   id: true,

@@ -23,7 +23,10 @@ async function main() {
   console.log(`[verify] inserting stub athlete: ${name}`);
   const [inserted] = await db
     .insert(athletesTable)
-    .values({ name, sport, event, nationality })
+    // Not a real authenticated request -- this is a CLI diagnostic tool, so
+    // it gets a recognizable fixed owner id rather than a real Clerk user
+    // id. See M7 (docs/mvp-hardening-plan-m7-m12.md): owner_id is NOT NULL.
+    .values({ ownerId: "live-pipeline-verify-script", name, sport, event, nationality })
     .returning();
 
   console.log(`[verify] athlete id=${inserted.id} — running live pipeline...`);
